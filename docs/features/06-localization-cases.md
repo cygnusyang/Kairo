@@ -17,7 +17,7 @@
 
 | ID | 用例 | 前置 | 步骤 / 判据 | 类型 | 工作项 |
 |---|---|---|---|---|---|
-| A-01 | 英文系统无中文残留（扫描） | 英文系统、构建产物 | `bash tools/i18n-compile.sh /tmp/kairo-lproj && bash tools/i18n-lint.sh --require-catalog --lproj-dir /tmp/kairo-lproj`（对 .app 产物则用 `--lproj-dir dist/Kairo.app/Contents/Resources`）；**期望** exit 0 且输出「(a) … 无新增」「(c) … 键与占位符一致」，**且** `grep -vc '^#' tools/i18n-whitelist.txt` == 0（当前 404 条 → 本版早期必红，属预期；F-0705 收口后 `--write-whitelist` 重写，头部变为「发布前本文件应为空」） | 自动 | F-0711 |
+| A-01 | 英文系统无中文残留（扫描） | 英文系统、构建产物 | `bash tools/i18n-compile.sh /tmp/kairo-lproj && bash tools/i18n-lint.sh --require-catalog --lproj-dir /tmp/kairo-lproj`（对 .app 产物则用 `--lproj-dir dist/Kairo.app/Contents/Resources`）；**期望** exit 0 且输出「(a) … 无新增」「(c) … 键与占位符一致」，**且** `grep -vc '^#' tools/i18n-whitelist.txt` == 0（基线随 F-0705 递减，**不写死数字**：核对当日实测 379 条、已清理 25 条；收口后跑 `--write-whitelist` 重写，头部变为「发布前本文件应为空」） | 自动 | F-0711 |
 | A-02 | 豁免清单不含应用自写文案 | 同上 | `grep -c 'AppDelegate.swift' tools/i18n-whitelist.txt` == 0，`grep -c 'UpdateSheet.swift'` == 0；**期望** 两数均为 0（当前 8 / 25 → 必红，用于驱动 F-0705 收口） | 自动 | F-0711、F-0705 |
 | A-03 | 八个界面英文目视归档 | 英文系统、.app | 逐界面截图存 `docs/archive/v0.9.0-i18n/`：主窗口/检查器/命令面板/菜单/状态栏/更新面板/退出确认/保存失败；**期望**：8 个文件存在，检查表 8 行全勾，任一格未勾即不通过 | 人工 | F-0705 |
 | A-04 | 中文语义与 v0.8.5 一致 | F-0701 键-文案对照表 | 以表为基线逐条 diff；**期望**：差异条目数 == `CHANGELOG` 变更说明条目数，且每条含键名 + 理由；无理由的差异视为回归 | 半自动 | F-0701、F-0710 |
