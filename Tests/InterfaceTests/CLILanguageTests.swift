@@ -7,10 +7,13 @@ import Glibc
 import Testing
 import KairoCore
 @testable import KairoCLI
-@testable import KairoMCP
 
 // F-0707 CLI 语言策略的验收用例。
 // 用例编号对应 docs/features/06-localization-cases.md 的 D 组与 G-01/G-02。
+//
+// 为什么注入输出出口而不是抓 fd：swift test 并行执行，fd 1 是进程级资源，别的用例
+// 同时 print 会混进捕获结果（措辞断言随之假红）。CLIRouter 的输出出口可注入，
+// 用例只拿本命令的输出，逐字节比较因此可依赖。
 
 // MARK: - 判据工具
 
@@ -27,8 +30,32 @@ private func makeScratch() throws -> (dir: URL, kairo: URL) {
     return (dir: dir, kairo: dir.appendingPathComponent("demo.kairo"))
 }
 
+/// 单条命令的人类输出收集器。
+private final class OutputCollector {
+    private(set) var lines: [String] = []
+    func emit(_ line: String) { lines.append(line) }
+    var text: String { lines.joined(separator: "\n") }
+}
+
+/// 以注入的语言来源与输出出口执行一条命令。
+@discardableResult
+private func runCLI(
+    _ arguments: [String],
+    environment: [String: String] = [:],
+    preferredLanguages: [String] = ["zh-Hans-CN"]
+) throws -> OutputCollector {
+    let collector = OutputCollector()
+    try CLIRouter.execute(
+        arguments: arguments,
+        environment: environment,
+        preferredLanguages: preferredLanguages,
+        emit: collector.emit
+    )
+    return collector
+}
+
 /// stderr 捕获（与 InterfaceTests.swift 的 captureStdout 同法：dup2 重定向 + 独立锁）。
-/// fd 2 同样是进程级资源，捕获窗口不得重叠，故单独一把锁。
+/// 只用于「错误提示确实落到 stderr」这一条，断言用 contains，与并行噪声相容。
 private let stderrCaptureLock = NSLock()
 
 private func captureStderr(_ body: () throws -> Void) throws -> String {
@@ -60,8 +87,8 @@ struct CLILanguageOptionTests {
     /// 建一个含单个 ASCII 标题任务的项目（标题是用户数据，不能用中文干扰「无中文」判据）。
     private func makeProject() throws -> (dir: URL, kairo: URL) {
         let scratch = try makeScratch()
-        try CLIRouter.execute(arguments: ["project", "create", "Lang Demo", "--file", scratch.kairo.path])
-        try CLIRouter.execute(arguments: ["task", "add", "Alpha", "--file", scratch.kairo.path])
+        try runCLI(["project", "create", "Lang Demo", "--file", scratch.kairo.path])
+        try runCLI(["task", "add", "Alpha", "--file", scratch.kairo.path])
         return scratch
     }
 
@@ -70,17 +97,13 @@ struct CLILanguageOptionTests {
         let scratch = try makeScratch()
         defer { try? FileManager.default.removeItem(at: scratch.dir) }
         let file = scratch.kairo.path
-        try CLIRouter.execute(arguments: ["project", "create", "Lang Demo", "--file", file])
+        try runCLI(["project", "create", "Lang Demo", "--file", file])
 
-        let en = try captureStdout {
-            try CLIRouter.execute(arguments: ["task", "add", "Alpha", "--lang", "en", "--file", file])
-        }
+        let en = try runCLI(["task", "add", "Alpha", "--lang", "en", "--file", file]).text
         #expect(!containsHan(en))
         #expect(en.hasPrefix("task created: "))
 
-        let zh = try captureStdout {
-            try CLIRouter.execute(arguments: ["task", "add", "Beta", "--lang", "zh-Hans", "--file", file])
-        }
+        let zh = try runCLI(["task", "add", "Beta", "--lang", "zh-Hans", "--file", file]).text
         #expect(zh.hasPrefix("已创建任务："))
     }
 
@@ -90,15 +113,9 @@ struct CLILanguageOptionTests {
         defer { try? FileManager.default.removeItem(at: scratch.dir) }
         let file = scratch.kairo.path
 
-        let after = try captureStdout {
-            try CLIRouter.execute(arguments: ["task", "list", "--lang", "en", "--file", file])
-        }
-        let before = try captureStdout {
-            try CLIRouter.execute(arguments: ["--lang", "en", "task", "list", "--file", file])
-        }
-        let equalsForm = try captureStdout {
-            try CLIRouter.execute(arguments: ["task", "list", "--lang=en", "--file", file])
-        }
+        let after = try runCLI(["task", "list", "--lang", "en", "--file", file]).text
+        let before = try runCLI(["--lang", "en", "task", "list", "--file", file]).text
+        let equalsForm = try runCLI(["task", "list", "--lang=en", "--file", file]).text
 
         #expect(after == before)
         #expect(after == equalsForm)
@@ -113,37 +130,23 @@ struct CLILanguageOptionTests {
         let file = scratch.kairo.path
         let args = ["task", "list", "--file", file]
 
-        let explicitEN = try captureStdout {
-            try CLIRouter.execute(arguments: ["task", "list", "--lang", "en", "--file", file])
-        }
-        let envEN = try captureStdout {
-            try CLIRouter.execute(
-                arguments: args,
-                environment: ["KAIRO_LANG": "en"],
-                preferredLanguages: ["zh-Hans-CN"]
-            )
-        }
+        let explicitEN = try runCLI(["task", "list", "--lang", "en", "--file", file]).text
+        let envEN = try runCLI(
+            args,
+            environment: ["KAIRO_LANG": "en"],
+            preferredLanguages: ["zh-Hans-CN"]
+        ).text
         #expect(envEN == explicitEN)
 
-        let systemZH = try captureStdout {
-            try CLIRouter.execute(arguments: args, environment: [:], preferredLanguages: ["zh-Hans-CN"])
-        }
+        let systemZH = try runCLI(args, environment: [:], preferredLanguages: ["zh-Hans-CN"]).text
         #expect(containsHan(systemZH))
 
         // G-02：非法环境变量不得让命令失败，输出与不设逐字节一致。
-        let badEnv = try captureStdout {
-            try CLIRouter.execute(
-                arguments: args,
-                environment: ["KAIRO_LANG": "xx"],
-                preferredLanguages: ["zh-Hans-CN"]
-            )
-        }
+        let badEnv = try runCLI(args, environment: ["KAIRO_LANG": "xx"], preferredLanguages: ["zh-Hans-CN"]).text
         #expect(badEnv == systemZH)
 
         // 系统语言不可判定（如法语）→ zh-Hans 兜底，不破坏既有中文脚本。
-        let unknownSystem = try captureStdout {
-            try CLIRouter.execute(arguments: args, environment: [:], preferredLanguages: ["fr-FR"])
-        }
+        let unknownSystem = try runCLI(args, environment: [:], preferredLanguages: ["fr-FR"]).text
         #expect(unknownSystem == systemZH)
     }
 
@@ -153,28 +156,20 @@ struct CLILanguageOptionTests {
         defer { try? FileManager.default.removeItem(at: scratch.dir) }
         let file = scratch.kairo.path
 
-        let flagEN = try captureStdout {
-            try CLIRouter.execute(arguments: ["task", "list", "--lang", "en", "--file", file])
-        }
-        let flagOverEnvironment = try captureStdout {
-            try CLIRouter.execute(
-                arguments: ["task", "list", "--lang", "en", "--file", file],
-                environment: ["KAIRO_LANG": "zh-Hans"],
-                preferredLanguages: ["zh-Hans-CN"]
-            )
-        }
+        let flagEN = try runCLI(["task", "list", "--lang", "en", "--file", file]).text
+        let flagOverEnvironment = try runCLI(
+            ["task", "list", "--lang", "en", "--file", file],
+            environment: ["KAIRO_LANG": "zh-Hans"],
+            preferredLanguages: ["zh-Hans-CN"]
+        ).text
         #expect(flagOverEnvironment == flagEN)
 
-        let zh = try captureStdout {
-            try CLIRouter.execute(arguments: ["task", "list", "--lang", "zh-Hans", "--file", file])
-        }
-        let flagOverEnglishEnvironment = try captureStdout {
-            try CLIRouter.execute(
-                arguments: ["task", "list", "--lang", "zh-Hans", "--file", file],
-                environment: ["KAIRO_LANG": "en"],
-                preferredLanguages: ["en-US"]
-            )
-        }
+        let zh = try runCLI(["task", "list", "--lang", "zh-Hans", "--file", file]).text
+        let flagOverEnglishEnvironment = try runCLI(
+            ["task", "list", "--lang", "zh-Hans", "--file", file],
+            environment: ["KAIRO_LANG": "en"],
+            preferredLanguages: ["en-US"]
+        ).text
         #expect(flagOverEnglishEnvironment == zh)
     }
 
@@ -184,21 +179,19 @@ struct CLILanguageOptionTests {
         defer { try? FileManager.default.removeItem(at: scratch.dir) }
         let file = scratch.kairo.path
 
-        var outputs: [String] = []
         let settings: [(arguments: [String], environment: [String: String], preferred: [String])] = [
             (["task", "list", "--json", "--lang", "en", "--file", file], [:], ["zh-Hans-CN"]),
             (["task", "list", "--json", "--lang", "zh-Hans", "--file", file], [:], ["en-US"]),
             (["task", "list", "--json", "--file", file], ["KAIRO_LANG": "en"], ["zh-Hans-CN"]),
             (["task", "list", "--json", "--file", file], [:], ["zh-Hans-CN"]),
         ]
+        var outputs: [String] = []
         for setting in settings {
-            outputs.append(try captureStdout {
-                try CLIRouter.execute(
-                    arguments: setting.arguments,
-                    environment: setting.environment,
-                    preferredLanguages: setting.preferred
-                )
-            })
+            outputs.append(try runCLI(
+                setting.arguments,
+                environment: setting.environment,
+                preferredLanguages: setting.preferred
+            ).text)
         }
         #expect(Set(outputs).count == 1)
         #expect(outputs[0].contains("\"title\":\"Alpha\""))
@@ -210,7 +203,7 @@ struct CLILanguageOptionTests {
         let scratch = try makeScratch()
         defer { try? FileManager.default.removeItem(at: scratch.dir) }
         let file = scratch.kairo.path
-        try CLIRouter.execute(arguments: ["project", "create", "Codes", "--file", file])
+        try runCLI(["project", "create", "Codes", "--file", file])
 
         let success = CLIRouter.run(
             arguments: ["violations", "--lang", language, "--file", file],
@@ -249,8 +242,8 @@ struct CLILanguageOptionTests {
         #expect(code == 2)
 
         do {
-            try CLIRouter.execute(
-                arguments: ["project", "create", "Nope", "--lang", raw, "--file", file],
+            try runCLI(
+                ["project", "create", "Nope", "--lang", raw, "--file", file],
                 environment: [:],
                 preferredLanguages: ["zh-Hans-CN"]
             )

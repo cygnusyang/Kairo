@@ -41,7 +41,7 @@ struct CLIRouter {
         do {
             let (rest, explicit) = try GlobalOptions.extract(arguments)
             if let explicit { language = explicit }
-            try dispatch(rest, language: language)
+            try dispatch(rest, language: language, emit: { print($0) })
             return 0
         } catch let error as UsageError {
             stderr(language.strings.usagePrefix(error.message))
@@ -65,18 +65,27 @@ struct CLIRouter {
         )
     }
 
-    /// 可注入语言来源的执行入口（测试用）。
-    static func execute(arguments: [String], environment: [String: String], preferredLanguages: [String]) throws {
+    /// 可注入语言来源与输出出口的执行入口（接口测试用）。
+    static func execute(
+        arguments: [String],
+        environment: [String: String],
+        preferredLanguages: [String],
+        emit: @escaping (String) -> Void = { print($0) }
+    ) throws {
         let (rest, explicit) = try GlobalOptions.extract(arguments)
         let language = explicit ?? CLILanguage.fromEnvironmentOrSystem(
             environment: environment,
             preferredLanguages: preferredLanguages
         )
-        try dispatch(rest, language: language)
+        try dispatch(rest, language: language, emit: emit)
     }
 
     /// 子命令分发（全局选项已摘除）。
-    private static func dispatch(_ arguments: [String], language: CLILanguage) throws {
+    private static func dispatch(
+        _ arguments: [String],
+        language: CLILanguage,
+        emit: @escaping (String) -> Void
+    ) throws {
         let (group, rest) = subcommand(arguments, from: "kairo")
         // 组级命令直接带选项（如 \`kairo violations --file x.kairo\`）：下一 token 以 -- 开头即视为无子命令。
         let (command, args): (String, [String])
@@ -86,7 +95,7 @@ struct CLIRouter {
         } else {
             (command, args) = subcommand(rest, from: group)
         }
-        let options = Options(args, language: language)
+        let options = Options(args, language: language, emit: emit)
         switch (group, command) {
         case ("project", "create"): try projectCreate(options)
         case ("project", "open"): try projectOpen(options)
@@ -125,9 +134,9 @@ struct CLIRouter {
         let meta = try session.createProject(title: title, projectStart: start, projectEnd: end)
         let url = fileURL(o.value(for: "--file"))
         _ = try session.saveProject(to: url)
-        print(s.projectCreated(id: shortID(meta.id), title: meta.title))
-        print(s.saved(path: url.path))
-        print(formatVersionLine(written: KairoFile.currentFormatVersion, upgradedFrom: nil, language: o.language))
+        o.emit(s.projectCreated(id: shortID(meta.id), title: meta.title))
+        o.emit(s.saved(path: url.path))
+        o.emit(formatVersionLine(written: KairoFile.currentFormatVersion, upgradedFrom: nil, language: o.language))
     }
 
     /// kairo project open <路径>：打开并打印项目元数据。
@@ -136,10 +145,10 @@ struct CLIRouter {
         let path = try o.operand(0, name: s.operandFilePath)
         let session = KairoSession()
         let meta = try session.openProject(at: URL(fileURLWithPath: path))
-        print(s.projectLine(meta.title))
-        print(s.projectIDLine(meta.id.uuidString))
-        print(s.taskCountLine(session.project?.tasks.count ?? 0))
-        print(sourceVersionLine(
+        o.emit(s.projectLine(meta.title))
+        o.emit(s.projectIDLine(meta.id.uuidString))
+        o.emit(s.taskCountLine(session.project?.tasks.count ?? 0))
+        o.emit(sourceVersionLine(
             source: session.sourceFormatVersion ?? KairoFile.currentFormatVersion,
             current: KairoFile.currentFormatVersion,
             language: o.language
@@ -154,9 +163,9 @@ struct CLIRouter {
         // 保存会把来源版本置为 current，必须先捕获（FR-KAIRO-FMT-6）。
         let upgradedFrom = session.sourceFormatVersion
         let meta = try session.saveProject()
-        print(s.saved(path: session.projectURL?.path ?? ""))
-        print(s.updatedAt(ISO8601DateFormatter().string(from: meta.updatedAt)))
-        print(formatVersionLine(
+        o.emit(s.saved(path: session.projectURL?.path ?? ""))
+        o.emit(s.updatedAt(ISO8601DateFormatter().string(from: meta.updatedAt)))
+        o.emit(formatVersionLine(
             written: KairoFile.currentFormatVersion,
             upgradedFrom: upgradedFrom,
             language: o.language
@@ -223,7 +232,7 @@ struct CLIRouter {
             assignee: assignee
         )
         try session.saveProject()
-        print(s.taskCreated(id: shortID(id), title: title))
+        o.emit(s.taskCreated(id: shortID(id), title: title))
     }
 
     /// kairo task list [--parent <UUID>] [--filter <文本>] [--json] [--file <路径>]。
@@ -238,9 +247,9 @@ struct CLIRouter {
         let tasks = try session.listTasks(parentID: parentID, filter: filter)
         if o.flag("--json") {
             // --json 与语言无关（D-04）：只编码数据，不经过文案表。
-            print(try CLIOutput.taskListJSON(tasks))
+            o.emit(try CLIOutput.taskListJSON(tasks))
         } else {
-            for task in tasks { print(taskListLine(task, strings: s)) }
+            for task in tasks { o.emit(taskListLine(task, strings: s)) }
         }
     }
 
@@ -253,7 +262,7 @@ struct CLIRouter {
         guard let project = session.project else { return }
         let id = try resolveTaskID(rawID, in: session, strings: s)
         let task = try session.getTask(id: id)
-        print(taskDetail(task, project: project, strings: s))
+        o.emit(taskDetail(task, project: project, strings: s))
     }
 
     /// kairo task update <ID> [--title/--kind/--parent/--effort/--duration/--notes/--priority/--status/--progress/--tags/--assignee]。
@@ -307,7 +316,7 @@ struct CLIRouter {
             assignee: assignee
         )
         try session.saveProject()
-        print(s.taskUpdated(id: shortID(task.id), title: task.title))
+        o.emit(s.taskUpdated(id: shortID(task.id), title: task.title))
     }
 
     /// kairo task delete <ID> [--file <路径>]：删除任务及其全部子任务。
@@ -320,9 +329,9 @@ struct CLIRouter {
         let removed = try session.deleteTaskCascade(id: id)
         try session.saveProject()
         if removed > 1 {
-            print(s.taskDeletedWithSubtasks(id: shortID(id), subtasks: removed - 1))
+            o.emit(s.taskDeletedWithSubtasks(id: shortID(id), subtasks: removed - 1))
         } else {
-            print(s.taskDeleted(id: shortID(id)))
+            o.emit(s.taskDeleted(id: shortID(id)))
         }
     }
 
@@ -350,10 +359,10 @@ struct CLIRouter {
         }
         let result = try session.importWBS(nodes: nodes, parentID: parentID)
         try session.saveProject()
-        print(s.importedTasks(result.total))
+        o.emit(s.importedTasks(result.total))
         for id in result.rootIDs {
             let task = try session.getTask(id: id)
-            print("  \(shortID(id)) \(task.title)")
+            o.emit("  \(shortID(id)) \(task.title)")
         }
     }
 
@@ -368,11 +377,11 @@ struct CLIRouter {
         _ = try session.openProject(at: fileURL(o.value(for: "--file")))
         let result = try session.computeSchedule(projectStart: start, projectEnd: end)
         let byID = session.project?.tasksByID ?? [:]
-        print(s.scheduleComputed(result.tasks.count))
+        o.emit(s.scheduleComputed(result.tasks.count))
         for t in result.tasks {
             let task = byID[t.taskID]
             let policy = task?.schedulingPolicy ?? .asap
-            print(s.scheduleLine(
+            o.emit(s.scheduleLine(
                 id: shortID(t.taskID),
                 title: task?.title ?? s.unknownTask,
                 start: formatDate(t.scheduledStart),
@@ -392,10 +401,10 @@ struct CLIRouter {
         let entries = try session.criticalPath(slackLimit: limit)
         let byID = session.project?.tasksByID ?? [:]
         let criticalCount = entries.filter(\.isCritical).count
-        print(s.criticalPathHeader(count: criticalCount, slackLimit: formatNumber(limit ?? 0)))
+        o.emit(s.criticalPathHeader(count: criticalCount, slackLimit: formatNumber(limit ?? 0)))
         for e in entries {
             let mark = e.isCritical ? " *" : ""
-            print(s.criticalPathLine(
+            o.emit(s.criticalPathLine(
                 id: shortID(e.taskID),
                 title: byID[e.taskID]?.title ?? s.unknownTask,
                 mark: mark,
@@ -414,13 +423,13 @@ struct CLIRouter {
         _ = try session.openProject(at: fileURL(o.value(for: "--file")))
         let vs = try session.violations()
         if vs.isEmpty {
-            print(s.noViolations)
+            o.emit(s.noViolations)
             return
         }
-        print(s.violationCount(vs.count))
+        o.emit(s.violationCount(vs.count))
         for v in vs {
             // 码用稳定错误码（与语言无关）；文案由 reason 的语义与参数渲染。
-            print(s.violationLine(
+            o.emit(s.violationLine(
                 severity: s.severityLabel(v.severity),
                 code: v.code.rawValue,
                 text: s.violationText(v)
@@ -441,17 +450,17 @@ struct CLIRouter {
         let id = try resolveTaskID(rawID, in: session, strings: s)
         let task = try session.statusUpdate(id: id, status: status, progress: progress)
         try session.saveProject()
-        print(s.statusWritten(
+        o.emit(s.statusWritten(
             id: shortID(task.id),
             title: task.title,
             status: s.statusLabel(task.status),
             progress: Int(task.progress * 100)
         ))
         if let completed = task.completedAt {
-            print(s.completedAt(formatDate(completed)))
+            o.emit(s.completedAt(formatDate(completed)))
         }
         let group = try session.groupProgress(id: id)
-        print(s.groupProgress(Int(group * 100)))
+        o.emit(s.groupProgress(Int(group * 100)))
     }
 
     /// kairo status batch <JSON 文件> [--file <路径>]：批量回写，JSON 为
@@ -510,11 +519,11 @@ struct CLIRouter {
         for item in pending {
             guard let entry = entriesByIndex[item.index] else {
                 failed += 1
-                print(s.batchEntryFailed(label: item.label, reason: item.error ?? s.unknownError))
+                o.emit(s.batchEntryFailed(label: item.label, reason: item.error ?? s.unknownError))
                 continue
             }
             if entry.ok, let task = entry.task {
-                print(s.statusWritten(
+                o.emit(s.statusWritten(
                     id: shortID(task.id),
                     title: task.title,
                     status: s.statusLabel(task.status),
@@ -522,13 +531,13 @@ struct CLIRouter {
                 ))
             } else {
                 failed += 1
-                print(s.batchEntryFailed(
+                o.emit(s.batchEntryFailed(
                     label: shortID(entry.taskID),
                     reason: entry.error ?? s.unknownError
                 ))
             }
         }
-        print(s.batchSummary(succeeded: items.count - failed, failed: failed))
+        o.emit(s.batchSummary(succeeded: items.count - failed, failed: failed))
         if failed > 0 {
             // 逐条失败已打印，这里抛一条汇总错误让退出码为 1；无更贴切的稳定码，按兜底。
             throw SessionError(code: .invalidArgument, reason: .internalError, message: s.batchFailures(failed))
@@ -548,7 +557,7 @@ struct CLIRouter {
         try openForEdit(session, o)
         let id = try session.resourceAdd(name: name, kind: kind, units: units, efficiency: efficiency)
         try session.saveProject()
-        print(s.resourceAdded(
+        o.emit(s.resourceAdded(
             id: shortID(id),
             name: name,
             kind: s.resourceKindLabel(kind),
@@ -564,7 +573,7 @@ struct CLIRouter {
         _ = try session.openProject(at: fileURL(o.value(for: "--file")))
         let resources = try session.resourceList()
         for r in resources {
-            print(s.resourceLine(
+            o.emit(s.resourceLine(
                 id: shortID(r.id),
                 name: r.name,
                 kind: s.resourceKindLabel(r.kind),

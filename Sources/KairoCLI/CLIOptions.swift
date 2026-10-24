@@ -5,10 +5,17 @@ struct Options {
     var items: [String]
     /// 人类输出的语言（`--lang` > `KAIRO_LANG` > 系统 > zh-Hans）；由路由在分发前注入。
     var language: CLILanguage
+    /// 人类输出出口（默认写 stdout）。接口测试注入收集器，避免抓 fd 与并行用例互相污染。
+    var emit: (String) -> Void
 
-    init(_ args: [String], language: CLILanguage = .current) {
+    init(
+        _ args: [String],
+        language: CLILanguage = .current,
+        emit: @escaping (String) -> Void = { print($0) }
+    ) {
         items = args
         self.language = language
+        self.emit = emit
     }
 
     /// 本命令的文案表。
