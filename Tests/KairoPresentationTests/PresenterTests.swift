@@ -3,6 +3,9 @@ import Testing
 import KairoCore
 import KairoPresentation
 
+/// 夹具项目名（用户数据，不翻译）：一处定义，避免断言与构造两处字面量漂移。
+private let fixtureProjectTitle = "演示项目"
+
 // MARK: - 行对齐与聚合
 
 @Test func rowsAndBarsShareIndexAndOrder() throws {
@@ -384,7 +387,7 @@ import KairoPresentation
 @Test func inspectorFallsBackWhenSelectionMissing() {
     let projectStart = makeDate(2025, 1, 1)
     let tasks = [TaskItem(title: "A", startDate: projectStart, durationDays: 1)]
-    let state = makeState(tasks, title: "演示项目", projectStart: projectStart)
+    let state = makeState(tasks, title: fixtureProjectTitle, projectStart: projectStart)
     let now = projectStart
     let schedule = makeSchedule(tasks, projectStart: projectStart, now: now)
     var viewState = WorkspaceViewState()
@@ -395,7 +398,7 @@ import KairoPresentation
         Issue.record("选择缺失时应回项目页")
         return
     }
-    #expect(project.title == "演示项目")
+    #expect(project.title == fixtureProjectTitle)
     #expect(snapshot.inspector.selectionMissing)
 }
 
