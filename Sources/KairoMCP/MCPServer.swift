@@ -162,13 +162,25 @@ final class MCPServer {
     }
 
     private func encode(_ response: JSONRPCResponse) -> String? {
-        guard let data = try? JSONEncoder().encode(response) else { return nil }
+        guard let data = try? makeEncoder().encode(response) else { return nil }
         return String(data: data, encoding: .utf8)
     }
 
     private func encodeText(_ value: JSONValue) throws -> String {
-        let data = try JSONEncoder().encode(value)
+        let data = try makeEncoder().encode(value)
         return String(data: data, encoding: .utf8) ?? "{}"
+    }
+
+    /// 统一的响应编码器：键序固定为字典序。
+    ///
+    /// 为什么必须排序：`JSONValue` 用 Swift `Dictionary` 承载对象，遍历顺序随进程种子变化，
+    /// 同一请求两次运行的字节可能不同——「任意 LANG 下输出逐字节一致」无法成立，
+    /// 日志 diff 与首轮提示词缓存也会无谓抖动。`.sortedKeys` 作用在 keyed container 的
+    /// 输出阶段，字典插入顺序被覆盖，`JSONValue.encode` 无需改动。
+    private func makeEncoder() -> JSONEncoder {
+        let encoder = JSONEncoder()
+        encoder.outputFormatting = [.sortedKeys]
+        return encoder
     }
 
     /// 从无法反序列化的文本里尽力取出 id（parse error 响应用）。
