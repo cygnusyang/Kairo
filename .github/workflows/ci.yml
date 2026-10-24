@@ -57,6 +57,9 @@ jobs:
             bash tools/i18n-lint.sh --skip-catalog
           fi
 
+      - name: 自测 · 多语言门禁自身（用例只增不减）
+        run: bash tools/i18n-lint-selftest.sh
+
   linux:
     name: test · Linux（核心与接口层）
     runs-on: ubuntu-latest
