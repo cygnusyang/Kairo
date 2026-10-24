@@ -260,7 +260,7 @@ import KairoPresentation
     let state = makeState(tasks, projectStart: projectStart)
     let now = makeDate(2025, 1, 10)
     let schedule = makeSchedule(tasks, projectStart: projectStart, now: now)
-    let violations = [Violation(code: "cycle", message: "成环", taskID: a.id)]
+    let violations = [Violation(reason: .cycle(taskTitle: "A"), taskID: a.id)]
     let summary = ProjectSummary(
         tasks: tasks,
         schedule: schedule,
@@ -319,7 +319,13 @@ import KairoPresentation
     let now = projectStart
     let schedule = makeSchedule(tasks, projectStart: projectStart, now: now)
     let violations = [
-        Violation(code: "constraint_is_dependency", message: "冲突", taskID: child.id, severity: .warning)
+        Violation(
+            reason: .constraintConflict(
+                taskTitle: "设计", kind: .endNoEarlierThan, conflict: .windowDoesNotFit
+            ),
+            taskID: child.id,
+            severity: .warning
+        )
     ]
     var viewState = WorkspaceViewState()
     viewState.expandedTaskIDs = [group.id]
@@ -400,8 +406,8 @@ import KairoPresentation
     let state = makeState([a, b], projectStart: now)
     let schedule = makeSchedule([a, b], projectStart: now, now: now)
     let violations = [
-        Violation(code: "cycle", message: "A 成环", taskID: a.id, severity: .error),
-        Violation(code: "unknown_rule", message: "B 提示", taskID: b.id, severity: .warning)
+        Violation(reason: .cycle(taskTitle: "A"), taskID: a.id, severity: .error),
+        Violation(reason: .negativeSlack(taskTitle: nil), taskID: b.id, severity: .warning)
     ]
     var viewState = WorkspaceViewState()
     viewState.inspectorTab = .violations
@@ -420,9 +426,14 @@ import KairoPresentation
     #expect(inspector.errorCount == 1)
     #expect(inspector.warningCount == 1)
     #expect(inspector.groups.map(\.severity) == [.error, .warning])
-    #expect(inspector.groups[0].items[0].name == "相关性环")
+    // F-0704：条目只带码与语义，规则名与原因文案由视图按 Catalog 渲染。
+    #expect(inspector.groups[0].items[0].code == .scheduleCycle)
+    #expect(inspector.groups[0].items[0].reason == .cycle(taskTitle: "A"))
     #expect(inspector.groups[0].items[0].taskTitle == "A")
-    #expect(inspector.groups[1].items[0].name == "unknown_rule")
+    #expect(inspector.groups[1].items[0].code == .negativeSlack)
+    // 核心层不再写「未知任务」：reason 的 taskTitle 为 nil，快照用项目数据兜底。
+    #expect(inspector.groups[1].items[0].reason == .negativeSlack(taskTitle: nil))
+    #expect(inspector.groups[1].items[0].taskTitle == "B")
     #expect(inspector.checkedRules.count == ViolationEngine.ruleCategories.count)
 }
 
@@ -469,7 +480,7 @@ import KairoPresentation
     #expect(first.generatedAt == now)
 }
 
-@Test func statusBarZoomLabelReflectsPreference() {
+@Test func statusBarZoomPresetReflectsPreference() {
     let projectStart = makeDate(2025, 1, 1)
     let tasks = [TaskItem(title: "A", startDate: projectStart, durationDays: 1)]
     let state = makeState(tasks, projectStart: projectStart)
@@ -480,7 +491,8 @@ import KairoPresentation
     viewState.usesFitZoom = false
     viewState.zoom = .day
     let snapshot = makeSnapshot(state: state, schedule: schedule, viewState: viewState, now: now)
-    #expect(snapshot.statusBar.zoomLabel == "日")
+    #expect(snapshot.statusBar.zoom.preset == .day)
+    #expect(snapshot.statusBar.zoom.pointsPerDay == GanttZoom.day.dayWidth)
     #expect(snapshot.gantt.dayWidth == GanttZoom.day.dayWidth)
 }
 

@@ -5,9 +5,9 @@ import KairoPresentation
 
 // F-14-19 大纲「开始 / 结束」日期列的策略纯函数单测（设计稿 §4「策略纯函数」行）。
 //
-// 视图不判语义：OutlineTable.swift:569-579 的三处查询（isEnabled / disabledReason /
+// 视图不判语义：OutlineTable / InspectorView 的三处查询（isEnabled / availability /
 // minimumDate）全部落到 `OutlineDateEditing`，因此「群组 / 里程碑 / 无排期」三类禁用
-// 与「结束 = 起点次日」下限只能在这里锁定。
+// 与「结束 = 起点次日」下限只能在这里锁定。禁用原因是语义枚举（F-0704），不再是中文串。
 //
 // 日历与日期全部注入（固定 UTC / Europe-Berlin 时区）：不读系统时区、不读当前时间。
 
@@ -116,7 +116,7 @@ struct OutlineDateEditingTests {
         let row = scheduledTaskRow()
 
         #expect(OutlineDateEditing.isEnabled(column: .start, row: row))
-        #expect(OutlineDateEditing.disabledReason(column: .start, row: row) == nil)
+        #expect(OutlineDateEditing.availability(column: .start, row: row) == .editable)
         #expect(OutlineDateEditing.minimumDate(column: .start, row: row, calendar: utc) == nil)
     }
 
@@ -125,7 +125,7 @@ struct OutlineDateEditingTests {
         let row = milestoneRow()
 
         #expect(OutlineDateEditing.isEnabled(column: .start, row: row))
-        #expect(OutlineDateEditing.disabledReason(column: .start, row: row) == nil)
+        #expect(OutlineDateEditing.availability(column: .start, row: row) == .editable)
     }
 
     /// 无排期仍可编辑开始：清除意图值即回落自动排期（设计 §2）。
@@ -134,16 +134,17 @@ struct OutlineDateEditingTests {
         #expect(row.scheduledStart == nil)
 
         #expect(OutlineDateEditing.isEnabled(column: .start, row: row))
-        #expect(OutlineDateEditing.disabledReason(column: .start, row: row) == nil)
+        #expect(OutlineDateEditing.availability(column: .start, row: row) == .editable)
         #expect(OutlineDateEditing.minimumDate(column: .start, row: row, calendar: utc) == nil)
     }
 
     @Test func startColumnIsDisabledForGroupRow() throws {
         let row = groupRow()
-        let reason = try #require(OutlineDateEditing.disabledReason(column: .start, row: row))
+        let availability = OutlineDateEditing.availability(column: .start, row: row)
 
         #expect(!OutlineDateEditing.isEnabled(column: .start, row: row))
-        #expect(!reason.isEmpty, "禁用必须给出面向用户的非空原因（不静默无反应）")
+        // F-0704：原因是语义枚举，不再是非空中文串；文案由视图按原因渲染。
+        #expect(availability.disabledReason == .aggregate)
         #expect(OutlineDateEditing.minimumDate(column: .start, row: row, calendar: utc) == nil)
     }
 
@@ -154,7 +155,7 @@ struct OutlineDateEditingTests {
         let start = makeDay(2025, 10, 20)
 
         #expect(OutlineDateEditing.isEnabled(column: .finish, row: row))
-        #expect(OutlineDateEditing.disabledReason(column: .finish, row: row) == nil)
+        #expect(OutlineDateEditing.availability(column: .finish, row: row) == .editable)
 
         let minimum = OutlineDateEditing.minimumDate(column: .finish, row: row, calendar: utc)
         #expect(minimum == makeDay(2025, 10, 21), "普通任务最小可选结束日 = 起点次日零点")
@@ -200,12 +201,12 @@ struct OutlineDateEditingTests {
 
     @Test func finishColumnIsDisabledForMilestone() {
         let row = milestoneRow()
-        let reason = OutlineDateEditing.disabledReason(column: .finish, row: row)
+        let reason = OutlineDateEditing.availability(column: .finish, row: row).disabledReason
 
         #expect(!OutlineDateEditing.isEnabled(column: .finish, row: row))
-        #expect(reason?.isEmpty == false)
-        #expect(reason != OutlineDateEditing.disabledReason(column: .start, row: groupRow()),
-                "里程碑禁用文案与群组禁用文案应可区分")
+        #expect(reason == .milestone)
+        #expect(reason != OutlineDateEditing.availability(column: .start, row: groupRow()).disabledReason,
+                "里程碑禁用原因与群组禁用原因应可区分")
         // 里程碑行本身已禁用；下限口径仍与 ScheduleDateMath 一致（起点当日），保证预览行不撒谎。
         #expect(OutlineDateEditing.minimumDate(column: .finish, row: row, calendar: utc)
                 == makeDay(2025, 10, 20))
@@ -213,11 +214,11 @@ struct OutlineDateEditingTests {
 
     @Test func finishColumnIsDisabledForGroupRow() {
         let row = groupRow()
-        let reason = OutlineDateEditing.disabledReason(column: .finish, row: row)
+        let reason = OutlineDateEditing.availability(column: .finish, row: row).disabledReason
 
         #expect(!OutlineDateEditing.isEnabled(column: .finish, row: row))
-        #expect(reason?.isEmpty == false)
-        #expect(reason == OutlineDateEditing.disabledReason(column: .start, row: row),
+        #expect(reason == .aggregate)
+        #expect(reason == OutlineDateEditing.availability(column: .start, row: row).disabledReason,
                 "群组的开始/结束共用同一聚合禁用规则")
     }
 
@@ -231,20 +232,20 @@ struct OutlineDateEditingTests {
             hasSchedule: true
         )
 
-        #expect(OutlineDateEditing.disabledReason(column: .finish, row: row)
-                == OutlineDateEditing.disabledReason(column: .finish, row: groupRow()))
-        #expect(OutlineDateEditing.disabledReason(column: .finish, row: row)
-                != OutlineDateEditing.disabledReason(column: .finish, row: milestoneRow()))
+        #expect(OutlineDateEditing.availability(column: .finish, row: row)
+                == OutlineDateEditing.availability(column: .finish, row: groupRow()))
+        #expect(OutlineDateEditing.availability(column: .finish, row: row)
+                != OutlineDateEditing.availability(column: .finish, row: milestoneRow()))
     }
 
     @Test func finishColumnIsDisabledWhenScheduledStartIsNil() {
         let row = unscheduledTaskRow()
-        let reason = OutlineDateEditing.disabledReason(column: .finish, row: row)
+        let reason = OutlineDateEditing.availability(column: .finish, row: row).disabledReason
 
         #expect(!OutlineDateEditing.isEnabled(column: .finish, row: row))
-        #expect(reason?.isEmpty == false)
-        #expect(reason != OutlineDateEditing.disabledReason(column: .finish, row: milestoneRow()),
-                "无排期禁用文案与里程碑禁用文案应可区分")
+        #expect(reason == .unscheduled(nil))
+        #expect(reason != OutlineDateEditing.availability(column: .finish, row: milestoneRow()).disabledReason,
+                "无排期禁用原因与里程碑禁用原因应可区分")
         #expect(OutlineDateEditing.minimumDate(column: .finish, row: row, calendar: utc) == nil,
                 "无起点即无下限（弹层不限制任何日期）")
     }
@@ -257,28 +258,28 @@ struct OutlineDateEditingTests {
         )
 
         #expect(!OutlineDateEditing.isEnabled(column: .finish, row: row))
-        #expect(OutlineDateEditing.disabledReason(column: .finish, row: row)?.isEmpty == false)
+        #expect(OutlineDateEditing.availability(column: .finish, row: row).disabledReason != nil)
     }
 
-    // MARK: - 禁用文案与检查器同源
+    // MARK: - 禁用原因与检查器同源
 
-    /// 三条禁用文案与检查器「结束」行逐字一致（`InspectorView.finishDisabledReason`）：
-    /// 同一行在大纲与检查器必须给出同一句解释。
-    @Test func finishDisabledReasonMatchesInspectorWording() {
-        #expect(OutlineDateEditing.disabledReason(column: .finish, row: groupRow())
-                == "群组字段由子任务聚合，只读")
-        #expect(OutlineDateEditing.disabledReason(column: .finish, row: milestoneRow())
-                == "里程碑无持续时间")
-        #expect(OutlineDateEditing.disabledReason(column: .finish, row: unscheduledTaskRow())
-                == "无排期，无法设置结束")
+    /// 三条禁用原因与检查器「结束」行同语义（`InspectorView` 也读同一枚举）：
+    /// 同一行在大纲与检查器必须给出同一条解释，渲染层用同一组 Catalog 键。
+    @Test func finishDisabledReasonsAreSemanticAndDistinct() {
+        #expect(OutlineDateEditing.availability(column: .finish, row: groupRow()).disabledReason
+                == .aggregate)
+        #expect(OutlineDateEditing.availability(column: .finish, row: milestoneRow()).disabledReason
+                == .milestone)
+        #expect(OutlineDateEditing.availability(column: .finish, row: unscheduledTaskRow()).disabledReason
+                == .unscheduled(nil))
     }
 
-    /// 快照带无排期原因时附在括号里（术语与 `Display.unscheduledReason` 一致）：
+    /// 快照带无排期原因时一并透传（术语与视图层 unscheduledReason 同源）：
     /// 用户据此知道该先修什么，而不是只知道「设不了结束」。
-    @Test func unscheduledReasonAppendsSnapshotCause() {
+    @Test func unscheduledReasonCarriesSnapshotCause() {
         let cycle = makeRow(unscheduledReason: .cycle)
-        #expect(OutlineDateEditing.disabledReason(column: .finish, row: cycle)
-                == "无排期（依赖环），无法设置结束")
+        #expect(OutlineDateEditing.availability(column: .finish, row: cycle).disabledReason
+                == .unscheduled(.cycle))
     }
 
     // MARK: - canClear（「清除」只见于带意图起点的开始列）
@@ -367,7 +368,7 @@ struct OutlineDateEditingTests {
                     OutlineDateEditing.isEnabled(column: column, row: row),
                     "\(column) 列不应被日期策略拦截"
                 )
-                #expect(OutlineDateEditing.disabledReason(column: column, row: row) == nil)
+                #expect(OutlineDateEditing.availability(column: column, row: row) == .editable)
                 #expect(OutlineDateEditing.minimumDate(column: column, row: row, calendar: utc) == nil)
             }
         }
@@ -380,8 +381,9 @@ struct OutlineDateEditingTests {
 
         for row in rows {
             let enabled = OutlineDateEditing.isEnabled(column: column, row: row)
-            let reason = OutlineDateEditing.disabledReason(column: column, row: row)
-            #expect(enabled == (reason == nil), "\(column) 列的启用态与原因态不一致")
+            let availability = OutlineDateEditing.availability(column: column, row: row)
+            #expect(enabled == (availability == .editable), "\(column) 列的启用态与可编辑态不一致")
+            #expect(enabled == availability.isEditable)
         }
     }
 

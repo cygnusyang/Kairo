@@ -160,27 +160,31 @@ public struct TaskInspector: Hashable, Sendable {
     }
 }
 
-/// 违例页条目。
+/// 违例页条目（F-0704）：只带码 + 语义 + 参数，标题与原因文案由视图按 Catalog 渲染。
+///
+/// name / message 两个中文整句字段已删除——快照跨 UI / CLI / MCP 复用，
+/// 携带文案会把接口层的语言策略绑死在呈现层（ADR-013）。
 public struct ViolationItem: Identifiable, Hashable, Sendable {
-    public var id: String { "\(code)-\(taskID?.uuidString ?? "project")-\(message)" }
-    public var code: String
-    public var name: String
-    public var message: String
+    /// 同一任务可能出多条同码违例（如「结束不早于」同时触发两条冲突），
+    /// 故 ID 带上 reason 的全部参数，不能只用码。
+    public var id: String {
+        "\(code.rawValue)-\(taskID?.uuidString ?? "project")-\(String(describing: reason))"
+    }
+    public var code: KairoErrorCode
+    public var reason: ViolationReason
     public var severity: Violation.Severity
     public var taskID: UUID?
     public var taskTitle: String?
 
     public init(
-        code: String,
-        name: String,
-        message: String,
+        code: KairoErrorCode,
+        reason: ViolationReason,
         severity: Violation.Severity,
         taskID: UUID? = nil,
         taskTitle: String? = nil
     ) {
         self.code = code
-        self.name = name
-        self.message = message
+        self.reason = reason
         self.severity = severity
         self.taskID = taskID
         self.taskTitle = taskTitle

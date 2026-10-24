@@ -109,7 +109,7 @@ struct ProjectSummaryTests {
         let summary = ProjectSummary(
             tasks: [TaskItem(title: "A")],
             schedule: nil,
-            violations: [Violation(code: "cycle", message: "环")],
+            violations: [Violation(reason: .cycle(taskTitle: "A"))],
             now: now,
             calendar: utc
         )
@@ -147,7 +147,7 @@ struct ProjectSummaryTests {
         let warning = ProjectSummary(
             tasks: [TaskItem(title: "A")],
             schedule: nil,
-            violations: [Violation(code: "x", message: "提示", severity: .warning)],
+            violations: [Violation(reason: .negativeSlack(taskTitle: "A"), severity: .warning)],
             now: now,
             calendar: utc
         )

@@ -133,9 +133,9 @@ struct OutlineTreeTests {
     @Test func groupCountsSubtreeViolations() {
         let f = Fixture()
         let violations = [
-            Violation(code: "x", message: "A", taskID: f.a.id, severity: .warning),
-            Violation(code: "y", message: "B", taskID: f.b.id, severity: .error),
-            Violation(code: "z", message: "C", taskID: f.c.id, severity: .error)
+            Violation(reason: .cycle(taskTitle: "A"), taskID: f.a.id, severity: .warning),
+            Violation(reason: .negativeSlack(taskTitle: "B"), taskID: f.b.id, severity: .error),
+            Violation(reason: .taskAfterProjectEnd(taskTitle: "C"), taskID: f.c.id, severity: .error)
         ]
 
         let tree = OutlineTree(

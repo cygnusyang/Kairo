@@ -331,35 +331,36 @@ struct DayWidthTests {
 
     // MARK: - 状态栏文案
 
-    @Test func statusBarReportsZoomLabelAndDetail() {
+    @Test func statusBarReportsZoomPresetAndDetail() {
         let fixture = DayWidthFixture()
 
+        // F-0704：快照只带语义档位与数值日宽，文案（「自定义」「20 点/天」）留给视图。
         let custom = makeDayWidthSnapshot(fixture, customDayWidth: 20).statusBar
-        #expect(custom.zoomLabel == "自定义")
-        #expect(custom.zoomDetail == "20 点/天")
+        #expect(custom.zoom.preset == .custom)
+        #expect(custom.zoom.pointsPerDay == 20)
 
         let fractional = makeDayWidthSnapshot(fixture, customDayWidth: 12.5).statusBar
-        #expect(fractional.zoomLabel == "自定义")
-        #expect(fractional.zoomDetail == "12.5 点/天")
+        #expect(fractional.zoom.preset == .custom)
+        #expect(fractional.zoom.pointsPerDay == 12.5)
 
         let preset = makeDayWidthSnapshot(fixture, customDayWidth: nil, zoom: .day).statusBar
-        #expect(preset.zoomLabel == "日")
-        #expect(preset.zoomDetail == "32 点/天")
+        #expect(preset.zoom.preset == .day)
+        #expect(preset.zoom.pointsPerDay == GanttZoom.day.dayWidth)
 
         let fit = makeDayWidthSnapshot(
             fixture, customDayWidth: nil, usesFitZoom: true, canvasWidth: 760
         ).statusBar
-        #expect(fit.zoomLabel == "适合项目")
-        #expect(fit.zoomDetail?.hasSuffix("点/天") == true)
+        #expect(fit.zoom.preset == .fit)
+        #expect(fit.zoom.pointsPerDay != nil)
     }
 
-    @Test func customDayWidthTakesPriorityInZoomLabel() {
+    @Test func customDayWidthTakesPriorityInZoomPreset() {
         let fixture = DayWidthFixture()
-        // fit 与自定义同时为真时，标签报「自定义」。
+        // fit 与自定义同时为真时，档位报自定义。
         let statusBar = makeDayWidthSnapshot(
             fixture, customDayWidth: 20, usesFitZoom: true, canvasWidth: 760
         ).statusBar
-        #expect(statusBar.zoomLabel == "自定义")
+        #expect(statusBar.zoom.preset == .custom)
     }
 
     // MARK: - 未启用自定义 ⇒ 与改动前一致（A7）

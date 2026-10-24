@@ -12,7 +12,7 @@ import KairoPresentation
 // - A3 自定义与「适合项目」互斥（呈现层可观测部分：自定义优先、fit 宽度）。
 // - A4 越界日宽夹取到 [2, 120]；不得出现 0 / 负数 / NaN / ±∞。
 // - A5 极小日宽（2 点/天）刻度与标签数量受控、窗口天数受控、标签槽位不重叠。
-// - A6 状态栏反映档位（zoomLabel）与实际日宽（zoomDetail）。
+// - A6 状态栏反映档位（zoom.preset）与实际日宽（zoom.pointsPerDay）。
 // - A7 刻度粒度契约（**行为契约，不是快照自比**）：
 //   · `customDayWidth == nil` ⇒ 核心实际使用的刻度粒度 == `viewState.zoom`（预设粒度未被改写）；
 //   · `usesFitZoom == true` 且 `custom == nil` ⇒ `tickGranularity == viewState.zoom`
@@ -103,11 +103,9 @@ private func isMultiple(of width: Double, _ value: Double) -> Bool {
     return abs(value - width * (value / width).rounded()) < 1e-6
 }
 
-/// 解析状态栏日宽读数（如 "20 点/天" → 20.0）。
-private func dayWidthNumber(_ detail: String?) -> Double? {
-    guard let detail, !detail.isEmpty else { return nil }
-    let head = detail.split(separator: " ").first.map(String.init) ?? detail
-    return Double(head)
+/// 状态栏日宽读数（快照只带数值，格式化在视图层）。
+private func dayWidthNumber(_ pointsPerDay: Double?) -> Double? {
+    pointsPerDay
 }
 
 /// 窗口天数（半开窗口 `[start, end)`）。
@@ -654,17 +652,17 @@ struct DayWidthAcceptanceTests {
 
     // MARK: A6 状态栏文案
 
-    /// A6：状态栏同时反映当前档位（zoomLabel）与实际日宽（zoomDetail）。
-    @Test func statusBarReportsZoomLabelAndActualDayWidth() throws {
+    /// A6：状态栏同时反映当前档位（zoom.preset）与实际日宽（zoom.pointsPerDay）。
+    @Test func statusBarReportsZoomPresetAndActualDayWidth() throws {
         let fixture = DayWidthFixture()
 
         let custom = makeDayWidthSnapshot(fixture: fixture, customDayWidth: 20).statusBar
-        #expect(custom.zoomLabel == "自定义")
-        #expect(custom.zoomDetail == "20 点/天")
+        #expect(custom.zoom.preset == .custom)
+        #expect(custom.zoom.pointsPerDay == 20)
 
         let fractional = makeDayWidthSnapshot(fixture: fixture, customDayWidth: 12.5).statusBar
-        #expect(fractional.zoomLabel == "自定义")
-        #expect(fractional.zoomDetail == "12.5 点/天")
+        #expect(fractional.zoom.preset == .custom)
+        #expect(fractional.zoom.pointsPerDay == 12.5)
 
         let preset = makeDayWidthSnapshot(
             fixture: fixture,
@@ -672,8 +670,8 @@ struct DayWidthAcceptanceTests {
             zoom: .day,
             usesFitZoom: false
         ).statusBar
-        #expect(preset.zoomLabel == "日")
-        #expect(dayWidthNumber(preset.zoomDetail) == 32)
+        #expect(preset.zoom.preset == .day)
+        #expect(dayWidthNumber(preset.zoom.pointsPerDay) == 32)
 
         let fitGantt = makeDayWidthSnapshot(
             fixture: fixture,
@@ -689,9 +687,9 @@ struct DayWidthAcceptanceTests {
             usesFitZoom: true,
             canvasWidth: 760
         ).statusBar
-        #expect(fit.zoomLabel == "适合项目")
-        let detail = try #require(dayWidthNumber(fit.zoomDetail))
-        #expect(abs(detail - fitGantt.dayWidth) < 0.051, "fit 日宽读数 \(detail) 与实际 \(fitGantt.dayWidth) 不符")
+        #expect(fit.zoom.preset == .fit)
+        let detail = try #require(dayWidthNumber(fit.zoom.pointsPerDay))
+        #expect(detail == fitGantt.dayWidth, "fit 日宽读数 \(detail) 与实际 \(fitGantt.dayWidth) 不符")
     }
 
     // MARK: A7 刻度粒度契约（行为契约，非快照自比）

@@ -98,6 +98,8 @@ struct ScheduleAnchorEngineTests {
 
         #expect(codes.contains("cycle"))
         #expect(codes.contains("constraint_window_too_narrow"))
-        #expect(ViolationEngine.ruleCategories.allSatisfy { !$0.name.isEmpty })
+        // F-0704：规则名不再随核心层下发（名字由视图按 violation.rule.<code> 查 Catalog）。
+        #expect(ViolationEngine.ruleCategories.count == 7)
+        #expect(ViolationEngine.ruleCategories.allSatisfy { $0.severity == .error })
     }
 }

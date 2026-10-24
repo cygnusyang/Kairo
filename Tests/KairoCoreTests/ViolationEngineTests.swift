@@ -42,7 +42,7 @@ private func violations(_ result: ScheduleResult, _ tasks: [TaskItem]) -> [Viola
     ViolationEngine.check(result: result, tasks: tasks, calendar: utc)
 }
 
-private func codes(_ violations: [Violation]) -> Set<String> {
+private func codes(_ violations: [Violation]) -> Set<KairoErrorCode> {
     Set(violations.map(\.code))
 }
 
@@ -56,7 +56,7 @@ struct CycleViolationTests {
         let a = task("A", id: aID, deps: [TaskDependency(predecessorID: bID)])
         let result = compute([a, b])
         let vs = violations(result, [a, b])
-        let cycle = vs.filter { $0.code == "cycle" }
+        let cycle = vs.filter { $0.code == .scheduleCycle }
         #expect(cycle.count == 2)
         #expect(cycle.contains { $0.taskID == aID })
         #expect(cycle.contains { $0.taskID == bID })
@@ -66,7 +66,7 @@ struct CycleViolationTests {
         let a = task("A", duration: 2)
         let b = task("B", duration: 2, deps: [TaskDependency(predecessorID: a.id)])
         let result = compute([a, b])
-        #expect(!codes(violations(result, [a, b])).contains("cycle"))
+        #expect(!codes(violations(result, [a, b])).contains(.scheduleCycle))
     }
 }
 
@@ -77,26 +77,26 @@ struct ProjectBoundaryViolationTests {
         let t = task("长任务", duration: 5)
         let result = compute([t], end: day(2026, 11, 5)) // 项目结束 D0+3
         let vs = violations(result, [t])
-        #expect(codes(vs).contains("task_ends_after_project_end"))
+        #expect(codes(vs).contains(.taskAfterProjectEnd))
     }
 
     @Test func taskInsideProjectEndHasNoBoundaryViolation() throws {
         let t = task("短任务", duration: 2)
         let result = compute([t], end: day(2026, 11, 16))
-        #expect(!codes(violations(result, [t])).contains("task_ends_after_project_end"))
+        #expect(!codes(violations(result, [t])).contains(.taskAfterProjectEnd))
     }
 
     @Test func alapTaskStartBeforeProjectStartReportsViolation() throws {
         let t = task("长任务", duration: 5, policy: .alap)
         let result = compute([t], end: day(2026, 11, 4)) // 项目窗口 D0..D0+2，装不下 5 天任务
         let vs = violations(result, [t])
-        #expect(codes(vs).contains("task_starts_before_project_start"))
+        #expect(codes(vs).contains(.taskBeforeProjectStart))
     }
 
     @Test func asapTaskAtProjectStartHasNoEarlyViolation() throws {
         let t = task("任务", duration: 2)
         let result = compute([t])
-        #expect(!codes(violations(result, [t])).contains("task_starts_before_project_start"))
+        #expect(!codes(violations(result, [t])).contains(.taskBeforeProjectStart))
     }
 }
 
@@ -110,14 +110,14 @@ struct NegativeSlackViolationTests {
         // 前驱把 B 推到 D0+2..D0+4，但「结束不晚于 D0+3」压缩最晚窗口 → 负宽延。
         let result = compute([pred, t])
         let vs = violations(result, [pred, t])
-        #expect(codes(vs).contains("cannot_schedule_asap_alap"))
+        #expect(codes(vs).contains(.negativeSlack))
     }
 
     @Test func positiveSlackHasNoCannotSchedule() throws {
         let pred = task("前驱", duration: 2)
         let t = task("后继", duration: 2, deps: [TaskDependency(predecessorID: pred.id)])
         let result = compute([pred, t], end: day(2026, 11, 16))
-        #expect(!codes(violations(result, [pred, t])).contains("cannot_schedule_asap_alap"))
+        #expect(!codes(violations(result, [pred, t])).contains(.negativeSlack))
     }
 }
 
@@ -131,7 +131,7 @@ struct ConstraintIsPrerequisiteTests {
         // 前驱使最早开始 = D0+4 > 时限 D0+3。
         let result = compute([pred, t])
         let vs = violations(result, [pred, t])
-        #expect(codes(vs).contains("constraint_is_prerequisite"))
+        #expect(codes(vs).contains(.constraintVsPrerequisite))
     }
 
     @Test func startNoLaterThanSatisfiedHasNoViolation() throws {
@@ -139,7 +139,7 @@ struct ConstraintIsPrerequisiteTests {
         let t = task("受时限任务", duration: 2, deps: [TaskDependency(predecessorID: pred.id)],
                      constraint: .startNoLaterThan(day(2026, 11, 16)))
         let result = compute([pred, t])
-        #expect(!codes(violations(result, [pred, t])).contains("constraint_is_prerequisite"))
+        #expect(!codes(violations(result, [pred, t])).contains(.constraintVsPrerequisite))
     }
 }
 
@@ -152,14 +152,14 @@ struct ConstraintIsDependencyTests {
         // 项目结束 D0+8 → 最晚开始 D0+6 < 时限 D0+14。
         let result = compute([t], end: day(2026, 11, 10))
         let vs = violations(result, [t])
-        #expect(codes(vs).contains("constraint_is_dependency"))
+        #expect(codes(vs).contains(.constraintVsDependency))
     }
 
     @Test func startNoEarlierThanWithinWindowHasNoViolation() throws {
         let t = task("受时限任务", duration: 2,
                      constraint: .startNoEarlierThan(day(2026, 11, 4)))
         let result = compute([t], end: day(2026, 11, 10))
-        #expect(!codes(violations(result, [t])).contains("constraint_is_dependency"))
+        #expect(!codes(violations(result, [t])).contains(.constraintVsDependency))
     }
 }
 
@@ -172,14 +172,14 @@ struct ConstraintConflictsDependencyTests {
         // 时限 D0+2 + 持续 5 = D0+7 > 最晚结束 D0+6（项目结束）。
         let result = compute([t], end: day(2026, 11, 8))
         let vs = violations(result, [t])
-        #expect(codes(vs).contains("constraint_is_dependency"))
+        #expect(codes(vs).contains(.constraintVsDependency))
     }
 
     @Test func startNoLaterThanWithRoomHasNoViolation() throws {
         let t = task("受时限任务", duration: 2,
                      constraint: .startNoLaterThan(day(2026, 11, 10)))
         let result = compute([t], end: day(2026, 11, 20))
-        #expect(!codes(violations(result, [t])).contains("constraint_is_dependency"))
+        #expect(!codes(violations(result, [t])).contains(.constraintVsDependency))
     }
 }
 
@@ -192,14 +192,14 @@ struct ConstraintWindowTests {
         var withEnd = t
         withEnd.dueDate = day(2026, 11, 4)  // 窗口 2 天 < 持续 5 天
         let result = compute([withEnd], end: day(2026, 11, 20))
-        #expect(codes(violations(result, [withEnd])).contains("constraint_window_too_narrow"))
+        #expect(codes(violations(result, [withEnd])).contains(.constraintWindowTooNarrow))
     }
 
     @Test func singleSidedConstraintHasNoWindowViolation() throws {
         let t = task("单时限任务", duration: 5,
                      constraint: .startNoLaterThan(day(2026, 11, 4)))
         let result = compute([t], end: day(2026, 11, 20))
-        #expect(!codes(violations(result, [t])).contains("constraint_window_too_narrow"))
+        #expect(!codes(violations(result, [t])).contains(.constraintWindowTooNarrow))
     }
 }
 

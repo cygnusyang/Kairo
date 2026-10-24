@@ -329,8 +329,10 @@ public enum WorkspacePresenter {
             todayVisible: gantt.todayX != nil,
             hiddenTaskCount: tree.hiddenByCollapseCount + tree.hiddenByFilterCount,
             selectionSummary: viewState.selectedTaskID.flatMap { byID[$0]?.title },
-            zoomLabel: zoomLabel(viewState),
-            zoomDetail: zoomDetail(dayWidth: gantt.dayWidth)
+            zoom: ZoomIndicator(
+                preset: zoomPreset(viewState),
+                pointsPerDay: Self.renderableDayWidth(gantt.dayWidth)
+            )
         )
 
         return WorkspaceSnapshot(
@@ -716,17 +718,14 @@ public enum WorkspacePresenter {
         _ violations: [Violation],
         byID: [UUID: TaskItem]
     ) -> ViolationInspector {
-        let categories = Dictionary(
-            uniqueKeysWithValues: ViolationEngine.ruleCategories.map { ($0.code, $0) }
-        )
         let items = violations.map { violation in
             ViolationItem(
                 code: violation.code,
-                name: categories[violation.code]?.name ?? violation.code,
-                message: violation.message,
+                reason: violation.reason,
                 severity: violation.severity,
                 taskID: violation.taskID,
-                taskTitle: violation.taskID.flatMap { byID[$0]?.title }
+                taskTitle: violation.reason.taskTitle
+                    ?? violation.taskID.flatMap { byID[$0]?.title }
             )
         }
         var groups: [ViolationInspector.Group] = []
@@ -756,28 +755,26 @@ public enum WorkspacePresenter {
             .map { CompletedTask(id: $0.id, title: $0.title, completedAt: $0.completedAt!) }
     }
 
-    private static func zoomLabel(_ viewState: WorkspaceViewState) -> String {
-        // 自定义优先：自定义日宽生效时不再显示任何预设档位。
-        if viewState.customDayWidth != nil { return "自定义" }
-        if viewState.usesFitZoom { return "适合项目" }
+    /// 缩放档位（F-0704）：只回语义档位，档位名由视图按 statusbar.zoom.<rawValue> 渲染。
+    ///
+    /// 自定义优先：自定义日宽生效时不再显示任何预设档位（与「适合项目」同真时亦然）。
+    static func zoomPreset(_ viewState: WorkspaceViewState) -> ZoomPreset {
+        if viewState.customDayWidth != nil { return .custom }
+        if viewState.usesFitZoom { return .fit }
         switch viewState.zoom {
-        case .day: return "日"
-        case .week: return "周"
-        case .month: return "月"
+        case .day: return .day
+        case .week: return .week
+        case .month: return .month
         }
     }
 
-    /// 实际日宽读数：整数不带小数位（"12 点/天"），非整数保留 1 位（"12.5 点/天"）。
+    /// 快照可承载的日宽读数。
     ///
-    /// 非有限值（NaN / ±∞）与超出 `Int` 范围的值返回占位符 "—"：
-    /// `Int(_:)` 对这些值会 trap，不能直接转换。
-    public static func zoomDetail(dayWidth: Double) -> String {
-        guard dayWidth.isFinite else { return "—" }
-        let value = (dayWidth * 10).rounded() / 10
-        if value == value.rounded(), value.magnitude <= 1e15 {
-            return "\(Int(value)) 点/天"
-        }
-        return "\(String(format: "%.1f", value)) 点/天"
+    /// 非有限值（NaN / ±∞）与超出可表示范围的值返回 nil，由视图出占位符——
+    /// 原实现直接在核心侧格式化成 "—"，那是文案，不属于快照（ADR-013）。
+    static func renderableDayWidth(_ dayWidth: Double) -> Double? {
+        guard dayWidth.isFinite, dayWidth.magnitude <= 1e15 else { return nil }
+        return dayWidth
     }
 
     /// 前置任务摘要：`1:fs`，带延隔时 `1:fs+1.5`，多项逗号分隔（US-E4-01-C4 以大纲编号展示）。
@@ -791,10 +788,24 @@ public enum WorkspacePresenter {
                 ?? String(dep.predecessorID.uuidString.prefix(4).uppercased())
             var text = "\(number):\(dep.type.rawValue)"
             if dep.lagDays != 0 {
-                text += "+\(dep.lagDays.formatted())"
+                text += "+\(contractDecimal(dep.lagDays))"
             }
             return text
         }
         .joined(separator: ", ")
+    }
+
+    /// 契约格式的数字（前置延隔天数）：与 Locale 无关的定点输出。
+    ///
+    /// 旧实现用 Double.formatted()，小数点随系统 Locale 变化（1.5 / 1,5），
+    /// 而该字符串进快照、被 AppTests 逐字断言——属契约格式，必须钉死。
+    /// 整数值不带小数位（+2），非整数保留 1 位（+1.5 / +-1.5 沿用既有拼接）。
+    static func contractDecimal(_ value: Double) -> String {
+        guard value.isFinite else { return String(value) }
+        let rounded = (value * 10).rounded() / 10
+        if rounded == rounded.rounded(), rounded.magnitude <= 1e15 {
+            return String(Int(rounded))
+        }
+        return String(format: "%.1f", rounded)
     }
 }
