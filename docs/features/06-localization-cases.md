@@ -44,7 +44,7 @@
 
 | ID | 用例 | 前置 | 步骤 / 判据 | 类型 | 工作项 |
 |---|---|---|---|---|---|
-| C-01 | 快照与 Locale 无关 | 固定测试用项目 | 用 en/zh 两个 Locale 各构建一次 `GanttSnapshot`+`StatusBarSnapshot`+`OutlineSnapshot`；**期望** 两次结果 `==`（Equatable 逐字段相等）。改造前必红，用于证明快照仍在拼文案 | 自动 | F-0704 |
+| C-01 | 快照结构化部分与 Locale 无关 | 固定测试用项目；口径同 `SnapshotFormatContractTests.snapshotIsLanguageNeutralOutsideGanttTickLabels` | 用 en_US / zh_CN 各构建一次快照，**逐位比较这些结构化部分**：`outline`（含 `filterExplanation.predicates`）、`inspector`、`statusBar`（含 `zoom.preset/pointsPerDay`）、`gantt.bars/windowStart/windowEnd`；**期望** 全部相等。**禁止整对象比较 `WorkspaceSnapshot`**：`GanttTick.label` 是唯一有意本地化的字符串（F-0702 按注入 Locale 生成 `Jan` / `1月`，视图直接渲染），把它算进判据会与 F-0702 互斥。刻度标签的语言正确性由 B-04 与 F-05 覆盖 | 自动 | F-0704 |
 | C-02 | 缩放标签语义枚举 | F-0704（已交付 `ZoomPreset`） | `statusBar.zoom.preset` 类型为 `ZoomPreset`，**期望** rawValue 集合 == `{custom, fit, day, week, month}`；视图侧映射覆盖全部 5 个 case（无 `default:` 兜底，键为 `statusbar.zoom.<raw>`） | 自动 | F-0704 |
 | C-03 | 违例原因语义化 | F-0704 | 快照违例原因字段为 `(kind: String, days: Int?)` 形态：**期望** kind 取值属冻结集合，且不含 `[一-龥]`；`days` 与核心参数一致 | 自动 | F-0704 |
 | C-04 | 日宽读数改为数值 | F-0704（已交付 `ZoomIndicator.pointsPerDay`） | `statusBar.zoom.pointsPerDay` 为 `Double?`；**期望** 12.5 时精确等于 12.5，非有限值/超 Int 范围时为 `nil`（视图出占位符）；`ZoomIndicator` 内不得有 String 字段承载 `点/天` | 自动 | F-0704 |
