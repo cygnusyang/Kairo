@@ -33,8 +33,8 @@
 
 | ID | 用例 | 前置 | 步骤 / 判据 | 类型 | 工作项 |
 |---|---|---|---|---|---|
-| B-01 | 违例 code 集合冻结 | v0.8.5 基线（`git show v0.8.5:Sources/KairoCore/Schedule/ViolationEngine.swift`） | 用 `Tests/Fixtures/violation-codes-v085.json` 比对：**期望** 产出 code 集合 == 基线 **7 个**：`cannot_schedule_asap_alap / constraint_is_dependency / constraint_is_prerequisite / constraint_window_too_narrow / cycle / task_ends_after_project_end / task_starts_before_project_start`，不多不少。**注**：v0.8.5 实测为 11 处 `message:` 站点对 7 个 code，方案 §3 写的「12 条」与实际差 1（多码复用），以本表实测数为基线 | 自动 | F-0703 |
-| B-02 | 违例不再携带自然语言 | F-0703 | 构造每条规则各一例，遍历 `Violation` 所有 String 字段；**期望** 每个值匹配 `^[a-z0-9_.]+$` 或 UUID 形态，且不含 `[一-龥]` | 自动 | F-0703 |
+| B-01 | 违例 code 集合冻结 | v0.8.5 基线（`git show v0.8.5:…/ViolationEngine.swift`）+ 已提交的 `ViolationReason.code` | **期望** 集合 == 基线 7 个 + 本版**显式新增 1 个**：`schedule_cycle / schedule_task_after_project_end / schedule_task_before_project_start / schedule_constraint_window_too_narrow / schedule_negative_slack / schedule_constraint_vs_dependency / schedule_constraint_vs_prerequisite` + `schedule_start_after_project_window`（F-0715 新增，见 `KairoErrorCode.startAfterProjectWindow`）。改为「7 + 显式新增清单」而非「不多不少」，避免合法扩集被误判。**注**：v0.8.5 实测 11 处 `message:` 站点对 7 个 code（多码复用），方案 §3 的「12 条」与实测差 1 | 自动 | F-0703、F-0715 |
+| B-02 | 违例不再携带自然语言 | F-0703（已交付 `ViolationReason`） | 只断言 `violation.code.rawValue` 匹配 `^[a-z]+(_[a-z]+)+$` 且不含 `[一-龥]`；**`reason` 允许携带 `taskTitle`**（用户数据，不翻译，见 `ViolationReason.taskTitle`），**不要**遍历所有 String 字段——那会把合法的任务标题判成违例。另断言 `reason` 无 message/text/label 之类的整句字段 | 自动 | F-0703 |
 | B-03 | 英文日期格式 | 注入 `Locale(identifier:"en_US")` | 对 2026-11-06 格式化：**期望** 输出 == `"Nov 6, 2026"`（正则 `^[A-Z][a-z]{2} \d{1,2}, \d{4}$`），且 `!contains("年")` | 自动 | F-0702 |
 | B-04 | 中文日期格式不回退 | 注入 `zh_CN` | 同上日期：**期望** == `"2026年11月6日"`（与 v0.8.5 逐字一致） | 自动 | F-0702 |
 | B-05 | 时长/数字本地化 | 两种 Locale | `duration(3)`：en 为 `"3 days"`（或 `3d`，与 F-0701 键表一致）；zh 为 `"3 天"`；**期望** en 侧无 `天/点`，两侧数字文本一致 | 自动 | F-0702 |
@@ -45,9 +45,9 @@
 | ID | 用例 | 前置 | 步骤 / 判据 | 类型 | 工作项 |
 |---|---|---|---|---|---|
 | C-01 | 快照与 Locale 无关 | 固定测试用项目 | 用 en/zh 两个 Locale 各构建一次 `GanttSnapshot`+`StatusBarSnapshot`+`OutlineSnapshot`；**期望** 两次结果 `==`（Equatable 逐字段相等）。改造前必红，用于证明快照仍在拼文案 | 自动 | F-0704 |
-| C-02 | 缩放标签语义枚举 | F-0704 | `zoomLabel` 为枚举而非 String：**期望** rawValue 集合 == `{custom, fit, day, week, month}`；视图侧映射表覆盖全部 5 个 case（无 `default:` 兜底） | 自动 | F-0704 |
+| C-02 | 缩放标签语义枚举 | F-0704（已交付 `ZoomPreset`） | `statusBar.zoom.preset` 类型为 `ZoomPreset`，**期望** rawValue 集合 == `{custom, fit, day, week, month}`；视图侧映射覆盖全部 5 个 case（无 `default:` 兜底，键为 `statusbar.zoom.<raw>`） | 自动 | F-0704 |
 | C-03 | 违例原因语义化 | F-0704 | 快照违例原因字段为 `(kind: String, days: Int?)` 形态：**期望** kind 取值属冻结集合，且不含 `[一-龥]`；`days` 与核心参数一致 | 自动 | F-0704 |
-| C-04 | 日宽读数改为数值 | F-0704 | 状态栏快照日宽字段为 `Double`；**期望** 该类型无 String 字段承载 `点/天`；渲染函数由视图层提供（`dayWidthPoints == 12.5` 精确断言） | 自动 | F-0704 |
+| C-04 | 日宽读数改为数值 | F-0704（已交付 `ZoomIndicator.pointsPerDay`） | `statusBar.zoom.pointsPerDay` 为 `Double?`；**期望** 12.5 时精确等于 12.5，非有限值/超 Int 范围时为 `nil`（视图出占位符）；`ZoomIndicator` 内不得有 String 字段承载 `点/天` | 自动 | F-0704 |
 
 ## D. CLI（KairoCLI）
 
@@ -64,10 +64,10 @@
 
 | ID | 用例 | 前置 | 步骤 / 判据 | 类型 | 工作项 |
 |---|---|---|---|---|---|
-| E-01 | 22 处错误均带 code | 参数错误矩阵 | 逐条构造非法 `tools/call`（缺参、UUID 非法、日期非法、枚举非法、类型非法…），断言响应 `isError==true` 且 `content[0].text` 解析出的 `code` 非空、匹配 `^[a-z0-9_.]+$`；**期望** 覆盖 22 条 throw 点，每条至少一个请求 | 自动 | F-0708 |
+| E-01 | 22 处错误均带稳定码 | 参数错误矩阵 | 实测**两种错误形态**，都要判：① **协议层**（未知方法/未知工具）→ 顶层 `error.code` 为 JSON-RPC 数值码、`error.reason` 为 `KairoErrorCode.rawValue`；② **工具层**（缺参/非法 UUID/非法枚举）→ `result.isError == true` 且 `content[0].text` 解析出的 `reason` 为稳定码（内部 `code` 仍是 `invalid_argument` 字符串，属兼容字段，不作判据）。**期望** `reason` 全部匹配 `^[a-z]+(_[a-z]+)+$`，覆盖 22 条 throw 点 | 自动 | F-0708 |
 | E-02 | message 与 v0.8.5 逐字一致 | 基线 fixture `Tests/Fixtures/mcp-errors-v085.json`（code→message） | 同一请求下 `message` 与基线 `==`（逐字，含中文标点与全角括号）；**期望** 差异数 == 0 | 自动 | F-0708 |
-| E-03 | 任意 LANG 下字节一致 | 子进程启动 `kairo-mcp` | `LANG=en_US.UTF-8` 与 `LANG=zh_CN.UTF-8` 下发同一 JSON-RPC：**期望** stdout 字节相等（含 `tools/list` 与一次 `tools/call` 错误） | 自动 | F-0708 |
-| E-04 | 协议结构不变 | 同上 | 响应顶层键集合 == `{jsonrpc,id,result}`；错误响应 `result` 键集合仍为 `{content,isError}`，`code` 在 `content[0].text` 内而非新增顶层键；**期望** 旧 consumer 文本匹配仍可命中（`message` 含原中文子串） | 自动 | F-0708 |
+| E-03 | 任意 LANG 下内容一致 | 子进程启动 `KairoMCP` | `LANG=en_US.UTF-8` / `zh_CN.UTF-8` / `C.UTF-8` 各跑同一组请求（initialize / tools/list / 三个错误）：**期望** 递归规范化（对象键排序，含 `content[0].text` 内的嵌套 JSON）后内容完全一致。**注**：原始字节当前不一致——`JSONValue` 序列化未固定键序，同内容会随机换键序；若要收紧为逐字节，需 G3 给序列化加 `.sortedKeys` | 自动 | F-0708 |
+| E-04 | 协议结构不变 | 同上 | 成功响应顶层键集合 == `{jsonrpc,id,result}`；错误响应为 `{jsonrpc,id,error}`，且 `error` 键集合 ⊆ `{code,message,reason,data}`（`reason` 为加性字段）；**期望** `message` 仍含 v0.8.5 原中文子串，旧 consumer 的文本匹配可命中 | 自动 | F-0708 |
 
 ## F. 视图层（Apps/macos）
 
@@ -96,7 +96,7 @@
 
 | ID | 用例 | 前置 | 步骤 / 判据 | 类型 | 工作项 |
 |---|---|---|---|---|---|
-| H-01 | **D-022** 项目窗口外开始日不再误归因依赖 | projectStart=11-02、projectEnd=11-05；任务 `startDate=11-20`；ASAP 与 ALAP 各一次 | 打开违例：**期望** 违例 code == 新增 `start_after_project_window`（或裁定为不报错则集合为空），且**不含** `cannot_schedule_asap_alap`；文案点明「开始日期晚于项目可排窗口」 | 自动 | F-0715 |
+| H-01 | **D-022** 项目窗口外开始日不再误归因依赖 | projectStart=11-02、projectEnd=11-05；任务 `startDate=11-20`；ASAP 与 ALAP 各一次 | 打开违例：**期望** 违例 code == `schedule_start_after_project_window`（`ViolationReason.startAfterProjectWindow`），且**不含** `schedule_negative_slack`；文案点明「开始日期晚于项目可排窗口」 | 自动 | F-0715 |
 | H-02 | **D-023** 跨 DST 时限窗口与日历日一致 | 时区 `America/New_York`；任务跨 2025-11-02 回拨日、duration=3、含 `startNoLaterThan` | 同构场景分别构造在 DST 周与非 DST 周：**期望** 两次违例 code 集合**完全相同**（当前实现因 86400 差 1 小时而分叉） | 自动 | F-0716 |
 | H-03 | **D-024** 无下界哨兵统一 | — | `ScheduleEngine.startDateLowerBound` 与 `constraintStartLowerBound` 在无约束输入下：**期望** 返回值 `==`，且等于具名常量（`Date.distantPast`），源码中不再出现 `Date(timeIntervalSince1970: 0)` | 自动 | F-0717 |
 | H-04 | D-022 反向（防过修） | 同在窗口内的合法 `startDate`（11-03） | **期望** 不产生 `start_after_project_window`，排期结果与改动前逐位一致 | 自动 | F-0715 |
