@@ -3,14 +3,22 @@ import Foundation
 /// 从参数数组中抽取操作数与选项值。
 struct Options {
     var items: [String]
+    /// 人类输出的语言（`--lang` > `KAIRO_LANG` > 系统 > zh-Hans）；由路由在分发前注入。
+    var language: CLILanguage
 
-    init(_ args: [String]) { items = args }
+    init(_ args: [String], language: CLILanguage = .current) {
+        items = args
+        self.language = language
+    }
+
+    /// 本命令的文案表。
+    var strings: CLIStrings { CLIStrings(language: language) }
 
     /// 第 n 个非选项操作数。
     func operand(_ index: Int, name: String) throws -> String {
         let operands = items.filter { !$0.hasPrefix("--") }
         guard index < operands.count else {
-            throw UsageError(message: "缺少参数：<\(name)>")
+            throw UsageError(message: strings.missingOperand(name))
         }
         return operands[index]
     }
@@ -42,13 +50,58 @@ struct Options {
     /// 校验所有 --选项 都在允许集合内；发现未知选项即用法错误（避免静默忽略）。
     func rejectUnknown(_ allowed: [String]) throws {
         for item in items where item.hasPrefix("--") && !allowed.contains(item) {
-            throw UsageError(message: "未知选项：\(item)（可用：\(allowed.joined(separator: " "))）")
+            throw UsageError(message: strings.unknownOption(item, allowed: allowed))
         }
     }
 
     /// --file 选项或默认文件名。
     func fileURL(defaultName: String) -> URL {
         URL(fileURLWithPath: value(for: "--file") ?? defaultName)
+    }
+}
+
+/// 全局选项（F-0707）：与具体子命令无关，必须在分发前统一处理。
+enum GlobalOptions {
+    /// 语言选项名。
+    static let languageOption = "--lang"
+
+    /// 从 argv 摘除 `--lang <bcp47>` / `--lang=<bcp47>`，返回剩余参数与显式语言。
+    ///
+    /// 为什么在分发前摘：各命令各自维护 `rejectUnknown` 白名单，只在白名单里加
+    /// `--lang` 的话，「`kairo --lang en task list`」这种前置写法仍会被当成子命令；
+    /// 统一摘除后白名单零改动，位置天然无关（D-06）。
+    ///
+    /// 重复给出时以最后一次为准；缺值或取值非法 → 用法错误（退出码 2）。
+    static func extract(_ arguments: [String]) throws -> (arguments: [String], language: CLILanguage?) {
+        var rest: [String] = []
+        var language: CLILanguage?
+        // 报错文案跟随「已解析出的语言」，让 `--lang en --lang fr` 也出英文提示。
+        var messageLanguage = CLILanguage.current
+        var index = 0
+        while index < arguments.count {
+            let item = arguments[index]
+            let raw: String
+            if item == languageOption {
+                guard index + 1 < arguments.count else {
+                    throw UsageError(message: messageLanguage.strings.missingLanguageValue())
+                }
+                raw = arguments[index + 1]
+                index += 2
+            } else if item.hasPrefix(languageOption + "=") {
+                raw = String(item.dropFirst(languageOption.count + 1))
+                index += 1
+            } else {
+                rest.append(item)
+                index += 1
+                continue
+            }
+            guard let parsed = CLILanguage.parse(raw) else {
+                throw UsageError(message: messageLanguage.strings.invalidLanguage(raw))
+            }
+            language = parsed
+            messageLanguage = parsed
+        }
+        return (rest, language)
     }
 }
 
@@ -59,4 +112,3 @@ func subcommand(_ args: [String], from command: String) -> (String, [String]) {
     }
     return (first, Array(args.dropFirst()))
 }
-
