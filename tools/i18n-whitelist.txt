@@ -1,5 +1,6 @@
 # i18n-lint 白名单（F-0711）。格式：<仓库相对路径><TAB><Swift 字符串字面量原文>
 # 仅用于记录迁移基线：新出现的硬编码中文一律失败；已清理的条目会作为提示列出。
+# v0.9.0 发布前本文件应为空（视图层零中文），由 F-0705 收口时重新生成。
 # 重新生成：bash tools/i18n-lint.sh --write-whitelist
 
 Apps/macos/Sources/AppDelegate.swift	保存失败

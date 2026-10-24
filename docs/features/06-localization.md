@@ -113,7 +113,7 @@ palette.result.count = "%1$ld task"
 | (b) 分层资源 | `KairoCore` / `KairoCommands` / `KairoPresentation` 出现 `Bundle.module` | 1 |
 | (c) 键完整性 | `en` 与 `zh-Hans` 两份 `.lproj` 的键集合不同，或同一键的占位符位置/类型不同 | 1 |
 
-0 = 通过，2 = 用法错误或输入缺失（缺 Catalog、缺 `.lproj`、缺白名单）。
+0 = 通过，2 = 用法错误或输入缺失（缺 Catalog、缺 `.lproj`、缺白名单）。**脚本没有「跳过某一项」的开关**：CI 用 `--require-catalog`，Catalog 源文件缺失即失败（`::error` + 红），不以跳过代替。
 
 ## 5. 语言切换
 
@@ -163,6 +163,8 @@ Apps/macos/Resources/Localizable.xcstrings        # 唯一源文件
   → tools/build.sh：codesign 之前拷进 Kairo.app/Contents/Resources/
   → 运行期 Bundle.main 取词（§4），未命中时回退调用点写的英文
 ```
+
+**表名约束**：`xcstringstool` 按 Catalog 文件名生成表名（`Localizable.xcstrings` → `Localizable.strings`），而运行期取词走 `Bundle.localizedString(forKey:value:table: nil)`，只读 `Localizable` 表。因此 `tools/i18n-compile.sh` 直接拒绝非 `Localizable.xcstrings` 的文件名——改名不会报错，只会让界面静默退回英文兜底。
 
 `tools/build.sh` 的四处改动：
 
@@ -288,6 +290,6 @@ F-0700 资源实验 → F-0701 键规范 → F-0713 断言分类（与后续并�
 | 术语表 | 新增「更新面板（UpdateSheet）」等条目与英文列 | `04-glossary.md` 扩列 |
 | QUICKSTART | CLI 新增 `--lang` | 补参数说明与示例 |
 | `tools/build.sh` + `tools/i18n-compile.sh` | 清单语言键 + 构建期编译 Catalog + 资源拷贝 | 资源缺失时构建失败，不静默回退（§7.2） |
-| CI | 新增硬编码中文门禁、缺键检查、`Bundle.module` 守卫，落在 `tools/i18n-lint.sh`（含白名单 `tools/i18n-whitelist.txt`） | 白名单入库；Linux 任务不变；Catalog 未交付时 CI 打 `::notice` 说明后只跳过 (c)，不假绿 |
+| CI | 新增硬编码中文门禁、缺键检查、`Bundle.module` 守卫，落在 `tools/i18n-lint.sh`（含白名单 `tools/i18n-whitelist.txt`），并跑 `tools/i18n-lint-selftest.sh` 自测 | 白名单入库；Linux 任务不变；**没有跳过模式**：CI 用 `--require-catalog`，Catalog 缺失即 `::error` + 失败（F-0705 合入前该步骤保持红色），不以跳过代替 |
 | 测试套件 | 327 处含中文断言 | F-0713 分类后由 F-0710 改造 |
 | 架构文档 | 分层职责新增「文案归属」 | `ARCHITECTURE.md` 补一条约束并指向本文 |

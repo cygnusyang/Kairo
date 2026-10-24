@@ -6,9 +6,13 @@
 #   (b) KairoCore / KairoCommands / KairoPresentation 出现 Bundle.module（ADR-004 / ADR-013）
 #   (c) en 与 zh-Hans 两份 .lproj 的键集合与占位符一致
 #
-# 用法: tools/i18n-lint.sh [--lproj-dir <dir>] [--skip-catalog] [--write-whitelist]
+# 没有「跳过」模式：缺输入就失败。CI 用 --require-catalog，连 Catalog 源文件是否存在
+# 一并要求，避免「Catalog 没交付 → 键检查静默失效」的假绿。
+#
+# 用法: tools/i18n-lint.sh [--lproj-dir <dir>] [--require-catalog] [--catalog <路径>] [--write-whitelist]
 #   --lproj-dir <dir>    检查 (c) 的 .lproj 目录，缺省 dist/Kairo.app/Contents/Resources
-#   --skip-catalog       显式跳过检查 (c)（Catalog 未交付时由 CI 传入，会打印说明，不算通过）
+#   --require-catalog    同时要求 Catalog 源文件存在（CI 用），缺失即失败
+#   --catalog <路径>     Catalog 源文件路径，缺省 Apps/macos/Resources/Localizable.xcstrings
 #   --write-whitelist    按当前代码重写 tools/i18n-whitelist.txt 后退出
 # 退出码: 0 通过；1 违规；2 用法错误或输入缺失
 set -u
@@ -17,7 +21,8 @@ ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 SOURCE_DIR="$ROOT_DIR/Apps/macos/Sources"
 WHITELIST="$ROOT_DIR/tools/i18n-whitelist.txt"
 LPROJ_DIR="$ROOT_DIR/dist/Kairo.app/Contents/Resources"
-SKIP_CATALOG=0
+CATALOG="$ROOT_DIR/Apps/macos/Resources/Localizable.xcstrings"
+REQUIRE_CATALOG=0
 WRITE_WHITELIST=0
 LAYER_DIRS=(
     "$ROOT_DIR/Sources/KairoCore"
@@ -31,10 +36,12 @@ usage() {
 
 选项:
   --lproj-dir <dir>    检查 (c) 的 .lproj 目录（缺省 dist/Kairo.app/Contents/Resources）
-  --skip-catalog       跳过键与占位符检查，并在输出中说明跳过原因
+  --require-catalog    要求 Catalog 源文件存在（缺省 Apps/macos/Resources/Localizable.xcstrings）
+  --catalog <路径>     Catalog 源文件路径
   --write-whitelist    按当前代码重写 tools/i18n-whitelist.txt 后退出
   -h, --help           显示帮助
 
+本脚本没有「跳过检查 (c)」的开关：缺 .lproj 就是失败，退出码 2。
 退出码: 0 通过；1 违规；2 用法错误或输入缺失
 USAGE
 }
@@ -49,8 +56,16 @@ while [[ $# -gt 0 ]]; do
             LPROJ_DIR="$2"
             shift 2
             ;;
-        --skip-catalog)
-            SKIP_CATALOG=1
+        --catalog)
+            if [[ $# -lt 2 ]]; then
+                echo "i18n-lint: --catalog 需要一个文件参数" >&2
+                exit 2
+            fi
+            CATALOG="$2"
+            shift 2
+            ;;
+        --require-catalog)
+            REQUIRE_CATALOG=1
             shift
             ;;
         --write-whitelist)
@@ -62,7 +77,7 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         *)
-            echo "i18n-lint: 未知参数: $1" >&2
+            echo "i18n-lint: 未知参数: $1（本脚本没有 --skip-catalog：缺 .lproj 即失败）" >&2
             usage >&2
             exit 2
             ;;
@@ -84,11 +99,16 @@ if [[ "$WRITE_WHITELIST" -eq 0 && ! -f "$WHITELIST" ]]; then
     exit 2
 fi
 
-if [[ "$SKIP_CATALOG" -eq 0 && "$WRITE_WHITELIST" -eq 0 ]]; then
+if [[ "$WRITE_WHITELIST" -eq 0 ]]; then
+    if [[ "$REQUIRE_CATALOG" -eq 1 && ! -f "$CATALOG" ]]; then
+        echo "i18n-lint: 缺少 Catalog 源文件：$CATALOG" >&2
+        echo "i18n-lint: 键与占位符无法校验；Catalog 由 F-0705 交付，未合入前本步骤保持失败（不以跳过代替）" >&2
+        exit 2
+    fi
     for LANG_ID in en zh-Hans; do
         if [[ ! -d "$LPROJ_DIR/${LANG_ID}.lproj" ]]; then
             echo "i18n-lint: 缺少 $LPROJ_DIR/${LANG_ID}.lproj" >&2
-            echo "i18n-lint: 先运行 tools/i18n-compile.sh <目录>，或显式传 --skip-catalog" >&2
+            echo "i18n-lint: 先运行 tools/i18n-compile.sh <目录> 再传入 --lproj-dir" >&2
             exit 2
         fi
     done
@@ -103,7 +123,7 @@ if ! command -v plutil >/dev/null 2>&1; then
     exit 2
 fi
 
-python3 - "$ROOT_DIR" "$SOURCE_DIR" "$WHITELIST" "$LPROJ_DIR" "$SKIP_CATALOG" "$WRITE_WHITELIST" "${LAYER_DIRS[@]}" <<'PY'
+python3 - "$ROOT_DIR" "$SOURCE_DIR" "$WHITELIST" "$LPROJ_DIR" "$WRITE_WHITELIST" "${LAYER_DIRS[@]}" <<'PY'
 import json
 import os
 import re
@@ -111,9 +131,8 @@ import subprocess
 import sys
 
 root, source_dir, whitelist_path, lproj_dir = sys.argv[1:5]
-skip_catalog = sys.argv[5] == '1'
-write_whitelist = sys.argv[6] == '1'
-layer_dirs = sys.argv[7:]
+write_whitelist = sys.argv[5] == '1'
+layer_dirs = sys.argv[6:]
 
 CJK = re.compile('[\u2e80-\u2fff\u3000-\u303f\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]')
 PLURAL_CATEGORIES = {'zero', 'one', 'two', 'few', 'many', 'other'}
@@ -212,7 +231,7 @@ def strip_comments(source):
 
 
 def string_literals(text):
-    """返回 [(行号, 字面量原文)]；多行字面量的换行以 \\n 表示，用于白名单比对。"""
+    """返回 [(行号, 字面量原文)]；多行字面量的换行以 \n 表示，用于白名单比对。"""
     literals = []
     i, n = 0, len(text)
     line = 1
@@ -284,6 +303,7 @@ def write_whitelist_file(path, found):
     lines = [
         '# i18n-lint 白名单（F-0711）。格式：<仓库相对路径><TAB><Swift 字符串字面量原文>',
         '# 仅用于记录迁移基线：新出现的硬编码中文一律失败；已清理的条目会作为提示列出。',
+        '# v0.9.0 发布前本文件应为空（视图层零中文），由 F-0705 收口时重新生成。',
         '# 重新生成：bash tools/i18n-lint.sh --write-whitelist',
         '',
     ]
@@ -367,6 +387,7 @@ def check_catalog():
         if en_exists != zh_exists:
             violations.append('%s 只在单侧存在（en=%s，zh-Hans=%s）'
                               % (filename, en_exists, zh_exists))
+            clean = False
             continue
         en_table, zh_table = load_plist(en_path), load_plist(zh_path)
         key_total += len(en_table)
@@ -375,7 +396,7 @@ def check_catalog():
         if len(violations) != before_table:
             clean = False
     if key_total == 0:
-        violations.append('%s 下没有 Localizable.strings / Localizable.stringsdict，Catalog 未编译进包' % lproj_dir)
+        violations.append('%s 下没有 Localizable.strings / Localizable.stringsdict（Catalog 未编译进包，或 Catalog 文件名不是 Localizable.xcstrings）' % lproj_dir)
     elif clean:
         print('i18n-lint: (c) 键与占位符一致（%d 个键 / %s）' % (key_total, lproj_dir))
 
@@ -414,10 +435,7 @@ check_bundle_module()
 if len(violations) == before_layer_check:
     print('i18n-lint: (b) KairoCore/KairoCommands/KairoPresentation 无 Bundle.module')
 
-if skip_catalog:
-    print('i18n-lint: (c) 已跳过（--skip-catalog）：未校验键与占位符，此项不计入通过')
-else:
-    check_catalog()
+check_catalog()
 
 for note in notes:
     print('i18n-lint: 提示：' + note)
@@ -428,9 +446,6 @@ if violations:
         print('  ' + violation, file=sys.stderr)
     sys.exit(1)
 
-if skip_catalog:
-    print('i18n-lint: 通过（(a)(b) 通过；(c) 未执行，不能据此判定 Catalog 完整）')
-else:
-    print('i18n-lint: 通过')
+print('i18n-lint: 通过')
 sys.exit(0)
 PY

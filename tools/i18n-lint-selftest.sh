@@ -1,5 +1,6 @@
 #!/bin/bash
 # i18n-lint 门禁自测（F-0711）。用例只增不减——新增检查项时在此追加用例，不得改小。
+# 现 25 例；其中「--require-catalog 齐全时三验全过」是 CI 判定「三项都验了」的基准。
 #
 # 每个用例自建临时仓库（mktemp -d 下），只依赖 tools/i18n-lint.sh 与
 # tools/i18n-compile.sh 两个被测脚本，不读仓库源码树、不跑 swift、不动 .build。
@@ -211,12 +212,26 @@ find "$T/lproj" -name 'Localizable.strings*' -delete
 run bash tools/i18n-lint.sh --lproj-dir lproj
 expect "lproj 无 strings → 1" 1 "没有 Localizable.strings"
 
-# —— 显式跳过：不假绿 ——
+# —— 不假绿：没有跳过模式，CI 用 --require-catalog ——
 
-new_tree skip-catalog
+new_tree skip-catalog-removed
 run bash tools/i18n-lint.sh --write-whitelist
 run bash tools/i18n-lint.sh --skip-catalog
-expect "--skip-catalog 明示未执行 → 0" 0 "未执行，不能据此判定"
+expect "--skip-catalog 已移除 → 2" 2 "未知参数"
+
+new_tree require-catalog-missing
+run bash tools/i18n-lint.sh --write-whitelist
+run bash tools/i18n-lint.sh --require-catalog --lproj-dir lproj
+expect "--require-catalog 缺 Catalog → 2" 2 "缺少 Catalog 源文件"
+
+new_tree require-catalog-ok
+run bash tools/i18n-lint.sh --write-whitelist
+mkdir -p "$T/Apps/macos/Resources"
+cat > "$T/Apps/macos/Resources/Localizable.xcstrings" <<'JSON'
+{"sourceLanguage": "en", "strings": {}, "version": "1.0"}
+JSON
+run bash tools/i18n-lint.sh --require-catalog --lproj-dir lproj
+expect "--require-catalog 齐全时三验全过 → 0" 0 "(c) 键与占位符一致"
 
 # —— i18n-compile.sh 的输入校验（不依赖 Xcode）——
 
@@ -227,6 +242,11 @@ expect "i18n-compile 无参数 → 2" 2 "用法"
 new_tree compile-missing-catalog
 run bash tools/i18n-compile.sh "$T/out" "$T/nope.xcstrings"
 expect "i18n-compile 缺 Catalog → 2" 2 "未找到 Catalog"
+
+new_tree compile-wrong-name
+printf '{"sourceLanguage":"en","strings":{},"version":"1.0"}\n' > "$T/Foo.xcstrings"
+run bash tools/i18n-compile.sh "$T/out" "$T/Foo.xcstrings"
+expect "i18n-compile 文件名非 Localizable → 2" 2 "文件名必须是 Localizable.xcstrings"
 
 # —— 汇总 ——
 
