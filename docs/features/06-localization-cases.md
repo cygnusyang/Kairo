@@ -17,7 +17,7 @@
 
 | ID | 用例 | 前置 | 步骤 / 判据 | 类型 | 工作项 |
 |---|---|---|---|---|---|
-| A-01 | 英文系统无中文残留（扫描） | 英文系统、构建产物 | `bash tools/i18n-compile.sh /tmp/kairo-lproj && bash tools/i18n-lint.sh --require-catalog --lproj-dir /tmp/kairo-lproj`（对 .app 产物则用 `--lproj-dir dist/Kairo.app/Contents/Resources`）；**期望** exit 0 且输出「(a) … 无新增」「(c) … 键与占位符一致」，**且** `grep -vc '^#' tools/i18n-whitelist.txt` == 0（基线随 F-0705 递减，**不写死数字**：核对当日实测 379 条、已清理 25 条；收口后跑 `--write-whitelist` 重写，头部变为「发布前本文件应为空」） | 自动 | F-0711 |
+| A-01 | 英文系统无中文残留（扫描） | 英文系统、构建产物 | `bash tools/i18n-compile.sh /tmp/kairo-lproj && bash tools/i18n-lint.sh --require-catalog --lproj-dir /tmp/kairo-lproj`（对 .app 产物则用 `--lproj-dir dist/Kairo.app/Contents/Resources`）；**期望** exit 0 且输出「(a) … 无新增」「(c) … 键与占位符一致」，**且** `bash tools/i18n-lint.sh --require-catalog --fail-if-whitelist-nonempty --lproj-dir <lproj>` exit 0（清零的**权威判定**）（基线条数随 F-0705 递减，**不写死数字**，以当日 lint 输出的「白名单内中文 N 条 / 已清理 M 条」为准；需要数字时用 `grep -v '^#' tools/i18n-whitelist.txt | grep -c '[^[:space:]]'`，**不要用 `grep -vc '^#'`——末尾空行会被计入，恒差 1**） | 自动 | F-0711 |
 | A-02 | 豁免清单不含应用自写文案 | 同上 | `grep -c 'AppDelegate.swift' tools/i18n-whitelist.txt` == 0，`grep -c 'UpdateSheet.swift'` == 0；**期望** 两数均为 0（当前 8 / 25 → 必红，用于驱动 F-0705 收口） | 自动 | F-0711、F-0705 |
 | A-03 | 八个界面英文目视归档 | 英文系统、.app | 逐界面截图存 `docs/archive/v0.9.0-i18n/`：主窗口/检查器/命令面板/菜单/状态栏/更新面板/退出确认/保存失败；**期望**：8 个文件存在，检查表 8 行全勾，任一格未勾即不通过 | 人工 | F-0705 |
 | A-04 | 中文语义与 v0.8.5 一致 | F-0701 键-文案对照表 | 以表为基线逐条 diff；**期望**：差异条目数 == `CHANGELOG` 变更说明条目数，且每条含键名 + 理由；无理由的差异视为回归 | 半自动 | F-0701、F-0710 |
@@ -27,7 +27,7 @@
 | A-07 | 键完整性（两侧零缺键 + 占位符一致） | `.xcstrings` 入库 | 解析 Catalog：**期望** 每个键在 en/zh-Hans 均非空；两侧占位符集合相等；未翻译键数 == 0 | 自动 | F-0710、F-0711 |
 | A-08 | 打包产物语言清单与资源 | G4 Catalog 已交付；`tools/build.sh` 产物（缺 Catalog/缺任一侧 .lproj 会 exit 1，属设计） | `plutil -p Kairo.app/Contents/Info.plist` 含 `CFBundleLocalizations = [en, zh-Hans]` 且 `CFBundleDevelopmentRegion = en`；`ls Kairo.app/Contents/Resources/*.lproj` 同时含 `en.lproj`、`zh-Hans.lproj`；`codesign --verify --deep --strict` exit 0 | 半自动 | F-0709 |
 
-> **发布闸门（四条同时满足，任一不满足即阻断）**：① `bash tools/i18n-lint.sh` 全量（含 (c) 键与占位符）exit 0；② 白名单有效行数 `grep -vc '^#' tools/i18n-whitelist.txt` == 0；③ 八界面截图 8/8 归档；④ 双 Locale 全量测试通过。
+> **发布闸门（四条同时满足，任一不满足即阻断）**：① `bash tools/i18n-lint.sh` 全量（含 (c) 键与占位符）exit 0；② 白名单清零 `--fail-if-whitelist-nonempty` exit 0（需要数字时 `grep -v '^#' tools/i18n-whitelist.txt | grep -c '[^[:space:]]'` == 0；`grep -vc '^#'` 恒差 1，勿用）；③ 八界面截图 8/8 归档；④ 双 Locale 全量测试通过。
 
 ## B. 核心层（KairoCore）
 
