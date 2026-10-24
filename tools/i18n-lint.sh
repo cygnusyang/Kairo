@@ -311,18 +311,22 @@ def load_whitelist(path):
 
 
 def write_whitelist_file(path, found):
+    # 白名单为空时不写空行：让「grep -vc "^#" == 0」这类外部判据在清零后成立。
     lines = [
         '# i18n-lint 白名单（F-0711）。格式：<仓库相对路径><TAB><Swift 字符串字面量原文>',
         '# 仅用于记录迁移基线：新出现的硬编码中文一律失败；已清理的条目会作为提示列出。',
         '# v0.9.0 发布前本文件应为空（视图层零中文），由 F-0705 收口时重新生成。',
         '# 重新生成：bash tools/i18n-lint.sh --write-whitelist',
-        '',
     ]
+    rows = []
     total = 0
     for rel in sorted(found):
         for literal in sorted(found[rel]):
-            lines.append('%s\t%s' % (rel, literal))
+            rows.append('%s\t%s' % (rel, literal))
             total += 1
+    if rows:
+        lines.append('')
+        lines.extend(rows)
     with open(path, 'w', encoding='utf-8') as handle:
         handle.write('\n'.join(lines) + '\n')
     return total

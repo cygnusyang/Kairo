@@ -1,6 +1,6 @@
 #!/bin/bash
 # i18n-lint 门禁自测（F-0711）。用例只增不减——新增检查项时在此追加用例，不得改小。
-# 现 28 例；其中「--require-catalog 齐全时三验全过」是 CI 判定「三项都验了」的基准。
+# 现 29 例；其中「--require-catalog 齐全时三验全过」是 CI 判定「三项都验了」的基准。
 # 末尾三例覆盖 --fail-if-whitelist-nonempty：那是发布闸门，由 tools/release.sh 调用，
 # 不在 CI 常规路径（开发期白名单必然非空，接 CI 会天天红）。
 #
@@ -155,6 +155,16 @@ Apps/macos/Sources/Workspace/Base.swift	状态
 WL
 run bash tools/i18n-lint.sh --lproj-dir lproj
 expect "白名单过期条目只提示 → 0" 0 "已清理"
+
+new_tree whitelist-empty-format
+printf 'let status = "Status"\n' > "$T/Apps/macos/Sources/Workspace/Base.swift"
+run bash tools/i18n-lint.sh --write-whitelist
+LEFT="$(grep -vc '^#' "$T/tools/i18n-whitelist.txt" || true)"
+if [[ "$LEFT" -eq 0 ]]; then
+    pass "白名单为空时不留空行（grep -vc '^#' == 0）"
+else
+    fail "白名单为空时不留空行（grep -vc '^#' == 0）" "仍有 $LEFT 行非注释内容"
+fi
 
 new_tree whitelist-idempotent
 run bash tools/i18n-lint.sh --write-whitelist

@@ -269,6 +269,8 @@ F-0700 资源实验 → F-0701 键规范 → F-0713 断言分类（与后续并�
 | 5 | 双 Locale 全量测试通过、键完整性通过 | `swift test` 矩阵加 `-AppleLanguages` 参数；键完整性为纯数据比对 |
 | 6 | 从零构建的应用在英文系统显示英文，OTA 升级后仍生效 | 构建产物断言（`plutil -p` 查清单、`Contents/Resources` 查 `.lproj` 存在）+ 启动后读 `Bundle.preferredLocalizations` 的半自动断言 |
 
+**F-0705 收口顺序（发布证据链）**：① 先**不**带 `--write-whitelist` 跑一次 `tools/i18n-lint.sh --require-catalog --lproj-dir <编译产物>` 并留档——输出里的「白名单有 N 条已清理」就是 404 → 0 的轨迹证据；② 再 `--write-whitelist` 重生成（清零后文件只剩注释，不留空行）；③ 再跑一次确认 exit 0。发布闸门本身只认 `tools/release.sh` 里的 `--fail-if-whitelist-nonempty`，三步是取证，不替代判定。
+
 ## 12. 风险与前置验证
 
 | 编号 | 事项 | 处置 |
