@@ -1,5 +1,11 @@
 import Foundation
 import Testing
+
+// MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
+private let b0Fixture1 = "今日任务"
+private let b0Fixture2 = "完成任务"
+private let b0Fixture3 = "支付网关"
+private let b0Fixture4 = "逾期任务"
 @testable import KairoCore
 
 // MARK: - Fixtures
@@ -146,38 +152,38 @@ private final class StubFindTarget: FindTarget {
     let todayEnd = calendar.date(bySettingHour: 23, minute: 59, second: 59, of: now)!
 
     let tasks = [
-        makeTask(title: "逾期任务", dueDate: past, status: .pending),
-        makeTask(title: "完成任务", dueDate: past, status: .done),
-        makeTask(title: "今日任务", dueDate: todayEnd, status: .pending),
+        makeTask(title: b0Fixture4, dueDate: past, status: .pending),
+        makeTask(title: b0Fixture2, dueDate: past, status: .done),
+        makeTask(title: b0Fixture1, dueDate: todayEnd, status: .pending),
         makeTask(title: "未来任务", dueDate: future, status: .pending),
     ]
 
     let overdue = AIFilterTranslator.apply(clauses: [.overdue], to: tasks)
     #expect(overdue.count == 1)
-    #expect(overdue.first?.title == "逾期任务")
+    #expect(overdue.first?.title == b0Fixture4)
 
     let dueToday = AIFilterTranslator.apply(clauses: [.dueToday], to: tasks)
     #expect(dueToday.count == 1)
-    #expect(dueToday.first?.title == "今日任务")
+    #expect(dueToday.first?.title == b0Fixture1)
 
     let done = AIFilterTranslator.apply(
         clauses: [.term(SearchTerm(key: .status, matcher: .isValue("done")))],
         to: tasks
     )
     #expect(done.count == 1)
-    #expect(done.first?.title == "完成任务")
+    #expect(done.first?.title == b0Fixture2)
 }
 
 @Test func applyAndCombinesClauses() {
     let tasks = [
-        makeTask(title: "支付网关", status: .done, tags: ["backend"]),
-        makeTask(title: "支付网关", status: .pending, tags: ["backend"]),
+        makeTask(title: b0Fixture3, status: .done, tags: ["backend"]),
+        makeTask(title: b0Fixture3, status: .pending, tags: ["backend"]),
         makeTask(title: "登录页", status: .pending, tags: ["frontend"]),
     ]
     let clauses = AIFilterTranslator.translate("done tag:backend")
     let result = AIFilterTranslator.apply(clauses: clauses, to: tasks)
     #expect(result.count == 1)
-    #expect(result.first?.title == "支付网关")
+    #expect(result.first?.title == b0Fixture3)
     #expect(result.first?.status == .done)
 }
 

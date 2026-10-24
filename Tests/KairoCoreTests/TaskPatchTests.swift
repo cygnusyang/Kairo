@@ -3,6 +3,11 @@ import Testing
 @testable import KairoCore
 import KairoCommands
 
+// MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
+private let b0Fixture1 = "备注"
+private let b0Fixture2 = "新标题"
+private let b0Fixture3 = "设计"
+
 // 任务补丁（ADR-013）：unchanged / set / clear，状态与进度统一回写。
 
 private func day(_ y: Int, _ m: Int, _ d: Int) -> Date {
@@ -45,17 +50,17 @@ struct TaskPatchTests {
     @Test func patchUpdatesPlainFields() throws {
         let (session, id) = try makeSession()
         var patch = TaskPatch()
-        patch.title = "新标题"
-        patch.notes = "备注"
+        patch.title = b0Fixture2
+        patch.notes = b0Fixture1
         patch.priority = .high
-        patch.tags = ["设计"]
+        patch.tags = [b0Fixture3]
 
         let task = try session.updateTask(id: id, patch: patch)
 
-        #expect(task.title == "新标题")
-        #expect(task.notes == "备注")
+        #expect(task.title == b0Fixture2)
+        #expect(task.notes == b0Fixture1)
         #expect(task.priority == .high)
-        #expect(task.tags == ["设计"])
+        #expect(task.tags == [b0Fixture3])
     }
 
     @Test func clearRemovesOptionalValues() throws {

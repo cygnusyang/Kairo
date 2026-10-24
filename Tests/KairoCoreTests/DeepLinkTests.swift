@@ -1,5 +1,8 @@
 import Foundation
 import Testing
+
+// MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
+private let b0Fixture1 = "验收"
 @testable import KairoCore
 
 // kairo:// 深链解析与定位（US-E5-04 / F-41-03）。
@@ -20,7 +23,7 @@ struct DeepLinkParsingTests {
 
     @Test func parsesPercentEncodedTitle() throws {
         let link = try #require(KairoDeepLink.parse(url("kairo://task?title=%E9%AA%8C%E6%94%B6")))
-        #expect(link.target == .taskTitle("验收"))
+        #expect(link.target == .taskTitle(b0Fixture1))
     }
 
     @Test func parsesProjectID() throws {
@@ -42,8 +45,8 @@ struct DeepLinkParsingTests {
 struct DeepLinkResolutionTests {
     private func makeProject() -> (Project, TaskItem, TaskItem) {
         let project = Project(metadata: ProjectMetadata(title: "深链项目"))
-        let first = TaskItem(title: "验收")
-        let second = TaskItem(title: "验收")
+        let first = TaskItem(title: b0Fixture1)
+        let second = TaskItem(title: b0Fixture1)
         project.add(first)
         project.add(second)
         return (project, first, second)
@@ -79,7 +82,7 @@ struct DeepLinkResolutionTests {
     @Test func titleTakesFirstMatchAndReportsAmbiguity() {
         let (project, first, _) = makeProject()
         let match = KairoDeepLinkResolver.resolve(
-            KairoDeepLink(target: .taskTitle("验收")),
+            KairoDeepLink(target: .taskTitle(b0Fixture1)),
             in: project
         )
         #expect(match.taskID == first.id)

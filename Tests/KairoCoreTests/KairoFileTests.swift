@@ -1,12 +1,18 @@
 import Foundation
 import Testing
+
+// MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
+private let b0Fixture1 = "示例项目"
+private let b0Fixture2 = "磁盘往返"
+private let b0Fixture3 = "当前版本"
+private let b0Fixture4 = "旧项目"
 @testable import KairoCore
 
 // MARK: - 往返
 
 @Test func saveLoadRoundTripPreservesTasksAndMetadata() throws {
     let project = Project()
-    project.metadata.title = "示例项目"
+    project.metadata.title = b0Fixture1
     let a = TaskItem(title: "任务 A", kind: .task)
     let g = TaskItem(title: "群组 G", kind: .group)
     let m = TaskItem(title: "里程碑 M", kind: .milestone, parentID: g.id)
@@ -17,7 +23,7 @@ import Testing
     let data = try KairoFile.encode(project: project)
     let loaded = try KairoFile.decode(from: data)
 
-    #expect(loaded.metadata.title == "示例项目")
+    #expect(loaded.metadata.title == b0Fixture1)
     #expect(loaded.metadata.id == project.metadata.id)
     #expect(Set(loaded.tasks.map(\.id)) == Set([a.id, g.id, m.id]))
     #expect(loaded.tasksByID[m.id]?.parentID == g.id)
@@ -88,7 +94,7 @@ import Testing
 
 @Test func saveToURLAndLoadFromURL() throws {
     let project = Project()
-    project.metadata.title = "磁盘往返"
+    project.metadata.title = b0Fixture2
     project.add(TaskItem(title: "持久任务", kind: .group))
 
     let url = FileManager.default.temporaryDirectory
@@ -97,7 +103,7 @@ import Testing
 
     try KairoFile.save(project, to: url)
     let loaded = try KairoFile.load(from: url)
-    #expect(loaded.metadata.title == "磁盘往返")
+    #expect(loaded.metadata.title == b0Fixture2)
     #expect(loaded.tasks.count == 1)
 }
 
@@ -105,14 +111,14 @@ import Testing
 
 @Test func fr_kairo_fmt_1_read_current_file_reports_current_source_version() throws {
     let project = Project()
-    project.metadata.title = "当前版本"
+    project.metadata.title = b0Fixture3
     project.add(TaskItem(title: "任务"))
     let data = try KairoFile.encode(project: project)
 
     let decoded = try KairoFile.read(from: data)
 
     #expect(decoded.sourceFormatVersion == KairoFile.currentFormatVersion)
-    #expect(decoded.project.metadata.title == "当前版本")
+    #expect(decoded.project.metadata.title == b0Fixture3)
     #expect(decoded.project.tasks.count == 1)
 }
 
@@ -139,6 +145,6 @@ import Testing
     #expect(root["formatVersion"] as? Int == KairoFile.currentFormatVersion)
 
     let reopened = try KairoFile.read(from: resaved)
-    #expect(reopened.project.metadata.title == "旧项目")
+    #expect(reopened.project.metadata.title == b0Fixture4)
     #expect(reopened.sourceFormatVersion == KairoFile.currentFormatVersion)
 }

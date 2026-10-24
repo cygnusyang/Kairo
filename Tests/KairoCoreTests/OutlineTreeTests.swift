@@ -1,5 +1,10 @@
 import Foundation
 import Testing
+
+// MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
+private let b0Fixture1 = "孤儿"
+private let b0Fixture2 = "组"
+private let b0Fixture3 = "顶层任务"
 @testable import KairoCore
 
 // 可见大纲树（F-14 / ADR-013）：行序、层级、收合、过滤、群组聚合。
@@ -35,10 +40,10 @@ private func scheduled(
 }
 
 private struct Fixture {
-    let group = TaskItem(title: "组", kind: .group)
+    let group = TaskItem(title: b0Fixture2, kind: .group)
     let a: TaskItem
     let b: TaskItem
-    let c = TaskItem(title: "顶层任务")
+    let c = TaskItem(title: b0Fixture3)
 
     init() {
         a = TaskItem(title: "A", parentID: group.id, effortHours: 3, progress: 0.5)
@@ -54,7 +59,7 @@ struct OutlineTreeTests {
 
         let tree = OutlineTree(tasks: f.tasks, expanded: [], calendar: utc)
 
-        #expect(tree.rows.map(\.task.title) == ["组", "顶层任务"])
+        #expect(tree.rows.map(\.task.title) == [b0Fixture2, b0Fixture3])
         #expect(tree.rows.map(\.depth) == [0, 0])
         #expect(tree.hiddenByCollapseCount == 2)
         #expect(tree.hiddenByFilterCount == 0)
@@ -65,7 +70,7 @@ struct OutlineTreeTests {
 
         let tree = OutlineTree(tasks: f.tasks, expanded: [f.group.id], calendar: utc)
 
-        #expect(tree.rows.map(\.task.title) == ["组", "A", "B", "顶层任务"])
+        #expect(tree.rows.map(\.task.title) == [b0Fixture2, "A", "B", b0Fixture3])
         #expect(tree.rows.map(\.depth) == [0, 1, 1, 0])
         #expect(tree.rows[0].isExpanded)
     }
@@ -99,7 +104,7 @@ struct OutlineTreeTests {
     }
 
     @Test func groupStatusRules() {
-        let group = TaskItem(title: "组", kind: .group)
+        let group = TaskItem(title: b0Fixture2, kind: .group)
         let done1 = TaskItem(title: "D1", status: .done, parentID: group.id)
         let done2 = TaskItem(title: "D2", status: .done, parentID: group.id)
         let pending = TaskItem(title: "P", parentID: group.id)
@@ -154,7 +159,7 @@ struct OutlineTreeTests {
             tasks: f.tasks, expanded: [], matchedIDs: [f.b.id], calendar: utc
         )
 
-        #expect(tree.rows.map(\.task.title) == ["组", "B"])
+        #expect(tree.rows.map(\.task.title) == [b0Fixture2, "B"])
         #expect(tree.rows.map(\.depth) == [0, 1])
         #expect(tree.hiddenByFilterCount == 2)
         #expect(tree.rows[0].isExpanded)
@@ -189,11 +194,11 @@ struct OutlineTreeTests {
     }
 
     @Test func orphanIsTreatedAsRoot() {
-        let orphan = TaskItem(title: "孤儿", parentID: UUID())
+        let orphan = TaskItem(title: b0Fixture1, parentID: UUID())
 
         let tree = OutlineTree(tasks: [orphan], calendar: utc)
 
-        #expect(tree.rows.map(\.task.title) == ["孤儿"])
+        #expect(tree.rows.map(\.task.title) == [b0Fixture1])
         #expect(tree.rows[0].depth == 0)
     }
 }

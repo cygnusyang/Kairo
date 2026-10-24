@@ -1,5 +1,8 @@
 import Foundation
 import Testing
+
+// MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
+private let b0Fixture1 = "窗口外任务"
 @testable import KairoCore
 
 // 违例引擎测试（US-E2-05 / F-30 基础集）+ 重要路径与宽延（US-E2-03）。
@@ -252,7 +255,7 @@ struct CriticalPathTests {
 
 struct StartAfterProjectWindowAttributionTests {
     @Test func startDateBeyondProjectEndIsAttributedToUserInput() {
-        var late = task("窗口外任务", duration: 2)
+        var late = task(b0Fixture1, duration: 2)
         late.startDate = day(2026, 11, 20)
         let window = violations(compute([late], end: day(2026, 11, 5)), [late])
         let attributed = window.filter { $0.code == .startAfterProjectWindow }
@@ -262,7 +265,7 @@ struct StartAfterProjectWindowAttributionTests {
             Issue.record("期望 startAfterProjectWindow，实际 \(String(describing: attributed.first?.reason))")
             return
         }
-        #expect(title == "窗口外任务")
+        #expect(title == b0Fixture1)
         #expect(taskStart == day(2026, 11, 20))
         #expect(projectStart == d0)
         #expect(projectEnd == day(2026, 11, 5))

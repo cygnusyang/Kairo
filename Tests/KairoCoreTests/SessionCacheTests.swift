@@ -3,6 +3,9 @@ import Testing
 @testable import KairoCore
 import KairoCommands
 
+// MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
+private let b0Fixture1 = "原任务"
+
 // 会话缓存失效（ADR-013）：任一写操作置脏，读取排期时按需重算一次。
 
 private let utc: Calendar = {
@@ -112,7 +115,7 @@ struct SessionCacheTests {
     @Test func restoreReplacesProjectContent() throws {
         let session = KairoSession()
         try session.createProject(title: "快照")
-        let id = try session.addTask(title: "原任务")
+        let id = try session.addTask(title: b0Fixture1)
         let state = try session.snapshot()
 
         _ = try session.addTask(title: "新增")
@@ -124,6 +127,6 @@ struct SessionCacheTests {
 
         try session.restore(state)
 
-        #expect(try session.listTasks().map(\.title) == ["原任务"])
+        #expect(try session.listTasks().map(\.title) == [b0Fixture1])
     }
 }

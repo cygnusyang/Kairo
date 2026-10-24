@@ -1,5 +1,8 @@
 import Foundation
 import Testing
+
+// MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
+private let b0Fixture1 = "阶段"
 @testable import KairoCommands
 @testable import KairoCore
 
@@ -118,7 +121,7 @@ struct SessionErrorReasonTests {
 
     @Test func groupPromotionWarningIsSemantic() throws {
         // 旧数据：有子项但 kind 不是 group → 载入时提升，并留下结构化警告。
-        let group = TaskItem(title: "阶段", kind: .task)
+        let group = TaskItem(title: b0Fixture1, kind: .task)
         let child = TaskItem(title: "子任务", parentID: group.id)
         let project = Project()
         project.add(group)
@@ -129,7 +132,7 @@ struct SessionErrorReasonTests {
 
         let warning = try #require(session.loadWarnings.first)
         #expect(warning.code == .groupPromoted)
-        #expect(warning.taskTitle == "阶段")
+        #expect(warning.taskTitle == b0Fixture1)
         #expect(warning.taskID == group.id)
     }
 }
