@@ -62,6 +62,35 @@ private func toolResult(_ value: JSONValue) throws -> JSONValue {
     #expect(taskAdd?.objectValue?["inputSchema"]?.objectValue?["required"]?.arrayValue?.first?.stringValue == "title")
 }
 
+// MARK: - violations_list 文案（F-0720）
+
+/// 阶段一契约：violations_list 必须同时返回结构化字段与人类可读 message，
+/// 且 message 由 KairoCommands.ViolationText 产出（与 CLI 同一实现）。
+@Test func violationsListCarriesCodeReasonAndMessage() throws {
+    let server = MCPServer()
+    _ = try send(server, #"{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"project_create","arguments":{"title":"违例项目"}}}"#)
+    _ = try send(server, #"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"task_add","arguments":{"title":"任务 A"}}}"#)
+    _ = try send(server, #"{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"task_add","arguments":{"title":"任务 B"}}}"#)
+    let ids = try toolResult(try send(server, #"{"jsonrpc":"2.0","id":4,"method":"tools/call","params":{"name":"task_list","arguments":{}}}"#))
+    let tasks = try #require(ids.objectValue?["tasks"]?.arrayValue)
+    let a = try #require(tasks.first?.objectValue?["id"]?.stringValue)
+    let b = try #require(tasks.last?.objectValue?["id"]?.stringValue)
+    // 造一个相关性环：A 依赖 B，B 依赖 A
+    _ = try send(server, "{\"jsonrpc\":\"2.0\",\"id\":5,\"method\":\"tools/call\",\"params\":{\"name\":\"task_update\",\"arguments\":{\"taskID\":\"\(a)\",\"dependencies\":[{\"predecessorID\":\"\(b)\",\"type\":\"fs\"}]}}}")
+    _ = try send(server, "{\"jsonrpc\":\"2.0\",\"id\":6,\"method\":\"tools/call\",\"params\":{\"name\":\"task_update\",\"arguments\":{\"taskID\":\"\(b)\",\"dependencies\":[{\"predecessorID\":\"\(a)\",\"type\":\"fs\"}]}}}")
+
+    let listed = try toolResult(try send(server, #"{"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"violations_list","arguments":{}}}"#))
+    let rows = try #require(listed.objectValue?["violations"]?.arrayValue)
+    #expect(!rows.isEmpty)
+    for row in rows {
+        #expect(row.objectValue?["code"]?.stringValue?.isEmpty == false)
+        #expect(row.objectValue?["reason"] != nil)
+        let message = try #require(row.objectValue?["message"]?.stringValue)
+        #expect(!message.isEmpty)
+        #expect(message.contains("任务「"))
+    }
+}
+
 // MARK: - tools/call 往返
 
 @Test func taskAddThenTaskListRoundTrip() throws {

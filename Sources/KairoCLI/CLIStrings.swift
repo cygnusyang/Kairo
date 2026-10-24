@@ -1,5 +1,6 @@
 import Foundation
 import KairoCore
+import KairoCommands
 
 /// CLI 人类可读文案（F-0707 · 设计 §3「CLI / MCP 各自渲染」）。
 ///
@@ -337,60 +338,8 @@ struct CLIStrings: Sendable {
     /// \`startAfterProjectWindow\`（F-0715 / D-022）是本版新增归因，v0.8.5 无对应文案，
     /// 中文按「点明用户输入致因」的要求新写。
     func violationText(_ violation: Violation) -> String {
-        switch violation.reason {
-        case .cycle(let title):
-            return t(
-                "任务「\(taskTitle(title))」处于相关性环中，无法确定先后顺序",
-                "task \"\(taskTitle(title))\" is in a dependency cycle; its order cannot be determined"
-            )
-        case .taskAfterProjectEnd(let title):
-            return t(
-                "任务「\(taskTitle(title))」的结束日期晚于项目结束日期",
-                "task \"\(taskTitle(title))\" finishes after the project end date"
-            )
-        case .taskBeforeProjectStart(let title):
-            return t(
-                "任务「\(taskTitle(title))」的开始日期早于项目开始日期",
-                "task \"\(taskTitle(title))\" starts before the project start date"
-            )
-        case .constraintWindowTooNarrow(let title, let windowDays, let requiredDays):
-            return t(
-                "任务「\(taskTitle(title))」的开始时限与结束时限相距过近（\(windowDays) 天），"
-                    + "无法容纳持续时间（\(requiredDays) 天）",
-                "task \"\(taskTitle(title))\" has start and end constraints only \(windowDays) day(s) apart, "
-                    + "which cannot fit its \(requiredDays) day duration"
-            )
-        case .negativeSlack(let title):
-            return t(
-                "任务「\(taskTitle(title))」无法安排：最晚开始早于最早开始（负宽延）",
-                "task \"\(taskTitle(title))\" cannot be scheduled: latest start precedes earliest start (negative slack)"
-            )
-        case .constraintConflict(let title, let kind, let conflict):
-            let relation = conflict == .latestBeforeConstraint
-                ? t("最晚\(side(kind))早于时限", "latest \(side(kind)) is earlier than the constraint")
-                : t("窗口无法容纳任务持续时间", "the window cannot fit the task duration")
-            return t(
-                "任务「\(taskTitle(title))」的「\(constraintName(kind))」时限与相关性链冲突：\(relation)",
-                "task \"\(taskTitle(title))\" \"\(constraintName(kind))\" constraint conflicts with the dependency "
-                    + "chain: \(relation)"
-            )
-        case .constraintUnmetByPrerequisite(let title, let kind):
-            return t(
-                "任务「\(taskTitle(title))」因先决条件无法满足「\(constraintName(kind))」时限",
-                "task \"\(taskTitle(title))\" cannot satisfy its \"\(constraintName(kind))\" constraint because of "
-                    + "predecessors"
-            )
-        case .startAfterProjectWindow(let title, let taskStart, let projectStart, let projectEnd):
-            let start = Self.calendarDay(taskStart)
-            let windowStart = Self.calendarDay(projectStart)
-            let windowEnd = Self.calendarDay(projectEnd)
-            return t(
-                "任务「\(taskTitle(title))」的开始日期（\(start)）晚于项目可排窗口"
-                    + "（项目：\(windowStart) 至 \(windowEnd)）",
-                "task \"\(taskTitle(title))\" starts on \(start), outside the schedulable project window "
-                    + "(\(windowStart) to \(windowEnd))"
-            )
-        }
+        // 唯实现：KairoCommands.ViolationText（CLI 与 MCP 共用，避免文案漂移）。
+        ViolationText.text(violation, language: language == .zhHans ? .zhHans : .en)
     }
 
     /// 任务标题缺失时的回退（任务已被删除等）。

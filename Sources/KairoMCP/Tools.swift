@@ -325,6 +325,9 @@ struct ToolRegistry {
         let rows = try vs.map { violation -> JSONValue in
             var object = try JSONValue.json(violation).objectValue ?? [:]
             object["code"] = .string(violation.code.rawValue)
+            // 阶段一保持 v0.8.5 的 message（中文），渲染器与 CLI 共用 ViolationText，避免两套文案漂移；
+            // 阶段二切英文时只改渲染器语言参数，接口形状不变。
+            object["message"] = .string(ViolationText.text(violation, language: .zhHans))
             return .object(object)
         }
         return .object(["violations": .array(rows)])
