@@ -403,3 +403,18 @@
 | 3 | `UpdaterErrorCode` 无 `autoLaunchFailed` | **用 `.scriptLaunchFailed`**（`updater_script_launch_failed`），core 复核后如不符再改一条 | `InstallerTests:70` 断 `errorCode == .scriptLaunchFailed` |
 
 > 三项均不阻塞 B0（84 条常量抽取）与 B2（接口层 9 条）；只影响 B1 里 26 条 alert/notice 与 5 条错误码断言。
+
+## 8. B0 执行中发现的两处「仍是中文」的产物（阻塞 B1 两条断言）
+
+B0 在 Presentation / Updater 两个 target 实跑时，除计划内条目外发现两处**快照/界面仍携带中文自然语言**。这不是测试问题，是实现侧与 F-0704 判据 C-01（快照与 Locale 无关）冲突：
+
+| # | 位置 | 现象 | 影响判据 |
+|---|---|---|---|
+| 1 | `Sources/KairoCore/Query/AIFilter.swift:62-66` → `Sources/KairoPresentation/Presenter.swift:273` | `AIFilterTranslator.explanation()` 返回中文整句（`"筛选："…`、`"全部任务"`），被写进 `OutlineSnapshot.filterSummary: String?` | **C-01 必红**：同一项目在 en/zh 下快照不相等。对应断言 `PresenterTests:131`（`filterSummary?.contains("筛选")`）无法改成枚举，只能继续断文案 |
+| 2 | `Sources/KairoUpdater/InstallerSupport.swift:80,85,90,94` → `UpdaterManager.swift:258-261` → `UpdateSheet` 的 detail 行 | 安装脚本把三条中文失败文案写进结果 JSON（`"等待当前应用退出超时，未执行替换"` / `"备份当前应用失败，未执行替换"` / `"安装新版本失败，已回滚"`），`UpdaterManager` 原样塞进 `.installFailed(parameters["detail"])`，更新面板直接渲染 | **A-03 / §8 非豁免项**：更新面板错误行会出现中文。对应断言 `InstallerTests:70` 现在只能断 `message.contains("自动启动失败")`，本身也是「断文案」 |
+
+**建议处置**（均属实现侧，本计划不动代码）：
+1. `explanation()` 改为返回结构化 `FilterSummary`（clauses 数组）或枚举 + 参数，`Presenter` 只透传；视图按 Catalog 渲染。C-01 随之可判定。
+2. 安装脚本结果 JSON 的 `message` 改为**码字符串**（如 `"launch_failed"` / `"backup_failed"` / `"replace_failed"`），`UpdaterManager` 映射到 `UpdaterErrorCode` + 参数，面板按语言渲染。届时 `InstallerTests:70` 改断 `errorCode == .scriptLaunchFailed`（外加上面三条码各自的 case）。
+
+> 这两条不阻塞 B0（已完成）与 B2，只阻塞 B1 中的 `PresenterTests:131` 与 `InstallerTests:70` 各 1 条。
