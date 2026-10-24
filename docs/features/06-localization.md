@@ -269,7 +269,14 @@ F-0700 资源实验 → F-0701 键规范 → F-0713 断言分类（与后续并�
 | 5 | 双 Locale 全量测试通过、键完整性通过 | `swift test` 矩阵加 `-AppleLanguages` 参数；键完整性为纯数据比对 |
 | 6 | 从零构建的应用在英文系统显示英文，OTA 升级后仍生效 | 构建产物断言（`plutil -p` 查清单、`Contents/Resources` 查 `.lproj` 存在）+ 启动后读 `Bundle.preferredLocalizations` 的半自动断言 |
 
-**F-0705 收口顺序（发布证据链）**：① 先**不**带 `--write-whitelist` 跑一次 `tools/i18n-lint.sh --require-catalog --lproj-dir <编译产物>` 并留档——输出里的「白名单有 N 条已清理」就是 404 → 0 的轨迹证据；② 再 `--write-whitelist` 重生成（清零后文件只剩注释，不留空行）；③ 再跑一次确认 exit 0。发布闸门本身只认 `tools/release.sh` 里的 `--fail-if-whitelist-nonempty`，三步是取证，不替代判定。
+**F-0705 收口顺序（发布证据链）**：① 清零前先跑一次 `tools/i18n-lint.sh --require-catalog --lproj-dir <编译产物>` 留档（输出里的「白名单有 N 条已清理」）；若已被 `--write-whitelist` 覆盖，轨迹可用 git 无损重建，不依赖终端截图：
+
+```bash
+git show <清零前的提交>:tools/i18n-whitelist.txt | grep -v '^#' | grep -c '[^[:space:]]'   # 404
+git show <清零后的提交>:tools/i18n-whitelist.txt | grep -v '^#' | grep -c '[^[:space:]]'   # 0
+```
+
+② 清零与视图改动必须落在**同一个提交**里，否则「404 → 0」只存在于工作区，换分支即断链；③ 复核 `--fail-if-whitelist-nonempty` exit 0。发布闸门本身只认 `tools/release.sh` 里的 `--fail-if-whitelist-nonempty`，①②③ 是取证，不替代判定。
 
 ## 12. 风险与前置验证
 
