@@ -1,6 +1,8 @@
 # 多语言支持（先英文）· 方案与任务拆分
 
-> 版本 0.3 · 2026-10-24 · 状态：方案（已评审）· 归属版本：v0.9.0（阶段一）/ v0.10.0（阶段二）
+> 版本 0.5 · 2026-10-24 · 状态：方案（已评审；v0.9.0 开工中）· 归属版本：v0.9.0（阶段一）/ v0.10.0（阶段二）
+> 本版回填：F-0700 实测结论（§7.1 三条事实与主路径 B）。
+> 上版追加：F-0715 / F-0716 / F-0717 承接缺陷登记表顺延项 D-022 / D-023 / D-024。
 > 上游依据：[02-architecture.md](../02-architecture.md) 的 ADR-004（核心层零 UI 依赖）与 ADR-013（唯一写路径 + 快照边界）、[04-glossary.md](04-glossary.md)（术语）
 > 本文只定方案与任务拆分，不含实现代码。
 
@@ -112,11 +114,57 @@ palette.result.count = "%1$ld task"
 
 ## 7. 打包、清单与资源加载
 
-- `tools/build.sh` 手写 `Info.plist`：`CFBundleDevelopmentRegion` 由 `zh_CN` 改为 `en`，新增 `CFBundleLocalizations` 声明 `en` 与 `zh-Hans`。
-- SwiftPM 资源默认进入 `.build` 下的 `.bundle`；自建 `.app` 必须拷进 `Contents/Resources`，否则 `Bundle.module` 在包内失效。全仓当前 `Bundle.module` 使用数为 0，此路径**尚无先例**。
-- 因此把「资源能否命中」提为第一个任务（F-0700）。
-- 资源必须在代码签名覆盖范围内；OTA 是整包替换，升级后仍需命中（风险 R4）。
-- 备选方案（若 F-0700 结论为否）：显式拷贝 `en.lproj` / `zh-Hans.lproj` 并用 `Bundle(url:)` 加载。该路径的通过判据为 `preferredLocalizations.first` 在两种系统语言下分别返回 `en` 与 `zh-Hans`，且 `CFBundleLocalizations` 仍生效。
+### 7.1 实测结论（F-0700，已定论）
+
+环境：macOS 26 / Swift 6.3.1 / tools-version 5.9。
+
+| # | 实测 | 后果 |
+|---|---|---|
+| E1 | `resources: [.process("Resources")]` 对 `.xcstrings` 只原样拷贝、不编译，产物 `localizations == []` | 「Catalog 进 target + `Bundle.module`」不通 |
+| E2 | SwiftPM 生成的 resource bundle 无 `Info.plist`，`preferredLocalizations` 恒为 `["en"]`，显式 `locale:` 也不生效 | 资源宿主必须是自建 `.app` |
+| E3 | `.app` + `Contents/Resources/{en,zh-Hans}.lproj` + 清单含 `CFBundleDevelopmentRegion=en` 与 `CFBundleLocalizations`：`preferredLocalizations`、`String(localized:)`、复数 `%1$ld` 全对，`-AppleLanguages` 可钉死 | 定为唯一路径 |
+
+**结论**：本文档上一版的默认假设「Catalog 进 target、按 `Bundle.module` 命中」**判否**（E1/E2），改用主路径 B。`.xcstrings` 不进任何 target 的 `resources` 声明，`Package.swift` 不需要改动。
+
+### 7.2 主路径 B（已实施）
+
+```
+Apps/macos/Resources/Localizable.xcstrings        # 唯一源文件
+  → tools/i18n-compile.sh <输出目录>              # xcrun xcstringstool compile
+  → <输出目录>/{en,zh-Hans}.lproj/{Localizable.strings, Localizable.stringsdict}
+  → tools/build.sh：codesign 之前拷进 Kairo.app/Contents/Resources/
+  → 运行期 Bundle.main 取词（§4），未命中时回退调用点写的英文
+```
+
+`tools/build.sh` 的四处改动：
+
+1. `CFBundleDevelopmentRegion` 由 `zh_CN` 改为 `en`；
+2. 新增 `CFBundleLocalizations` 数组，声明 `en` 与 `zh-Hans`；
+3. 拷可执行文件之后、`codesign` **之前**把两个 `.lproj` 拷进 `Contents/Resources/`——资源必须在签名覆盖范围内，OTA 是整包替换，升级后仍需命中（R4）；
+4. 缺 Catalog 或缺任一 `.lproj` 直接 `exit 1`，不静默回退成单语包。
+
+### 7.3 判据
+
+```bash
+bash tools/i18n-compile.sh /tmp/lproj                 # 产出 en / zh-Hans 两个 .lproj
+bash tools/build.sh                                   # 打包（内部会重新编译并拷入 .app）
+plutil -p dist/Kairo.app/Contents/Info.plist | grep -A3 CFBundleLocalizations
+ls dist/Kairo.app/Contents/Resources | grep lproj     # 应有 en.lproj 与 zh-Hans.lproj
+bash tools/i18n-lint.sh                               # (a)(b)(c) 全过
+```
+
+语言协商（两条各启动一次，界面文案随之切换；系统「语言与地区」不改也能判定）：
+
+```bash
+dist/Kairo.app/Contents/MacOS/Kairo -AppleLanguages '(en)'
+dist/Kairo.app/Contents/MacOS/Kairo -AppleLanguages '(zh-Hans)'
+```
+
+### 7.4 副作用与不做的事
+
+- `swift run` / `swift test` 下没有 `.lproj`（E1/E2），所以文案一律走 §4 的英文兜底取词函数，否则裸跑会显示裸键；
+- 不把编译后的 `.lproj` 提交进仓库：同一文案两个源，必然漂移；
+- CLI 不用 Catalog：`dist/KairoCLI` 是裸可执行文件、无 `Info.plist`，没有 `.lproj` 宿主（与 E2 同类结论），语言由 `--lang` / `KAIRO_LANG` / 系统语言决定（§6）。
 
 ## 8. 测试策略
 
@@ -160,7 +208,7 @@ F-0700 资源实验 → F-0701 键规范 → F-0713 断言分类（与后续并�
 
 | ID | 任务 | 依赖 | 验收判据 | 规模 |
 |---|---|---|---|---|
-| F-0700 | 资源加载前置实验 | — | `.xcstrings` 在 swift build 产物与自建 .app 两种形态下均命中；端到端验证：切系统语言后界面文案随之变化 | S |
+| F-0700 | 资源加载前置实验 | — | **已定论（见 §7.1，判据回填）**：原判据「Catalog 进 target、`Bundle.module` 可命中」**判否**（E1 只拷贝不编译 / E2 resource bundle 无 Info.plist）；实测通过的是 E3——`.xcstrings` 只作源，`xcstringstool` 编出 `.lproj` 装进 `.app` + 清单声明两语言，`preferredLocalizations`、`String(localized:)`、复数与 `-AppleLanguages` 全对 → 采用主路径 B（§7.2） | S |
 | F-0701 | 字符串清单与键命名规范 | F-0700 | 清单按 §1 五类位置分册；键规范抽样 20 条评审无歧义；产出 v0.8.5 的键-文案对照表（作为 §11 判据 2 的基线） | M |
 | F-0702 | 核心层日期与数字格式化收敛 | F-0701 | 注入 `en_US` 时无「年月日」；`zh_CN` 下语义等价；Linux 编译通过 | M |
 | F-0712 | 视图层日期与单位格式化收敛 | F-0701（与 F-0702 可并行） | 改造清单：`Display` 的 `dateFormatter` 与 `shortDateFormatter` 改为按注入 `Locale` 走 `setLocalizedDateFormatFromTemplate`；`monthTitle` / `weekdaySymbols` / `dayLabel` / `duration` 四个拼接函数改用本地化 API；`TimelineView` 预览日期、`CommandRegistry` 两处时间戳、`WorkspaceStore` 的 `clockFormatter` 各自判定「展示格式（本地化）」还是「契约格式（保持）」。排除项：`isoDateFormatter`（`en_US_POSIX` + `yyyy-MM-dd`）保持不动并新增用例锁死输出 | M |
@@ -175,7 +223,9 @@ F-0700 资源实验 → F-0701 键规范 → F-0713 断言分类（与后续并�
 | F-0710 | 测试改造 | F-0705、F-0712、F-0713 | 双 Locale 全绿；新增键完整性测试；白名单外无硬编码文案 | L |
 | F-0711 | 文档与 CI 门禁 | F-0710 | 术语表含英文列；CI 拦截白名单外新增中文；两侧零缺键检查在 CI 执行；**CI 断言三层无 `Bundle.module`** | S |
 | F-0713 | 断言分类盘点 | F-0700 | 327 条全部归类并附理由；抽样 20 条评审一致 | M |
-
+| F-0715 | D-022：任务晚于项目窗口时违例文案点明用户输入致因 | F-0703 | 违例码 `window.startAfterProjectEnd` 的参数含「任务开始日 / 项目窗口」；中文文案点明是输入导致；D-022 回归用例通过 | S |
+| F-0716 | D-023：时限窗口改用日历日而非 86 400 秒 | — | America/New_York 跨 DST 的时限冲突判定与期望一致；新增两条跨 DST 用例（春进 / 秋退） | M |
+| F-0717 | D-024：统一「无下界」哨兵口径 | — | `startDateLowerBound` 与排期内部哨兵使用同一常量；现有排期用例零变化 | S |
 ## 11. 验收判据（版本级）
 
 | # | 判据 | 检测方式 |
@@ -192,7 +242,7 @@ F-0700 资源实验 → F-0701 键规范 → F-0713 断言分类（与后续并�
 
 | 编号 | 事项 | 处置 |
 |---|---|---|
-| P1 | SwiftPM 资源在自建 `.app` 内的加载路径 | F-0700 先验；结论为否则走 §7 备选方案，判据为 `preferredLocalizations` 取值 |
+| P1 | SwiftPM 资源在自建 `.app` 内的加载路径 | **已定论**（§7.1）：SwiftPM 侧的「Catalog 进 target」判否，采用主路径 B（`.xcstrings` 只作源、编译进 `.app`）；剩余风险由 §7.3 的构建产物断言与 F-0711 门禁覆盖 |
 | P2 | 运行中切换语言的可行性与回归面 | 不影响本期；有结论后再评估 |
 | P3 | 327 处断言的分类比例 | F-0713 产出清单，作为 F-0710 估时依据 |
 | R1 | 键命名定得太晚导致返工 | F-0701 先于 F-0703 / F-0704 / F-0705 |
