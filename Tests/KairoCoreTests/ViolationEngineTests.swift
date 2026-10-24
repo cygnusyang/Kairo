@@ -1,9 +1,10 @@
 import Foundation
 import Testing
 
+@testable import KairoCore
+
 // MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
 private let b0Fixture1 = "窗口外任务"
-@testable import KairoCore
 
 // 违例引擎测试（US-E2-05 / F-30 基础集）+ 重要路径与宽延（US-E2-03）。
 

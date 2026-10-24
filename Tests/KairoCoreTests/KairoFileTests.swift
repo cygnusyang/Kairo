@@ -1,12 +1,13 @@
 import Foundation
 import Testing
 
+@testable import KairoCore
+
 // MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
 private let b0Fixture1 = "示例项目"
 private let b0Fixture2 = "磁盘往返"
 private let b0Fixture3 = "当前版本"
 private let b0Fixture4 = "旧项目"
-@testable import KairoCore
 
 // MARK: - 往返
 

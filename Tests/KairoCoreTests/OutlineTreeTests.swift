@@ -1,11 +1,12 @@
 import Foundation
 import Testing
 
+@testable import KairoCore
+
 // MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
 private let b0Fixture1 = "孤儿"
 private let b0Fixture2 = "组"
 private let b0Fixture3 = "顶层任务"
-@testable import KairoCore
 
 // 可见大纲树（F-14 / ADR-013）：行序、层级、收合、过滤、群组聚合。
 

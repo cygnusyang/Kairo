@@ -1,9 +1,10 @@
 import Foundation
 import Testing
 
+@testable import KairoCore
+
 // MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
 private let b0Fixture1 = "验收"
-@testable import KairoCore
 
 // kairo:// 深链解析与定位（US-E5-04 / F-41-03）。
 

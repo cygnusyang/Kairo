@@ -1,10 +1,11 @@
 import Foundation
 import Testing
 
+@testable import KairoCore
+
 // MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
 private let b0Fixture1 = "当前格式"
 private let b0Fixture2 = "端到端 v2 v3"
-@testable import KairoCore
 
 // MARK: - 合成迁移（仅测试使用）
 

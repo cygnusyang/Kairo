@@ -1,10 +1,11 @@
 import Foundation
 import Testing
 
-// MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
-private let b0Fixture1 = "测试机"
 @testable import KairoCore
 @testable import KairoCommands
+
+// MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
+private let b0Fixture1 = "测试机"
 
 // 资源模型与投入↔持续时间换算（US-E1-05 / F-22-03 / F-23-01）
 // 与状态回写（US-E3-01 / US-E3-02）。

@@ -1,12 +1,13 @@
 import Foundation
 import Testing
 
+@testable import KairoCore
+
 // MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
 private let b0Fixture1 = "今日任务"
 private let b0Fixture2 = "完成任务"
 private let b0Fixture3 = "支付网关"
 private let b0Fixture4 = "逾期任务"
-@testable import KairoCore
 
 // MARK: - Fixtures
 
@@ -135,12 +136,19 @@ private final class StubFindTarget: FindTarget {
     #expect(term?.matches(makeTask(title: "Onboarding flow")) == true)
 }
 
-@Test func explanationSummarizesClauses() {
-    let clauses = AIFilterTranslator.translate("overdue done")
-    let text = AIFilterTranslator.explanation(for: clauses)
-    #expect(text.contains("筛选"))
-    #expect(text.contains("逾期"))
-    #expect(text.contains("status=done"))
+@Test func filterSummaryCarriesSemanticPredicates() {
+    // F-0718：摘要只带码 + 参数，不含自然语言（渲染在 UI / CLI / MCP 各自做）。
+    let summary = AIFilterTranslator.summary(for: AIFilterTranslator.translate("overdue done"))
+
+    #expect(summary.predicates == [
+        .overdue,
+        .field(key: .status, match: .isValue, value: "done"),
+    ])
+    // 语义值里不得出现任何 CJK 字符（旧实现返回「筛选：逾期 + status=done」）。
+    let encoded = try? JSONEncoder().encode(summary)
+    let text = encoded.flatMap { String(data: $0, encoding: .utf8) } ?? ""
+    #expect(!text.unicodeScalars.contains { (0x4E00...0x9FFF).contains($0.value) },
+            "筛选摘要的序列化结果含中文：\(text)")
 }
 
 @Test func applyFiltersFixtureTasks() {

@@ -1,10 +1,11 @@
 import Foundation
 import Testing
 
-// MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
-private let b0Fixture1 = "阶段"
 @testable import KairoCommands
 @testable import KairoCore
+
+// MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
+private let b0Fixture1 = "阶段"
 
 // F-0703：命令层错误的细粒度码（设计 §A.2）。
 //

@@ -1,11 +1,12 @@
 import Foundation
 import Testing
 
+@testable import KairoCore
+
 // MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
 private let b0Fixture1 = "原项目"
 private let b0Fixture2 = "快照项目"
 private let b0Fixture3 = "空"
-@testable import KairoCore
 
 // 项目值快照（ADR-013）：撤销与呈现层输入的稳定边界。
 // 快照必须与 Project 引用脱钩；恢复必须完整覆盖元数据、任务与资源。
