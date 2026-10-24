@@ -81,6 +81,12 @@ enum UpdaterFailureText {
             )
         case .installResultUnreadable:
             return I18n.t("update.error.install_result_unreadable", "The previous update result could not be read and was ignored.")
+        case .installAppStillRunning:
+            return I18n.t("update.error.install_app_still_running", "The update could not be installed because Kairo was still running (exit code %1$@).", param(failure, "exitCode"))
+        case .installBackupFailed:
+            return I18n.t("update.error.install_backup_failed", "Failed to back up the current app; nothing was replaced (exit code %1$@).", param(failure, "exitCode"))
+        case .installReplaceFailed:
+            return I18n.t("update.error.install_replace_failed", "Failed to replace the app; the previous version was restored (exit code %1$@).", param(failure, "exitCode"))
         case .installFailed:
             return I18n.t(
                 "update.error.install_failed",

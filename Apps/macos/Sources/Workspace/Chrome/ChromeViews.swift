@@ -32,11 +32,14 @@ struct FilterBar: View {
                 .focused($filterFocused)
                 .onSubmit { filterFocused = false }
 
-            if !clauses.isEmpty {
-                Text(AIFilterTranslator.explanation(for: clauses))
+            if let explanation = store.snapshot.outline.filterExplanation,
+               let summary = FilterExplanationText.text(explanation) {
+                Text(summary)
                     .font(.system(size: DesignTokens.captionFontSize))
                     .foregroundStyle(DesignTokens.textSecondary)
                     .lineLimit(1)
+            }
+            if !clauses.isEmpty {
                 ForEach(Array(tokens.enumerated()), id: \.offset) { index, token in
                     FilterChip(label: token) {
                         store.dispatch(.setFilter(removing(tokens: tokens, at: index)))
