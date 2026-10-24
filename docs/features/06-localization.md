@@ -76,6 +76,7 @@ grep -oE '=\s*"[a-z0-9_]+"' Sources/KairoUpdater/UpdaterErrorCode.swift | sort -
 | `KairoErrorCode` | **47** | 含 `schedule_start_after_project_window`（F-0715）；v0.9.0 起冻结，只增不改 |
 | `UpdaterErrorCode` | **34** | `updater_` 前缀；等价于 v0.8.5 的 49 行 `errorDescription` 去重后逐条落码，含 F-0719 的三个安装失败码 |
 | MCP 响应的 `code` | **6** | `project_not_open` / `task_not_found` / `invalid_argument` / `file_unreadable` / `unsupported_format` / `internal_error`，取值不变；细粒度信息在 `reason` |
+> 两套码不要混算：`UpdaterErrorCode`（34 个，`updater_*` 前缀）是错误码；`InstallResult.FailureReason`（4 个，无前缀）是替换脚本写进 result JSON 的稳定标记，由 `UpdaterManager` 映射到上述错误码；`relaunch_failed`、旧版本脚本写下的中文取值与无法识别的取值一律回落 `updater_install_failed`。历史提交正文里出现过 32 / 35，均按本表的 34 为准。
 
 理由：快照是跨层公共契约，已被 UI、CLI、MCP 三端消费。若快照携带中文文本，CLI 与 MCP 的语言策略就被呈现层绑死。
 
