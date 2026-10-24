@@ -4,6 +4,9 @@ import Testing
 
 // 甘特布局纯函数测试（US-E4-04 / F-14-01 / F-14-13 / F-14-14）。
 
+/// 刻度标签语言（F-0702）：v0.8.5 的中文标签形态用 zh_CN 锁；en_US 见 GanttTickLabelLocaleTests。
+private let zhCN = Locale(identifier: "zh_CN")
+
 private let utc: Calendar = {
     var c = Calendar(identifier: .gregorian)
     c.timeZone = TimeZone(identifier: "UTC")!
@@ -81,6 +84,7 @@ struct GanttLayoutTests {
             tasks: [task],
             schedule: result([scheduled(task, start: day(2026, 11, 4), days: 3)]),
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 800,
             windowStart: monday
@@ -101,6 +105,7 @@ struct GanttLayoutTests {
                 scheduled(outside, start: day(2026, 11, 1), days: 1)
             ]),
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 5 * 32,
             windowStart: day(2026, 11, 5)
@@ -114,6 +119,7 @@ struct GanttLayoutTests {
             tasks: [task],
             schedule: result([scheduled(task, start: day(2026, 11, 3), days: 4)]),
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 5 * 32,
             windowStart: day(2026, 11, 5)
@@ -129,6 +135,7 @@ struct GanttLayoutTests {
             tasks: [milestone],
             schedule: result([scheduled(milestone, start: day(2026, 11, 4), days: 0)]),
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 400,
             windowStart: monday
@@ -144,6 +151,7 @@ struct GanttLayoutTests {
             tasks: [],
             schedule: nil,
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 7 * 32,
             windowStart: monday
@@ -160,6 +168,7 @@ struct GanttLayoutTests {
             tasks: [],
             schedule: nil,
             calendar: utc,
+            locale: zhCN,
             zoom: .month,
             viewWidth: 400,
             windowStart: monday
@@ -172,6 +181,7 @@ struct GanttLayoutTests {
             tasks: [],
             schedule: nil,
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 5 * 32,
             windowStart: day(2026, 11, 28)
@@ -192,6 +202,7 @@ struct GanttLayoutTests {
             tasks: [],
             schedule: nil,
             calendar: utc,
+            locale: zhCN,
             zoom: .month,
             viewWidth: 60 * 5,
             windowStart: day(2026, 11, 1)
@@ -210,6 +221,7 @@ struct GanttLayoutTests {
             tasks: [],
             schedule: nil,
             calendar: utc,
+            locale: zhCN,
             zoom: .month,
             viewWidth: 60 * 5,
             windowStart: day(2026, 11, 1)
@@ -220,6 +232,7 @@ struct GanttLayoutTests {
             tasks: [],
             schedule: nil,
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 7 * 32,
             windowStart: monday
@@ -232,6 +245,7 @@ struct GanttLayoutTests {
             tasks: [],
             schedule: nil,
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 7 * 32,
             windowStart: monday,
@@ -244,6 +258,7 @@ struct GanttLayoutTests {
             tasks: [],
             schedule: nil,
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 7 * 32,
             windowStart: monday,
@@ -272,6 +287,7 @@ struct GanttLayoutTests {
                     scheduled(successor, start: day(2026, 11, 5), days: 2)
                 ]),
                 calendar: utc,
+                locale: zhCN,
                 zoom: .day,
                 viewWidth: 400,
                 windowStart: monday,
@@ -310,6 +326,7 @@ struct GanttLayoutTests {
             tasks: [task],
             schedule: schedule,
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 400,
             windowStart: monday
@@ -327,6 +344,7 @@ struct GanttLayoutTests {
             tasks: [predecessor, successor],
             schedule: result([scheduled(predecessor, start: monday, days: 2)]),
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 400,
             windowStart: monday,
@@ -350,6 +368,7 @@ struct GanttLayoutTests {
                 scheduled(successor, start: day(2026, 11, 5), days: 2)
             ]),
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 400,
             windowStart: monday,
@@ -377,6 +396,7 @@ struct GanttLayoutTests {
             tasks: [],
             schedule: nil,
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 320,
             windowStart: monday
@@ -394,6 +414,7 @@ struct GanttLayoutTests {
                 scheduled(slack, start: monday, days: 2, slack: 3)
             ]),
             calendar: utc,
+            locale: zhCN,
             zoom: .day,
             viewWidth: 400,
             windowStart: monday
@@ -408,6 +429,7 @@ struct GanttLayoutTests {
             tasks: [],
             schedule: nil,
             calendar: utc,
+            locale: zhCN,
             zoom: .month,
             viewWidth: 400,
             windowStart: monday,
@@ -446,5 +468,100 @@ struct GanttLayoutTests {
             GanttLayoutEngine.pannedWindowStart(from: monday, translationX: 100, dayWidth: 0)
                 == monday.addingTimeInterval(-200 * 86_400)
         )
+    }
+}
+
+// MARK: - F-0702 刻度标签注入 Locale（Core 内不读 Locale.current）
+
+/// 标签形态完全由注入的 Locale 决定：en_US 下不得出现「年 / 月 / 日」，
+/// zh_CN 下与 v0.8.5 的既有标签形态语义等价（含 1 月的「仅年份」大刻度）。
+struct GanttTickLabelLocaleTests {
+    private let enUS = Locale(identifier: "en_US")
+
+    private func makeLayout(
+        zoom: GanttZoom,
+        locale: Locale,
+        windowStart: Date,
+        width: Double
+    ) -> GanttLayout {
+        GanttLayoutEngine.make(
+            tasks: [],
+            schedule: nil,
+            calendar: utc,
+            locale: locale,
+            zoom: zoom,
+            viewWidth: width,
+            windowStart: windowStart
+        )
+    }
+
+    @Test func dayZoomLabelsUseEnglishUnderEnUS() {
+        let layout = makeLayout(
+            zoom: .day, locale: enUS, windowStart: day(2026, 11, 28), width: 5 * 32
+        )
+        let lower = layout.ticks.filter { $0.tier == .lower }.map(\.label)
+        let upper = layout.ticks.filter { $0.tier == .upper }.map(\.label)
+
+        #expect(lower == ["28", "29", "30", "1", "2"])
+        #expect(upper == ["Nov", "Dec"])
+        for label in lower + upper {
+            #expect(
+                !label.contains("年") && !label.contains("月") && !label.contains("日"),
+                "en_US 注入下不得出现中文字段：\(label)"
+            )
+        }
+    }
+
+    @Test func dayZoomLabelsKeepV085ChineseShapesUnderZhCN() {
+        let layout = makeLayout(
+            zoom: .day, locale: zhCN, windowStart: day(2026, 11, 28), width: 5 * 32
+        )
+
+        #expect(layout.ticks.filter { $0.tier == .lower }.map(\.label) == ["28", "29", "30", "1", "2"])
+        #expect(layout.ticks.filter { $0.tier == .upper }.map(\.label) == ["11月", "12月"])
+    }
+
+    @Test func monthZoomLocalizesYearAndMonthTicks() {
+        let en = makeLayout(
+            zoom: .month, locale: enUS, windowStart: day(2026, 11, 1), width: 60 * 5
+        )
+        #expect(en.ticks.filter { $0.tier == .lower }.map(\.label) == ["Nov", "Dec"])
+        #expect(en.ticks.filter { $0.tier == .upper }.map(\.label) == ["2026"])
+
+        let zh = makeLayout(
+            zoom: .month, locale: zhCN, windowStart: day(2026, 11, 1), width: 60 * 5
+        )
+        #expect(zh.ticks.filter { $0.tier == .lower }.map(\.label) == ["11月", "12月"])
+        #expect(zh.ticks.filter { $0.tier == .upper }.map(\.label) == ["2026年"])
+    }
+
+    /// 1 月：下层大刻度只出年份，上层只出年份（v0.8.5 口径，两种语言同构）。
+    @Test func januaryTickDegradesToYearOnlyInBothLocales() {
+        let en = makeLayout(
+            zoom: .month, locale: enUS, windowStart: day(2026, 1, 1), width: 60 * 5
+        )
+        #expect(en.ticks.filter { $0.tier == .lower }.map(\.label) == ["2026", "Feb", "Mar"])
+        #expect(en.ticks.filter { $0.tier == .upper }.map(\.label) == ["2026"])
+
+        let zh = makeLayout(
+            zoom: .month, locale: zhCN, windowStart: day(2026, 1, 1), width: 60 * 5
+        )
+        #expect(zh.ticks.filter { $0.tier == .lower }.map(\.label) == ["2026年", "2月", "3月"])
+        #expect(zh.ticks.filter { $0.tier == .upper }.map(\.label) == ["2026年"])
+    }
+
+    /// 周档下层是「月 / 日」：两种目标语言都用数字斜杠形态（不引入月份名）。
+    @Test func weekZoomMonthDayTickIsSlashFormInBothLocales() {
+        let en = makeLayout(
+            zoom: .week, locale: enUS, windowStart: day(2026, 11, 2), width: 8 * 12
+        )
+        let zh = makeLayout(
+            zoom: .week, locale: zhCN, windowStart: day(2026, 11, 2), width: 8 * 12
+        )
+        let enLabels = en.ticks.filter { $0.tier == .lower }.map(\.label)
+        let zhLabels = zh.ticks.filter { $0.tier == .lower }.map(\.label)
+
+        #expect(enLabels == zhLabels, "月/日刻度应为同一数字形态：\(enLabels) vs \(zhLabels)")
+        #expect(enLabels.first == "11/8")
     }
 }

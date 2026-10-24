@@ -180,6 +180,7 @@ private func legacyGanttLayout(
         tasks: fixture.tasks,
         schedule: layoutSchedule,
         calendar: testCalendar,
+        locale: testLocale,
         zoom: zoom,
         viewWidth: max(canvasWidth, 1),
         windowStart: content?.start ?? fixture.now,

@@ -153,10 +153,13 @@ public enum GanttLayoutEngine {
     ///   - rowIndexByTaskID: 可见行索引；提供时生成依赖路由（缺省不生成）。
     ///   - rowHeight: 行高（点），用于依赖路由的行中心与行边界。
     ///   - today: 今天线基准日；nil 时不生成 `todayX`。
+    ///   - locale: 刻度标签的格式化语言（F-0702）。必填且不读 `Locale.current`：
+    ///     核心层是纯函数，同一输入必须产生同一输出（ADR-007 / ADR-013）。
     public static func make(
         tasks: [TaskItem],
         schedule: ScheduleResult?,
         calendar: Calendar,
+        locale: Locale,
         zoom: GanttZoom,
         viewWidth: Double,
         windowStart requestedStart: Date? = nil,
@@ -172,6 +175,7 @@ public enum GanttLayoutEngine {
         let windowStart = calendar.startOfDay(
             for: requestedStart ?? content?.start ?? Date()
         )
+        var labels = TickLabels(calendar: calendar, locale: locale)
         let windowSeconds = width / dayWidth * 86_400
         let windowEnd = windowStart.addingTimeInterval(windowSeconds)
 
@@ -225,12 +229,12 @@ public enum GanttLayoutEngine {
                 appendUpper(
                     windowStart,
                     x: 0,
-                    label: firstMonth == 1 ? "\(firstYear)年1月" : "\(firstMonth)月"
+                    label: firstMonth == 1 ? labels.monthYear(windowStart) : labels.month(windowStart)
                 )
             }
         case .month:
             if firstMonth != 1 {
-                appendUpper(windowStart, x: 0, label: "\(firstYear)年")
+                appendUpper(windowStart, x: 0, label: labels.year(windowStart))
             }
         }
 
@@ -256,12 +260,12 @@ public enum GanttLayoutEngine {
                 lowerTicks.append(GanttLayout.Tick(
                     date: monthCursor,
                     x: x,
-                    label: month == 1 ? "\(year)" : "\(month)月",
+                    label: month == 1 ? labels.year(monthCursor) : labels.month(monthCursor),
                     isMajor: month == 1,
                     tier: .lower
                 ))
                 if month == 1 {
-                    appendUpper(monthCursor, x: x, label: "\(year)年")
+                    appendUpper(monthCursor, x: x, label: labels.year(monthCursor))
                 }
                 guard let next = calendar.date(byAdding: .month, value: 1, to: monthCursor) else { break }
                 // 归一化回月初零点（跨 DST 边界时与逐日循环的 startOfDay 序列对齐）。
@@ -290,20 +294,20 @@ public enum GanttLayoutEngine {
                         appendUpper(
                             cursor,
                             x: x,
-                            label: month == 1 ? "\(year)年1月" : "\(month)月"
+                            label: month == 1 ? labels.monthYear(cursor) : labels.month(cursor)
                         )
                     }
                 case .week:
                     if weekday == calendar.firstWeekday {
                         lowerTicks.append(GanttLayout.Tick(
-                            date: cursor, x: x, label: "\(month)/\(day)", isMajor: false, tier: .lower
+                            date: cursor, x: x, label: labels.monthDay(cursor), isMajor: false, tier: .lower
                         ))
                     }
                     if day == 1 {
                         appendUpper(
                             cursor,
                             x: x,
-                            label: month == 1 ? "\(year)年1月" : "\(month)月"
+                            label: month == 1 ? labels.monthYear(cursor) : labels.month(cursor)
                         )
                     }
                 case .month:
@@ -520,5 +524,42 @@ public enum GanttLayoutEngine {
     ) -> Date {
         let days = -translationX / max(dayWidth, 0.5)
         return anchor.addingTimeInterval(days * 86_400)
+    }
+}
+
+/// 刻度标签格式化（F-0702）：语言与日历都来自注入，核心层不读进程级 Locale。
+///
+/// 用 `setLocalizedDateFormatFromTemplate` 而不是硬编码 pattern：模板只声明「要哪些字段」，
+/// 字段顺序、分隔符、是否出现「年 / 月」由 CLDR 按语言决定。模板选择对齐 v0.8.5 的中文标签：
+///   - 月 + 年（跨年首月）：yMMM → zh「2026年1月」/ en「Jan 2026」
+///   - 月份：MMM → zh「1月」/ en「Jan」
+///   - 年份：y → zh「2026年」/ en「2026」
+///   - 月 / 日：Md → zh「3/8」/ en「3/8」
+/// 日号（日档下层刻度）保留十进制数字：它是数量而非语言文本，两种目标语言都用 ASCII 数字。
+struct TickLabels {
+    private let calendar: Calendar
+    private let locale: Locale
+    private var cache: [String: DateFormatter] = [:]
+
+    init(calendar: Calendar, locale: Locale) {
+        self.calendar = calendar
+        self.locale = locale
+    }
+
+    mutating func monthYear(_ date: Date) -> String { label("yMMM", date) }
+    mutating func month(_ date: Date) -> String { label("MMM", date) }
+    mutating func year(_ date: Date) -> String { label("y", date) }
+    mutating func monthDay(_ date: Date) -> String { label("Md", date) }
+
+    /// 同一模板只建一次 formatter：逐日循环里重复 `DateFormatter()` 是纯浪费。
+    private mutating func label(_ template: String, _ date: Date) -> String {
+        if let cached = cache[template] { return cached.string(from: date) }
+        let formatter = DateFormatter()
+        formatter.calendar = calendar
+        formatter.timeZone = calendar.timeZone
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate(template)
+        cache[template] = formatter
+        return formatter.string(from: date)
     }
 }

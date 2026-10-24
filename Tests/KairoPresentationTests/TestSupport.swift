@@ -9,6 +9,9 @@ let testCalendar: Calendar = {
     return calendar
 }()
 
+/// 快照的语言（F-0702）：与 testCalendar 一样钉死，避免测试随本机语言漂移。
+let testLocale = Locale(identifier: "zh_CN")
+
 func makeDate(_ year: Int, _ month: Int, _ day: Int) -> Date {
     testCalendar.date(from: DateComponents(year: year, month: month, day: day))!
 }
@@ -60,6 +63,7 @@ func makeSnapshot(
         viewState: viewState,
         viewport: viewport,
         calendar: testCalendar,
+        locale: testLocale,
         now: now,
         saveState: saveState
     )

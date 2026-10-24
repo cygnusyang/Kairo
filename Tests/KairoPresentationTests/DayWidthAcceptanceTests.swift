@@ -182,6 +182,7 @@ private func referenceLayout(
         tasks: fixture.tasks,
         schedule: fixture.schedule,
         calendar: testCalendar,
+        locale: testLocale,
         zoom: effectiveZoom,
         viewWidth: max(canvasWidth, 1),
         windowStart: content.start,

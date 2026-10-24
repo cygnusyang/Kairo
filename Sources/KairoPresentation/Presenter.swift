@@ -11,6 +11,7 @@ public enum WorkspacePresenter {
         viewState: WorkspaceViewState,
         viewport: WorkspaceViewport,
         calendar: Calendar = Calendar(identifier: .gregorian),
+        locale: Locale,
         now: Date,
         saveState: SaveState = .saved
     ) -> WorkspaceSnapshot {
@@ -284,6 +285,7 @@ public enum WorkspacePresenter {
             viewport: viewport,
             today: today,
             calendar: calendar,
+            locale: locale,
             childrenByParent: childrenByParent,
             criticalIDs: criticalIDs
         )
@@ -355,6 +357,7 @@ public enum WorkspacePresenter {
         viewport: WorkspaceViewport,
         today: Date,
         calendar: Calendar,
+        locale: Locale,
         childrenByParent: [UUID: [UUID]],
         criticalIDs: Set<UUID>
     ) -> GanttSnapshot {
@@ -417,6 +420,7 @@ public enum WorkspacePresenter {
             tasks: tasks,
             schedule: layoutSchedule,
             calendar: calendar,
+            locale: locale,
             zoom: engineZoom,
             viewWidth: max(viewport.canvasWidth, 1),
             windowStart: requestedStart,
