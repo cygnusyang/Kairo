@@ -81,7 +81,7 @@ final class HorizontalScrollMonitor {
             return self.handle(event)
         }
         Self.active = self
-        Self.logger.notice("横向平移监听已安装（pid=\(ProcessInfo.processInfo.processIdentifier)）")
+        Self.logger.notice("horizontal pan monitor installed (pid=\(ProcessInfo.processInfo.processIdentifier))")
     }
 
     func stop() {
@@ -107,9 +107,9 @@ final class HorizontalScrollMonitor {
         case .pan(let pixels):
             if !Self.reportedFirstPan {
                 Self.reportedFirstPan = true
-                Self.logger.notice("横向平移首次消费：\(pixels, privacy: .public)pt")
+                Self.logger.notice("horizontal pan first consume: \(pixels, privacy: .public)pt")
             }
-            Self.logger.debug("横向平移消费：\(pixels, privacy: .public)pt")
+            Self.logger.debug("horizontal pan consume: \(pixels, privacy: .public)pt")
             environment.handler(pixels)
             return nil
         case .ignore(let reason):
@@ -141,7 +141,7 @@ final class HorizontalScrollMonitor {
         if !Self.reportedFirstDecision {
             Self.reportedFirstDecision = true
             Self.logger.notice("""
-            首个滚动事件：dx=\(deltaX, privacy: .public) dy=\(deltaY, privacy: .public) \
+            first scroll event: dx=\(deltaX, privacy: .public) dy=\(deltaY, privacy: .public) \
             shift=\(shift, privacy: .public) viewport=\(String(describing: viewport), privacy: .public) \
             cursor=\(String(describing: cursor), privacy: .public) inside=\(cursorInside, privacy: .public)
             """)
@@ -174,6 +174,6 @@ final class HorizontalScrollMonitor {
 
     private static func reportOnce(_ reason: GanttScrollIgnoreReason) {
         guard reportedReasons.insert(reason.rawValue).inserted else { return }
-        logger.notice("横向平移放行：\(reason.rawValue, privacy: .public)")
+        logger.notice("horizontal pan passed through: \(reason.rawValue, privacy: .public)")
     }
 }

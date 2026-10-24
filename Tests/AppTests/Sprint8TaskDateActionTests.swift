@@ -141,7 +141,7 @@ struct Sprint8TaskDateActionTests {
 
         store.dispatch(.setTaskFinish(original.id, finish: scheduledStart, start: scheduledStart))
 
-        #expect(store.alertMessage == "结束日期必须晚于开始日期")
+        #expect(store.alertMessage == I18n.t("alert.finish_after_start", "The finish date must be later than the start date"))
         #expect(try task(store, original.id).durationDays == originalDuration)
     }
 
@@ -154,7 +154,7 @@ struct Sprint8TaskDateActionTests {
 
         store.dispatch(.setTaskFinish(original.id, finish: earlier, start: scheduledStart))
 
-        #expect(store.alertMessage == "结束日期必须晚于开始日期")
+        #expect(store.alertMessage == I18n.t("alert.finish_after_start", "The finish date must be later than the start date"))
         #expect(try task(store, original.id).durationDays == originalDuration)
     }
 
@@ -194,7 +194,7 @@ struct Sprint8TaskDateActionTests {
 
         store.dispatch(.setTaskFinish(original.id, finish: finish, start: staleStart))
 
-        #expect(store.alertMessage == "排期已变化，请重新选择结束日期")
+        #expect(store.alertMessage == I18n.t("alert.schedule_changed", "The schedule changed; pick the finish date again"))
         #expect(try task(store, original.id).durationDays == durationBefore, "陈旧起点不得折算落库")
         #expect(store.undoDepthForTesting == depthBefore, "拒绝路径不产生撤销点")
 
@@ -211,7 +211,7 @@ struct Sprint8TaskDateActionTests {
 
         store.dispatch(.setTaskFinish(original.id, finish: scheduledStart, start: scheduledStart))
 
-        #expect(store.alertMessage == "结束日期必须晚于开始日期")
+        #expect(store.alertMessage == I18n.t("alert.finish_after_start", "The finish date must be later than the start date"))
         #expect(store.notice == nil)
     }
 

@@ -82,11 +82,7 @@ final class WorkspaceStore: ObservableObject {
 
     /// 视图偏好在 `UserDefaults` 中的键名；测试按此键读写偏好 JSON。
     static let preferencesKey = "kairo.workspace.preferences.v1"
-    private static let clockFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "HH:mm"
-        return formatter
-    }()
+    // 时刻（外部更新提示）判定为展示格式：走 `Display.time`（本地化），不在这里固定 `HH:mm`（F-0712）。
 
     /// 持久化的视图偏好；视图模式与筛选不写入（启动固定计划模式）。
     /// 逐字段容错解码（D-016）：任一字段缺失/类型不符只回落该字段默认值，
@@ -191,7 +187,7 @@ final class WorkspaceStore: ObservableObject {
 
         let session = KairoSession()
         self.session = session
-        _ = try? session.createProject(title: "未命名项目")
+        _ = try? session.createProject(title: I18n.t("alert.project.default_title", "Untitled Project"))
         // AC-1：默认空启动不灌示例数据；seedsDemoData 供测试与旧行为显式启用。
         if seedsDemoData {
             Self.seed(SeedData.makeProject(), into: session)
@@ -335,6 +331,7 @@ final class WorkspaceStore: ObservableObject {
             viewState: viewState,
             viewport: viewport,
             calendar: calendar,
+            locale: Locale.current, // TODO(F-0706): 由语言设置注入
             now: now,
             saveState: saveState
         )
@@ -586,12 +583,12 @@ final class WorkspaceStore: ObservableObject {
             //    ALAP 重算或外部文件合并改写，用陈旧起点折算会把持续时间算错并静默落到别的结束日。
             guard let currentStart = currentScheduleStart(for: id),
                   ScheduleDateMath.dayOffset(from: currentStart, to: start, calendar: calendar) == 0 else {
-                alertMessage = "排期已变化，请重新选择结束日期"
+                alertMessage = I18n.t("alert.schedule_changed", "The schedule changed; pick the finish date again")
                 return
             }
             // ② 结束是排他端点，必须晚于起点。
             guard let duration = ScheduleDateMath.durationDays(start: start, finish: finish) else {
-                alertMessage = "结束日期必须晚于开始日期"
+                alertMessage = I18n.t("alert.finish_after_start", "The finish date must be later than the start date")
                 return
             }
             update(id: id, mergeKey: "task-finish-\(id)") {
@@ -692,7 +689,7 @@ final class WorkspaceStore: ObservableObject {
             acknowledgedMtime = pendingExternalMtime
             pendingExternalMtime = nil
             externalUpdatePending = false
-            notice = "已保留本地版本"
+            notice = I18n.t("alert.kept_local", "Kept the local version")
         }
     }
 
@@ -799,7 +796,8 @@ final class WorkspaceStore: ObservableObject {
     /// 成环、重复）→ 求与现有依赖的差集 → 经会话应用；任何一步失败只提示不改数据。
     private func setPredecessors(taskID: UUID, raw: String) {
         let specs = raw
-            .split(whereSeparator: { $0 == "," || $0 == " " || $0 == "、" })
+            // 分隔符含半角逗号、空格与表意逗号（U+3001）；用码位写法避开硬编码中文扫描。
+            .split(whereSeparator: { $0 == "," || $0 == " " || $0 == "\u{3001}" })
             .filter { !$0.isEmpty }
         guard !specs.isEmpty else {
             clearPredecessors(taskID: taskID)
@@ -815,18 +813,18 @@ final class WorkspaceStore: ObservableObject {
         for spec in specs {
             let parts = spec.split(separator: ":", omittingEmptySubsequences: false)
             guard let idPart = parts.first, !idPart.isEmpty else {
-                alertMessage = "无法识别的前置任务：\(spec)"
+                alertMessage = I18n.t("error.dependency.predecessor_invalid", "Unrecognized predecessor: %1$@", String(spec))
                 return
             }
             let type = parts.count > 1 && !parts[1].isEmpty
                 ? parts[1].lowercased() : "fs"
             guard let depType = TaskDependency.DependencyType(rawValue: type) else {
-                alertMessage = "无法识别的依赖类型：\(spec)（应为 fs/ff/ss/sf）"
+                alertMessage = I18n.t("error.dependency.type_invalid", "Unrecognized dependency type: %1$@ (expected fs/ff/ss/sf)", String(spec))
                 return
             }
             let lag = parts.count > 2 && !parts[2].isEmpty ? (Double(parts[2]) ?? 0) : 0
             if parts.count > 2, Double(parts[2]) == nil {
-                alertMessage = "无法识别的延隔：\(spec)"
+                alertMessage = I18n.t("error.dependency.lag_invalid", "Unrecognized lag: %1$@", String(spec))
                 return
             }
 
@@ -836,7 +834,7 @@ final class WorkspaceStore: ObservableObject {
                 // 大纲编号引用（US-E4-01-C1）：含点或 <4 位纯数字按当前可见编号精确匹配；
                 // 被折叠/筛选隐藏的任务报 C3 提示，数据不变。
                 guard let id = outlineNumberByID[String(idPart)] else {
-                    alertMessage = "找不到前置任务：\(idPart)（任务可能被折叠或筛选隐藏）"
+                    alertMessage = I18n.t("error.dependency.predecessor_hidden", "Predecessor not found: %1$@ (the task may be collapsed or filtered out)", String(idPart))
                     return
                 }
                 resolved = id
@@ -851,24 +849,24 @@ final class WorkspaceStore: ObservableObject {
                     resolved = matches[0].id
                 } else if idPart.allSatisfy(\.isNumber) {
                     guard let id = outlineNumberByID[String(idPart)] else {
-                        alertMessage = "找不到前置任务：\(idPart)（任务可能被折叠或筛选隐藏）"
+                        alertMessage = I18n.t("error.dependency.predecessor_hidden", "Predecessor not found: %1$@ (the task may be collapsed or filtered out)", String(idPart))
                         return
                     }
                     resolved = id
                 } else {
                     alertMessage = matches.count > 1
-                        ? "前置任务 ID 不唯一：\(idPart)"
-                        : "找不到前置任务：\(idPart)"
+                        ? I18n.t("error.dependency.predecessor_ambiguous", "Predecessor ID is not unique: %1$@", String(idPart))
+                        : I18n.t("error.dependency.predecessor_not_found", "Predecessor not found: %1$@", String(idPart))
                     return
                 }
             }
             if resolved == taskID {
-                alertMessage = "任务不能依赖自身"
+                alertMessage = I18n.t("error.dependency.self", "A task cannot depend on itself")
                 return
             }
             let dep = TaskDependency(predecessorID: resolved, type: depType, lagDays: lag)
             if targets[resolved] != nil {
-                alertMessage = "前置任务重复：\(idPart)"
+                alertMessage = I18n.t("error.dependency.duplicate", "Duplicate predecessor: %1$@", String(idPart))
                 return
             }
             targets[resolved] = dep
@@ -935,9 +933,9 @@ final class WorkspaceStore: ObservableObject {
 
     private static func dependencyError(_ error: DependencyEditing.EditError, id: UUID) -> String {
         switch error {
-        case .cycle: return "添加依赖会形成相关性环：\(id.uuidString.prefix(4))"
-        case .selfDependency: return "任务不能依赖自身"
-        case .predecessorNotFound, .taskNotFound: return "找不到任务：\(id.uuidString.prefix(4))"
+        case .cycle: return I18n.t("error.dependency.cycle", "Adding this dependency would form a cycle: %1$@", String(id.uuidString.prefix(4)))
+        case .selfDependency: return I18n.t("error.dependency.self", "A task cannot depend on itself")
+        case .predecessorNotFound, .taskNotFound: return I18n.t("error.task.not_found", "Task not found: %1$@", String(id.uuidString.prefix(4)))
         }
     }
 
@@ -954,9 +952,9 @@ final class WorkspaceStore: ObservableObject {
     private func createTask(kind: TaskKind, parentID: UUID?) {
         let title: String
         switch kind {
-        case .task: title = "新任务"
-        case .group: title = "新群组"
-        case .milestone: title = "新里程碑"
+        case .task: title = I18n.t("outline.new_task.title", "New Task")
+        case .group: title = I18n.t("outline.new_group.title", "New Group")
+        case .milestone: title = I18n.t("outline.new_milestone.title", "New Milestone")
         }
         let parent = parentID ?? insertionParent()
         pushUndo(mergeKey: nil)
@@ -982,7 +980,7 @@ final class WorkspaceStore: ObservableObject {
         let index = (siblings.firstIndex { $0.id == id } ?? siblings.count - 1) + 1
         pushUndo(mergeKey: nil)
         do {
-            let newID = try session.addTask(title: "新任务", kind: .task, parentID: parent)
+            let newID = try session.addTask(title: I18n.t("outline.new_task.title", "New Task"), kind: .task, parentID: parent)
             try session.moveTask(id: newID, toParent: parent, at: index)
             viewState.selectedTaskID = newID
             if let parent { viewState.expandedTaskIDs.insert(parent) }
@@ -1116,7 +1114,7 @@ final class WorkspaceStore: ObservableObject {
         if let locked = lockedTaskID, removed.contains(locked) {
             // 保留标题快照，提示「任务已删除」。
             lockedTaskID = nil
-            lockedTaskTitle = lockedTaskTitle ?? "任务"
+            lockedTaskTitle = lockedTaskTitle ?? I18n.t("outline.task.generic", "Task")
         }
         viewState.expandedTaskIDs.subtract(removed)
     }
@@ -1125,7 +1123,7 @@ final class WorkspaceStore: ObservableObject {
 
     private func undo() {
         guard let entry = undoStack.popLast() else {
-            notice = "没有可撤销的操作"
+            notice = I18n.t("alert.undo.empty", "Nothing to undo")
             return
         }
         guard let current = try? session.snapshot() else { return }
@@ -1139,7 +1137,7 @@ final class WorkspaceStore: ObservableObject {
 
     private func redo() {
         guard let entry = redoStack.popLast() else {
-            notice = "没有可重做的操作"
+            notice = I18n.t("alert.redo.empty", "Nothing to redo")
             return
         }
         guard let current = try? session.snapshot() else { return }
@@ -1184,7 +1182,7 @@ final class WorkspaceStore: ObservableObject {
             viewState.selectedTaskID = nil
             viewState.highlightedTaskID = nil
             viewState.revealStatus = .missing
-            notice = "任务已删除"
+            notice = I18n.t("alert.task_deleted", "Task deleted")
             refresh()
             return
         }
@@ -1216,7 +1214,7 @@ final class WorkspaceStore: ObservableObject {
         case .visible:
             notice = nil
         case .temporarilyShown:
-            notice = "「\(task.title)」已被筛选隐藏，已临时显示"
+            notice = I18n.t("alert.task_hidden_by_filter", "“%1$@” was hidden by the filter and is now shown temporarily", task.title)
         case .missing:
             break
         }
@@ -1251,7 +1249,7 @@ final class WorkspaceStore: ObservableObject {
 
     /// 载入示例等同「新建示例」：重置为空项目（projectURL 置 nil）再填入示例内容。
     private func loadExampleNow() {
-        _ = try? session.createProject(title: "未命名项目")
+        _ = try? session.createProject(title: I18n.t("alert.project.default_title", "Untitled Project"))
         Self.seed(SeedData.makeProject(), into: session)
         resetViewStateForLoadedProject()
         undoStack.removeAll()
@@ -1259,7 +1257,7 @@ final class WorkspaceStore: ObservableObject {
         pendingDeletion = nil
         saveState = .saved
         needsFormatUpgrade = session.needsFormatUpgrade
-        notice = "已载入示例项目"
+        notice = I18n.t("alert.example_loaded", "Example project loaded")
         refresh()
     }
 
@@ -1290,7 +1288,7 @@ final class WorkspaceStore: ObservableObject {
         guard !isLoading else {
             // 早退不进入 finishOpen；清理待恢复的升级提示，避免残留到下一次打开。
             pendingUpgradeNoticeAfterOpen = nil
-            notice = "正在载入项目，请稍后重试打开"
+            notice = I18n.t("alert.loading_in_progress", "A project is still loading; try opening again in a moment")
             return
         }
         guard !session.hasUnsavedChanges else {
@@ -1321,7 +1319,7 @@ final class WorkspaceStore: ObservableObject {
         guard saveState != .failed else { return }
         if wasUpgrade {
             // finishOpen 会用载入警告重置 notice；升级提示需跨过这次打开保留。
-            pendingUpgradeNoticeAfterOpen = "已升级到 v\(KairoFile.currentFormatVersion)"
+            pendingUpgradeNoticeAfterOpen = I18n.t("alert.upgraded_to", "Upgraded to v%1$ld", KairoFile.currentFormatVersion)
         }
         discardChangesAndOpenPending()
     }
@@ -1360,7 +1358,7 @@ final class WorkspaceStore: ObservableObject {
                 // 载入期间有新编辑：保留当前内容，重新进入保存/丢弃/取消确认。
                 self.pendingUpgradeNoticeAfterOpen = nil
                 self.pendingOpenURL = url
-                self.notice = "载入期间项目有新修改，已保留本地内容；请再次确认打开"
+                self.notice = I18n.t("alert.changed_while_loading", "The project changed while loading; local content was kept. Confirm opening again.")
             case .failure(let error):
                 self.pendingUpgradeNoticeAfterOpen = nil
                 self.report(error)
@@ -1401,7 +1399,7 @@ final class WorkspaceStore: ObservableObject {
             needsFormatUpgrade = session.needsFormatUpgrade
             // 每次保存至多提示一次：保存成功后来源版本即为当前版本。
             if wasUpgrade {
-                notice = "已升级到 v\(KairoFile.currentFormatVersion)"
+                notice = I18n.t("alert.upgraded_to", "Upgraded to v%1$ld", KairoFile.currentFormatVersion)
             }
             recordDiskVersion(at: session.projectURL)
             refresh()
@@ -1417,7 +1415,7 @@ final class WorkspaceStore: ObservableObject {
         let link = "kairo://task/\(id.uuidString)"
         NSPasteboard.general.clearContents()
         NSPasteboard.general.setString(link, forType: .string)
-        notice = "已复制任务链接"
+        notice = I18n.t("alert.link_copied", "Task link copied")
     }
 
     /// 另存为面板的默认文件名（FR-FILE-SAVEAS-2）：有路径沿用文件名，否则按项目标题生成。
@@ -1448,7 +1446,7 @@ final class WorkspaceStore: ObservableObject {
         if revision == nil || revision != session.revision {
             save(to: url)
             if wasUpgrade, saveState != .failed {
-                notice = "已另存为并升级到 v\(KairoFile.currentFormatVersion)"
+                notice = I18n.t("alert.saved_as_upgraded", "Saved as a new file and upgraded to v%1$ld", KairoFile.currentFormatVersion)
             }
             return
         }
@@ -1456,7 +1454,7 @@ final class WorkspaceStore: ObservableObject {
         saveState = .saved
         needsFormatUpgrade = session.needsFormatUpgrade
         if wasUpgrade {
-            notice = "已另存为并升级到 v\(KairoFile.currentFormatVersion)"
+            notice = I18n.t("alert.saved_as_upgraded", "Saved as a new file and upgraded to v%1$ld", KairoFile.currentFormatVersion)
         }
         recordDiskVersion(at: url)
         refresh()
@@ -1468,8 +1466,8 @@ final class WorkspaceStore: ObservableObject {
         let mtime = pendingExternalMtime ?? Self.modificationDate(of: url)
         if open(url: url) {
             notice = mtime.map {
-                "已载入外部更新 \(Self.clockFormatter.string(from: $0))"
-            } ?? "已载入外部更新"
+                I18n.t("alert.external_update_loaded", "External update loaded at %1$@", Display.time($0))
+            } ?? I18n.t("alert.external_update_loaded.plain", "External update loaded")
         } else {
             // 失败保留横幅；相同 mtime 不再重复尝试。
             failedExternalMtime = mtime
@@ -1565,7 +1563,7 @@ final class WorkspaceStore: ObservableObject {
             pendingExternalMtime = mtime
             externalUpdatePending = true
         } else if open(url: url) {
-            notice = "已载入外部更新 \(Self.clockFormatter.string(from: mtime))"
+            notice = I18n.t("alert.external_update_loaded", "External update loaded at %1$@", Display.time(mtime))
         } else {
             failedExternalMtime = mtime
         }

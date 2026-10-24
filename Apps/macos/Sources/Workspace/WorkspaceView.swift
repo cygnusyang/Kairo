@@ -52,71 +52,71 @@ struct WorkspaceView: View {
             }
         }
         .alert(
-            "无法完成操作",
+            I18n.t("alert.action_failed.title", "The action could not be completed"),
             isPresented: Binding(
                 get: { store.alertMessage != nil },
                 set: { if !$0 { store.alertMessage = nil } }
             )
         ) {
-            Button("好", role: .cancel) {
+            Button(I18n.t("action.ok", "OK"), role: .cancel) {
                 store.alertMessage = nil
             }
         } message: {
             Text(store.alertMessage ?? "")
         }
         .confirmationDialog(
-            store.pendingDeletion.map { "删除群组「\($0.title)」？" } ?? "删除？",
+            store.pendingDeletion.map { I18n.t("alert.delete_group.title", "Delete the group “%1$@”?", $0.title) } ?? I18n.t("alert.delete.title", "Delete?"),
             isPresented: Binding(
                 get: { store.pendingDeletion != nil },
                 set: { if !$0 { store.pendingDeletion = nil } }
             ),
             presenting: store.pendingDeletion
         ) { pending in
-            Button("删除 \(pending.affectedCount) 个任务", role: .destructive) {
+            Button(I18n.t("alert.delete.confirm", "Delete %1$ld tasks", pending.affectedCount), role: .destructive) {
                 store.confirmPendingDeletion()
             }
-            Button("取消", role: .cancel) {
+            Button(I18n.t("action.cancel", "Cancel"), role: .cancel) {
                 store.pendingDeletion = nil
             }
         } message: { pending in
-            Text("「\(pending.title)」包含 \(max(pending.affectedCount - 1, 0)) 个子任务，将一并删除。该操作可以撤销。")
+            Text(I18n.t("alert.delete.message", "“%1$@” contains %2$ld subtasks, which will be deleted too. This can be undone.", pending.title, max(pending.affectedCount - 1, 0)))
         }
         .confirmationDialog(
-            "当前项目有未保存的修改",
+            I18n.t("alert.unsaved_changes.title", "The current project has unsaved changes"),
             isPresented: Binding(
                 get: { store.pendingOpenURL != nil },
                 set: { if !$0 { store.cancelPendingOpen() } }
             )
         ) {
-            Button("丢弃修改并打开", role: .destructive) {
+            Button(I18n.t("action.discard_and_open", "Discard Changes and Open"), role: .destructive) {
                 store.discardChangesAndOpenPending()
             }
             if store.canSavePendingOpen {
-                Button("保存并打开") {
+                Button(I18n.t("action.save_and_open", "Save and Open")) {
                     store.saveAndOpenPending()
                 }
             }
-            Button("取消", role: .cancel) {
+            Button(I18n.t("action.cancel", "Cancel"), role: .cancel) {
                 store.cancelPendingOpen()
             }
         } message: {
-            Text("打开其他项目会丢失当前项目中未保存的修改。")
+            Text(I18n.t("alert.unsaved_changes.open_message", "Opening another project will discard unsaved changes in the current project."))
         }
         .confirmationDialog(
-            "当前项目有未保存的修改",
+            I18n.t("alert.unsaved_changes.title", "The current project has unsaved changes"),
             isPresented: Binding(
                 get: { store.pendingLoadExample },
                 set: { if !$0 { store.cancelPendingLoadExample() } }
             )
         ) {
-            Button("丢弃修改并载入", role: .destructive) {
+            Button(I18n.t("action.discard_and_load", "Discard Changes and Load"), role: .destructive) {
                 store.confirmPendingLoadExample()
             }
-            Button("取消", role: .cancel) {
+            Button(I18n.t("action.cancel", "Cancel"), role: .cancel) {
                 store.cancelPendingLoadExample()
             }
         } message: {
-            Text("载入示例项目会丢弃当前项目中未保存的修改。")
+            Text(I18n.t("alert.unsaved_changes.example_message", "Loading the example project will discard unsaved changes in the current project."))
         }
         .onAppear {
             findAdapter.onReveal = { store.reveal($0) }
@@ -134,16 +134,16 @@ struct WorkspaceView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .navigation) {
-            Picker("视图", selection: Binding(
+            Picker(I18n.t("menu.group.view", "View"), selection: Binding(
                 get: { store.viewState.mode },
                 set: { store.dispatch(.setMode($0)) }
             )) {
-                Text("计划").tag(WorkspaceMode.plan)
-                Text("大纲").tag(WorkspaceMode.outline)
+                Text(I18n.t("menu.view.plan", "Plan")).tag(WorkspaceMode.plan)
+                Text(I18n.t("menu.view.outline", "Outline")).tag(WorkspaceMode.outline)
             }
             .pickerStyle(.segmented)
             .frame(width: 132)
-            .help("计划 ⌥⌘1 · 大纲 ⌥⌘2")
+            .help(I18n.t("menu.view.mode.help", "Plan ⌥⌘1 · Outline ⌥⌘2"))
         }
 
         ToolbarItemGroup(placement: .primaryAction) {
@@ -151,10 +151,10 @@ struct WorkspaceView: View {
                 Button {
                     store.filterBarVisible = true
                 } label: {
-                    Label("AI 筛选", systemImage: "sparkles")
+                    Label(I18n.t("chrome.ai_filter.title", "AI filter"), systemImage: "sparkles")
                         .foregroundStyle(DesignTokens.criticalText)
                 }
-                .help("自然语言筛选已解析为结构化条件")
+                .help(I18n.t("chrome.ai_filter.help", "The natural-language filter was parsed into structured conditions"))
             }
 
             Menu {
@@ -168,36 +168,36 @@ struct WorkspaceView: View {
                     store.dispatch(.setFitZoom(true))
                 }
                 Divider()
-                Button("更宽") {
+                Button(I18n.t("daywidth.wider", "Wider")) {
                     store.dispatch(.nudgeCustomDayWidth(by: GanttScale.dayWidthStep))
                 }
-                Button("更窄") {
+                Button(I18n.t("daywidth.narrower", "Narrower")) {
                     store.dispatch(.nudgeCustomDayWidth(by: -GanttScale.dayWidthStep))
                 }
-                Button("重置宽度") {
+                Button(I18n.t("menu.zoom.reset_width", "Reset Width")) {
                     store.dispatch(.clearCustomDayWidth)
                 }
-                Button("自定义日宽…") {
+                Button(I18n.t("menu.zoom.custom_width", "Custom Day Width…")) {
                     // 菜单关闭后再弹出，避免与菜单收起动画抢时机。
                     Task { @MainActor in showsDayWidthControl = true }
                 }
                 Divider()
-                Text("当前日宽：\(currentDayWidthText)")
+                Text(I18n.t("menu.zoom.current_width", "Current day width: %1$@", currentDayWidthText))
                 Divider()
-                Button(store.viewState.showBarLabels ? "隐藏任务条标签" : "显示任务条标签") {
+                Button(store.viewState.showBarLabels ? I18n.t("action.bar_labels.hide", "Hide Task Bar Labels") : I18n.t("action.bar_labels.show", "Show Task Bar Labels")) {
                     store.dispatch(.toggleBarLabels)
                 }
             } label: {
                 Label(Display.zoomPresetTitle(store.snapshot.statusBar.zoom.preset), systemImage: "arrow.left.and.right")
             }
-            .help("时间缩放")
+            .help(I18n.t("menu.zoom.help", "Time scale"))
 
             Button {
                 showsDayWidthControl.toggle()
             } label: {
                 Image(systemName: "ruler")
             }
-            .help("自定义每日宽度")
+            .help(I18n.t("menu.zoom.custom_width.help", "Set a custom day width"))
             .popover(isPresented: $showsDayWidthControl, arrowEdge: .bottom) {
                 DayWidthControl(store: store, dayWidth: store.snapshot.gantt.dayWidth)
             }
@@ -210,7 +210,7 @@ struct WorkspaceView: View {
                         ? DesignTokens.criticalGraphic
                         : DesignTokens.textSecondary)
             }
-            .help(store.viewState.showCriticalPath ? "隐藏重要路径" : "显示重要路径")
+            .help(store.viewState.showCriticalPath ? I18n.t("action.critical_path.hide", "Hide Critical Path") : I18n.t("action.critical_path.show", "Show Critical Path"))
 
             Button {
                 store.dispatch(.setInspectorVisible(true))
@@ -226,19 +226,19 @@ struct WorkspaceView: View {
                         }
                     }
             }
-            .help("违例（⌥⌘V）")
+            .help(I18n.t("inspector.violations.help", "Violations (⌥⌘V)"))
 
             Menu {
-                Button("新建任务") { store.dispatch(.createTask(parentID: nil, kind: .task)) }
+                Button(I18n.t("action.new_task", "New Task")) { store.dispatch(.createTask(parentID: nil, kind: .task)) }
                     .keyboardShortcut("n", modifiers: [.command, .option])
-                Button("新建群组") { store.dispatch(.createTask(parentID: nil, kind: .group)) }
+                Button(I18n.t("action.new_group", "New Group")) { store.dispatch(.createTask(parentID: nil, kind: .group)) }
                     .keyboardShortcut("g", modifiers: [.command, .option])
-                Button("新建里程碑") { store.dispatch(.createTask(parentID: nil, kind: .milestone)) }
+                Button(I18n.t("action.new_milestone", "New Milestone")) { store.dispatch(.createTask(parentID: nil, kind: .milestone)) }
                     .keyboardShortcut("m", modifiers: [.command, .option])
             } label: {
                 Image(systemName: "plus")
             }
-            .help("新建任务")
+            .help(I18n.t("action.new_task", "New Task"))
 
             Button {
                 store.dispatch(.setOutlineVisible(!store.viewState.outlineVisible))
@@ -248,7 +248,7 @@ struct WorkspaceView: View {
                         ? DesignTokens.textPrimary
                         : DesignTokens.textSecondary)
             }
-            .help(store.viewState.outlineVisible ? "隐藏任务列表" : "显示任务列表")
+            .help(store.viewState.outlineVisible ? I18n.t("action.outline.hide", "Hide Task List") : I18n.t("action.outline.show", "Show Task List"))
 
             Button {
                 store.dispatch(.setInspectorVisible(!store.viewState.inspectorVisible))
@@ -258,7 +258,7 @@ struct WorkspaceView: View {
                         ? DesignTokens.textPrimary
                         : DesignTokens.textSecondary)
             }
-            .help(store.viewState.inspectorVisible ? "隐藏检查器" : "显示检查器")
+            .help(store.viewState.inspectorVisible ? I18n.t("action.inspector.hide", "Hide Inspector") : I18n.t("action.inspector.show", "Show Inspector"))
         }
     }
 
@@ -270,12 +270,18 @@ struct WorkspaceView: View {
     private func zoomTitle(_ zoom: GanttZoom) -> String {
         let name: String
         switch zoom {
-        case .day: name = "日"
-        case .week: name = "周"
-        case .month: name = "月"
+        case .day: name = Display.zoomPresetTitle(.day)
+        case .week: name = Display.zoomPresetTitle(.week)
+        case .month: name = Display.zoomPresetTitle(.month)
         }
         let mark = isCurrentPreset(zoom) ? "✓ " : ""
-        return "\(mark)\(name)（\(Int(zoom.dayWidth)) 点/天）"
+        return I18n.t(
+            "menu.zoom.preset_title",
+            "%1$@%2$@ (%3$ld pts/day)",
+            mark,
+            name,
+            Int(zoom.dayWidth)
+        )
     }
 
     /// 当前生效的预设档位：自定义日宽或「适合项目」生效时无档位打勾。
@@ -288,7 +294,8 @@ struct WorkspaceView: View {
     /// 「适合项目」菜单项标题：生效时打勾。
     private var fitMenuTitle: String {
         let active = store.viewState.customDayWidth == nil && store.viewState.usesFitZoom
-        return active ? "✓ 适合项目" : "适合项目"
+        let name = Display.zoomPresetTitle(.fit)
+        return active ? "✓ \(name)" : name
     }
 
     /// 缩放菜单的当前日宽读数（点/天）。
@@ -475,11 +482,11 @@ struct WorkspaceView: View {
             Image(systemName: "info.circle")
                 .font(.system(size: 11))
                 .foregroundStyle(DesignTokens.textSecondary)
-            Text("未设置项目开始日期，已按最早任务开始日期推导。")
+            Text(I18n.t("inspector.project.start_derived", "No project start date is set; it was derived from the earliest task start date."))
                 .font(.system(size: DesignTokens.captionFontSize))
                 .foregroundStyle(DesignTokens.textSecondary)
             Spacer(minLength: 0)
-            Button("设置项目开始日期") {
+            Button(I18n.t("action.set_project_start", "Set Project Start Date")) {
                 store.dispatch(.select(nil))
                 store.dispatch(.setInspectorTab(.inspector))
             }
@@ -717,20 +724,20 @@ private struct EmptyWorkspaceView: View {
 
     private var title: String {
         switch reason {
-        case .noTasks: return "项目中还没有任务"
-        case .noMatches: return "没有匹配的任务"
-        case .noSchedule: return "任务尚未排期"
+        case .noTasks: return I18n.t("outline.empty.no_tasks.title", "No tasks in this project yet")
+        case .noMatches: return I18n.t("outline.empty.no_matches.title", "No matching tasks")
+        case .noSchedule: return I18n.t("outline.empty.no_schedule.title", "Tasks are not scheduled yet")
         }
     }
 
     private var detail: String {
         switch reason {
         case .noTasks:
-            return "新建任务开始规划，或由 AI 智能体通过 MCP / CLI 导入现有 WBS。"
+            return I18n.t("outline.empty.no_tasks.detail", "Create a task to start planning, or let an AI agent import an existing WBS through MCP / CLI.")
         case .noMatches:
-            return "调整筛选条件，或清除筛选查看全部任务。"
+            return I18n.t("outline.empty.no_matches.detail", "Adjust the filter, or clear it to see every task.")
         case .noSchedule:
-            return "设置项目开始日期，或检查相关性环与时限设置。"
+            return I18n.t("outline.empty.no_schedule.detail", "Set the project start date, or check the dependency cycles and constraints.")
         }
     }
 
@@ -739,16 +746,16 @@ private struct EmptyWorkspaceView: View {
         switch reason {
         case .noTasks:
             // MCP 是协议而非界面能力：导入由 AI 智能体在会话侧发起，界面只保留人工新建入口。
-            Button("新建任务") {
+            Button(I18n.t("action.new_task", "New Task")) {
                 store.dispatch(.createTask(parentID: nil, kind: .task))
             }
             .buttonStyle(.borderedProminent)
         case .noMatches:
-            Button("清除筛选") {
+            Button(I18n.t("action.clear_filter", "Clear Filter")) {
                 store.dispatch(.setFilter(""))
             }
         case .noSchedule:
-            Button("设置项目开始日期") {
+            Button(I18n.t("action.set_project_start", "Set Project Start Date")) {
                 store.dispatch(.select(nil))
                 store.dispatch(.setInspectorTab(.inspector))
             }

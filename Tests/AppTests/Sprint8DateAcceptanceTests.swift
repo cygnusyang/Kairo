@@ -240,7 +240,7 @@ struct Sprint8DateAcceptanceTests {
         let scheduledFinish = try #require(try row(store, a).scheduledFinish)
 
         store.dispatch(.setTaskFinish(a, finish: scheduledStart, start: scheduledStart))
-        #expect(store.alertMessage == "结束日期必须晚于开始日期")
+        #expect(store.alertMessage == I18n.t("alert.finish_after_start", "The finish date must be later than the start date"))
         #expect(try task(store, a).durationDays == duration)
         #expect(try row(store, a).scheduledFinish == scheduledFinish)
         #expect(store.notice == nil, "不产生非模态提示（无草稿残留）")
@@ -249,7 +249,7 @@ struct Sprint8DateAcceptanceTests {
         store.dispatch(.setTaskFinish(
             a, finish: localDay(2026, 11, 5), start: scheduledStart
         ))
-        #expect(store.alertMessage == "结束日期必须晚于开始日期")
+        #expect(store.alertMessage == I18n.t("alert.finish_after_start", "The finish date must be later than the start date"))
         #expect(try task(store, a).durationDays == duration)
 
         // 撤销栈深度不变：一次 undo 回到「设开始」之前，而不是只回退被拒的那笔。
@@ -528,7 +528,11 @@ struct Sprint8DateAcceptanceTests {
     /// 「网格在快捷区之前」与完整 Tab 环仍为人工走查。
     @Test func calendarQuickActionOrderMatchesRuling() {
         #expect(DateQuickAction.allCases == [.today, .nextMonday, .plusWeek])
-        #expect(DateQuickAction.allCases.map(\.title) == ["今天", "下周一", "+1 周"])
+        #expect(DateQuickAction.allCases.map(\.title) == [
+            I18n.t("date.quick.today", "Today"),
+            I18n.t("date.quick.next_monday", "Next Monday"),
+            I18n.t("date.quick.plus_week", "+1 week")
+        ])
     }
 
     // MARK: - AC-S8-22 夏令时口径
@@ -586,7 +590,7 @@ struct Sprint8DateAcceptanceTests {
         // 用户仍按旧起点 11-02 看到的月历选 11-10 提交。
         store.dispatch(.setTaskFinish(a, finish: localDay(2026, 11, 10), start: staleStart))
 
-        #expect(store.alertMessage == "排期已变化，请重新选择结束日期")
+        #expect(store.alertMessage == I18n.t("alert.schedule_changed", "The schedule changed; pick the finish date again"))
         #expect(try task(store, a).durationDays == duration, "数据不变")
         #expect(try row(store, a).scheduledFinish == scheduledFinish, "落点不变")
 

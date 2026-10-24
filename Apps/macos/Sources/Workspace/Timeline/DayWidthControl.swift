@@ -91,13 +91,13 @@ struct DayWidthControl: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("日宽")
+            Text(I18n.t("daywidth.title", "Day width"))
                 .font(.system(size: DesignTokens.bodyFontSize, weight: .semibold))
                 .foregroundStyle(DesignTokens.textPrimary)
             stepperRow
             slider
             presetRow
-            Text("范围 \(rangeHint) 点/天")
+            Text(I18n.t("daywidth.range", "Range %1$@ pts/day", rangeHint))
                 .font(.system(size: DesignTokens.captionFontSize))
                 .foregroundStyle(DesignTokens.textSecondary)
         }
@@ -118,7 +118,7 @@ struct DayWidthControl: View {
 
     private var stepperRow: some View {
         HStack(spacing: 8) {
-            stepButton(title: "更窄", delta: -GanttScale.dayWidthStep, symbol: "minus")
+            stepButton(title: I18n.t("daywidth.narrower", "Narrower"), delta: -GanttScale.dayWidthStep, symbol: "minus")
             Spacer(minLength: 0)
             Text(readout)
                 .font(.system(size: DesignTokens.bodyFontSize))
@@ -126,7 +126,7 @@ struct DayWidthControl: View {
                 .monospacedDigit()
                 .frame(minWidth: 84)
             Spacer(minLength: 0)
-            stepButton(title: "更宽", delta: GanttScale.dayWidthStep, symbol: "plus")
+            stepButton(title: I18n.t("daywidth.wider", "Wider"), delta: GanttScale.dayWidthStep, symbol: "plus")
         }
     }
 
@@ -139,7 +139,7 @@ struct DayWidthControl: View {
                 if !editing { throttle.finish() }
             }
         )
-        .accessibilityLabel("每日宽度")
+        .accessibilityLabel(I18n.t("daywidth.accessibility_label", "Daily width"))
         .accessibilityValue(readout)
     }
 
@@ -149,12 +149,12 @@ struct DayWidthControl: View {
                 Button(presetTitle(zoom)) { applyPreset(zoom) }
                     .buttonStyle(.bordered)
                     .font(.system(size: DesignTokens.captionFontSize))
-                    .help("\(presetTitle(zoom))：\(Int(zoom.dayWidth)) 点/天")
+                    .help(I18n.t("daywidth.preset.help", "%1$@: %2$ld pts/day", presetTitle(zoom), Int(zoom.dayWidth)))
             }
-            Button("重置") { applyReset() }
+            Button(I18n.t("action.reset", "Reset")) { applyReset() }
                 .buttonStyle(.bordered)
                 .font(.system(size: DesignTokens.captionFontSize))
-                .help("回到当前档位默认宽度")
+                .help(I18n.t("daywidth.reset.help", "Back to the current preset’s default width"))
         }
     }
 
@@ -170,8 +170,8 @@ struct DayWidthControl: View {
             .frame(minWidth: 34)
         }
         .buttonStyle(.bordered)
-        .help("\(title) \(Int(abs(delta))) 点/天")
-        .accessibilityLabel("\(title) \(Int(abs(delta))) 点/天")
+        .help(I18n.t("daywidth.step.help", "%1$@ %2$ld pts/day", title, Int(abs(delta))))
+        .accessibilityLabel(I18n.t("daywidth.step.help", "%1$@ %2$ld pts/day", title, Int(abs(delta))))
     }
 
     // MARK: - 读数与映射
@@ -191,12 +191,13 @@ struct DayWidthControl: View {
         return "\(lower)–\(upper)"
     }
 
+    /// 档位按钮标题：档位名取 Display 的同一份文案（F-0705），数值为该档位默认日宽。
     private func presetTitle(_ zoom: GanttZoom) -> String {
         let name: String
         switch zoom {
-        case .day: name = "日"
-        case .week: name = "周"
-        case .month: name = "月"
+        case .day: name = Display.zoomPresetTitle(.day)
+        case .week: name = Display.zoomPresetTitle(.week)
+        case .month: name = Display.zoomPresetTitle(.month)
         }
         return "\(name) \(Int(zoom.dayWidth))"
     }

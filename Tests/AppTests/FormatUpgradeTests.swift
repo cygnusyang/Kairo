@@ -166,7 +166,7 @@ struct FormatUpgradeTests {
         store.save()
 
         #expect(!store.needsFormatUpgrade)
-        #expect(store.notice == "已升级到 v\(KairoFile.currentFormatVersion)")
+        #expect(store.notice == I18n.t("alert.upgraded_to", "Upgraded to v%1$ld", KairoFile.currentFormatVersion))
         #expect(try fileFormatVersion(url) == KairoFile.currentFormatVersion)
 
         // 后续保存不再重复提示。
@@ -200,7 +200,11 @@ struct FormatUpgradeTests {
 
         #expect(!store.needsFormatUpgrade)
         #expect(
-            store.notice == "已另存为并升级到 v\(KairoFile.currentFormatVersion)"
+            store.notice == I18n.t(
+                "alert.saved_as_upgraded",
+                "Saved as a new file and upgraded to v%1$ld",
+                KairoFile.currentFormatVersion
+            )
         )
         #expect(store.projectURL?.standardizedFileURL == newURL.standardizedFileURL)
     }
@@ -222,7 +226,11 @@ struct FormatUpgradeTests {
 
         #expect(!store.needsFormatUpgrade)
         #expect(
-            store.notice == "已另存为并升级到 v\(KairoFile.currentFormatVersion)"
+            store.notice == I18n.t(
+                "alert.saved_as_upgraded",
+                "Saved as a new file and upgraded to v%1$ld",
+                KairoFile.currentFormatVersion
+            )
         )
         #expect(store.projectURL?.standardizedFileURL == newURL.standardizedFileURL)
         #expect(try fileFormatVersion(newURL) == KairoFile.currentFormatVersion)
@@ -277,7 +285,7 @@ struct FormatUpgradeTests {
         try await waitUntilLoaded(store)
 
         // finishOpen 重置 notice 后，升级提示仍然可见。
-        #expect(store.notice == "已升级到 v\(KairoFile.currentFormatVersion)")
+        #expect(store.notice == I18n.t("alert.upgraded_to", "Upgraded to v%1$ld", KairoFile.currentFormatVersion))
         #expect(store.projectURL?.standardizedFileURL == secondURL.standardizedFileURL)
         #expect(!store.needsFormatUpgrade)
     }
@@ -382,7 +390,7 @@ struct FormatUpgradeTests {
         try await waitUntilLoaded(store)
 
         let notice = try #require(store.notice)
-        #expect(notice.contains("已升级到 v\(KairoFile.currentFormatVersion)"))
+        #expect(notice.contains("v\(KairoFile.currentFormatVersion)"), "合并后的提示必须保留升级说明")
         // 警告断言语义而非措辞（F-0705）：文案归 Catalog，裸跑 `swift test` 时按英文兜底渲染。
         let warning = try #require(store.loadWarnings.first)
         #expect(warning.code == .groupPromoted)

@@ -9,12 +9,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard let store, store.hasUnsavedChanges else { return .terminateNow }
         let alert = NSAlert()
-        alert.messageText = "有未保存的修改"
-        alert.informativeText = "退出将丢失当前项目的未保存修改。"
+        alert.messageText = I18n.t("alert.unsaved_quit.title", "Unsaved changes")
+        alert.informativeText = I18n.t("alert.unsaved_quit.message", "Quitting will discard unsaved changes to the current project.")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "保存并退出")
-        alert.addButton(withTitle: "放弃修改并退出")
-        alert.addButton(withTitle: "取消")
+        alert.addButton(withTitle: I18n.t("alert.unsaved_quit.save_and_quit", "Save and Quit"))
+        alert.addButton(withTitle: I18n.t("alert.unsaved_quit.discard_and_quit", "Discard Changes and Quit"))
+        alert.addButton(withTitle: I18n.t("action.cancel", "Cancel"))
         switch alert.runModal() {
         case .alertFirstButtonReturn:
             return saveAndTerminate(store)
@@ -48,10 +48,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func showSaveError(_ store: WorkspaceStore) {
         let alert = NSAlert()
-        alert.messageText = "保存失败"
-        alert.informativeText = store.alertMessage ?? "无法保存项目文件，已取消退出。"
+        alert.messageText = I18n.t("alert.save_failed.title", "Save Failed")
+        alert.informativeText = store.alertMessage ?? I18n.t("alert.save_failed.message", "The project file could not be saved; quit cancelled.")
         alert.alertStyle = .critical
-        alert.addButton(withTitle: "好")
+        alert.addButton(withTitle: I18n.t("action.ok", "OK"))
         alert.runModal()
         store.alertMessage = nil
     }

@@ -61,13 +61,14 @@ struct SaveAsTests {
     @Test func fr_file_saveas_1_catalog_defines_command() throws {
         let commands = makeCatalog(makeStore())
         let saveAs = try #require(commands.first { $0.id == "file.saveAs" })
-        #expect(saveAs.title == "另存为…")
-        #expect(saveAs.group == "文件")
+        #expect(saveAs.title == I18n.t("menu.file.save_as", "Save As…"))
+        #expect(saveAs.group == .file)
         #expect(saveAs.shortcut?.label == "⇧⌘S")
-        #expect(saveAs.aliases.contains("保存副本"))
+        #expect(saveAs.aliases.contains(I18n.t("menu.file.save_as.alias", "Save a copy")))
         // 菜单与 ⌘K 面板消费同一注册表：面板搜索必须能找到。
-        #expect(CommandPalette.matching("另存为", in: commands).contains { $0.id == "file.saveAs" })
-        #expect(CommandPalette.matching("保存副本", in: commands).contains { $0.id == "file.saveAs" })
+        let alias = try #require(saveAs.aliases.first)
+        #expect(CommandPalette.matching(saveAs.title, in: commands).contains { $0.id == "file.saveAs" })
+        #expect(CommandPalette.matching(alias, in: commands).contains { $0.id == "file.saveAs" })
     }
 
     @Test func fr_file_saveas_1_action_invokes_injected_request() throws {
@@ -174,7 +175,7 @@ struct SaveAsTests {
         defer { try? FileManager.default.removeItem(at: directory) }
 
         let store = makeStore()
-        #expect(store.suggestedSaveFilename == "未命名项目.kairo")
+        #expect(store.suggestedSaveFilename == I18n.t("alert.project.default_title", "Untitled Project") + ".kairo")
 
         store.dispatch(.setProjectTitle("路线 / 图"))
         #expect(store.suggestedSaveFilename == "路线 - 图.kairo")

@@ -49,12 +49,32 @@ struct KairoShortcut {
     }
 }
 
+/// 菜单分组（F-0705）：分组是语义枚举，显示名走 Catalog。
+///
+/// 用中文串当标识会让「菜单构建匹配分组」和「面板显示分组名」绑在同一份可变文案上——
+/// 换语言就会静默失配（菜单变空）。这里只留 case，文案由 `title` 查 Catalog。
+enum KairoCommandGroup: String, CaseIterable, Hashable, Sendable {
+    case file, edit, outline, task, view, find
+
+    /// 菜单标题 / 面板分组标签。
+    var title: String {
+        switch self {
+        case .file: return I18n.t("menu.group.file", "File")
+        case .edit: return I18n.t("menu.group.edit", "Edit")
+        case .outline: return I18n.t("menu.group.outline", "Outline")
+        case .task: return I18n.t("menu.group.task", "Task")
+        case .view: return I18n.t("menu.group.view", "View")
+        case .find: return I18n.t("menu.group.find", "Find")
+        }
+    }
+}
+
 /// 一条可执行命令（US-E4-05 / F-41-01）。菜单栏与 ⌘K 面板均消费此注册表。
 struct KairoCommand: Identifiable {
     let id: String
     let title: String
-    /// 菜单分组：文件 / 大纲 / 任务 / 视图 / 查找。
-    let group: String
+    /// 菜单分组（文件 / 编辑 / 大纲 / 任务 / 视图 / 查找）。
+    let group: KairoCommandGroup
     let shortcut: KairoShortcut?
     /// 旧标题，仅用于命令面板搜索（不显示在菜单）。
     let aliases: [String]
@@ -63,7 +83,7 @@ struct KairoCommand: Identifiable {
     init(
         id: String,
         title: String,
-        group: String,
+        group: KairoCommandGroup,
         shortcut: KairoShortcut? = nil,
         aliases: [String] = [],
         action: @escaping @MainActor () -> Void
@@ -89,37 +109,37 @@ enum KairoCommandCatalog {
         [
             KairoCommand(
                 id: "file.open",
-                title: "打开项目…",
-                group: "文件",
+                title: I18n.t("menu.file.open_project", "Open Project…"),
+                group: .file,
                 shortcut: KairoShortcut(key: "o", modifiers: .command),
                 action: requestOpen
             ),
             KairoCommand(
                 id: "file.save",
-                title: "保存",
-                group: "文件",
+                title: I18n.t("menu.file.save", "Save"),
+                group: .file,
                 shortcut: KairoShortcut(key: "s", modifiers: .command),
                 action: requestSave
             ),
             KairoCommand(
                 id: "file.saveAs",
-                title: "另存为…",
-                group: "文件",
+                title: I18n.t("menu.file.save_as", "Save As…"),
+                group: .file,
                 shortcut: KairoShortcut(key: "s", modifiers: [.command, .shift]),
-                aliases: ["保存副本"],
+                aliases: [I18n.t("menu.file.save_as.alias", "Save a copy")],
                 action: requestSaveAs
             ),
             KairoCommand(
                 id: "file.loadExample",
-                title: "载入示例项目",
-                group: "文件",
-                aliases: ["载入演示数据", "示例项目"],
+                title: I18n.t("menu.file.load_example", "Load Example Project"),
+                group: .file,
+                aliases: [I18n.t("menu.file.load_example.alias_demo", "Load demo data"), I18n.t("menu.file.load_example.alias_example", "Example project")],
                 action: { store.loadExampleProject() }
             ),
             KairoCommand(
                 id: "edit.undo",
-                title: "撤销",
-                group: "编辑",
+                title: I18n.t("menu.edit.undo", "Undo"),
+                group: .edit,
                 shortcut: KairoShortcut(key: "z", modifiers: .command),
                 action: {
                     if !FieldEditorUndo.perform(redo: false) {
@@ -129,8 +149,8 @@ enum KairoCommandCatalog {
             ),
             KairoCommand(
                 id: "edit.redo",
-                title: "重做",
-                group: "编辑",
+                title: I18n.t("menu.edit.redo", "Redo"),
+                group: .edit,
                 shortcut: KairoShortcut(key: "z", modifiers: [.command, .shift]),
                 action: {
                     if !FieldEditorUndo.perform(redo: true) {
@@ -140,8 +160,8 @@ enum KairoCommandCatalog {
             ),
             KairoCommand(
                 id: "outline.indent",
-                title: "缩进",
-                group: "大纲",
+                title: I18n.t("action.indent", "Indent"),
+                group: .outline,
                 shortcut: KairoShortcut(key: "]", modifiers: .command),
                 action: {
                     guard let id = store.selection else { return }
@@ -150,8 +170,8 @@ enum KairoCommandCatalog {
             ),
             KairoCommand(
                 id: "outline.outdent",
-                title: "减少缩进",
-                group: "大纲",
+                title: I18n.t("action.outdent", "Outdent"),
+                group: .outline,
                 shortcut: KairoShortcut(key: "[", modifiers: .command),
                 action: {
                     guard let id = store.selection else { return }
@@ -160,8 +180,8 @@ enum KairoCommandCatalog {
             ),
             KairoCommand(
                 id: "outline.newSibling",
-                title: "新建同级任务",
-                group: "大纲",
+                title: I18n.t("action.new_sibling", "New Sibling Task"),
+                group: .outline,
                 shortcut: KairoShortcut(key: .return, modifiers: .command),
                 action: {
                     if let id = store.selection {
@@ -173,54 +193,54 @@ enum KairoCommandCatalog {
             ),
             KairoCommand(
                 id: "task.new",
-                title: "新建任务",
-                group: "任务",
+                title: I18n.t("action.new_task", "New Task"),
+                group: .task,
                 shortcut: KairoShortcut(key: "n", modifiers: [.command, .option]),
                 action: { store.dispatch(.createTask(parentID: nil, kind: .task)) }
             ),
             KairoCommand(
                 id: "task.newGroup",
-                title: "新建群组",
-                group: "任务",
+                title: I18n.t("action.new_group", "New Group"),
+                group: .task,
                 shortcut: KairoShortcut(key: "g", modifiers: [.command, .option]),
                 action: { store.dispatch(.createTask(parentID: nil, kind: .group)) }
             ),
             KairoCommand(
                 id: "task.newMilestone",
-                title: "新建里程碑",
-                group: "任务",
+                title: I18n.t("action.new_milestone", "New Milestone"),
+                group: .task,
                 shortcut: KairoShortcut(key: "m", modifiers: [.command, .option]),
                 action: { store.dispatch(.createTask(parentID: nil, kind: .milestone)) }
             ),
             KairoCommand(
                 id: "view.plan",
-                title: "计划",
-                group: "视图",
+                title: I18n.t("menu.view.plan", "Plan"),
+                group: .view,
                 shortcut: KairoShortcut(key: "1", modifiers: [.command, .option]),
-                aliases: ["任务视图"],
+                aliases: [I18n.t("menu.view.plan.alias", "Task view")],
                 action: { store.dispatch(.setMode(.plan)) }
             ),
             KairoCommand(
                 id: "view.outline",
-                title: "大纲",
-                group: "视图",
+                title: I18n.t("menu.view.outline", "Outline"),
+                group: .view,
                 shortcut: KairoShortcut(key: "2", modifiers: [.command, .option]),
-                aliases: ["甘特视图"],
+                aliases: [I18n.t("menu.view.outline.alias", "Gantt view")],
                 action: { store.dispatch(.setMode(.outline)) }
             ),
             KairoCommand(
                 id: "view.focus",
-                title: "图表聚焦",
-                group: "视图",
+                title: I18n.t("menu.view.chart_focus", "Focus Chart"),
+                group: .view,
                 shortcut: KairoShortcut(key: "l", modifiers: [.command, .option]),
                 action: { store.dispatch(.toggleChartFocus) }
             ),
             KairoCommand(
                 id: "view.violations",
-                title: "显示检查器·违例",
-                group: "视图",
+                title: I18n.t("menu.view.violations", "Show Inspector · Violations"),
+                group: .view,
                 shortcut: KairoShortcut(key: "v", modifiers: [.command, .option]),
-                aliases: ["显示/隐藏违例面板"],
+                aliases: [I18n.t("menu.view.violations.alias", "Show/hide the violations panel")],
                 action: {
                     store.dispatch(.setInspectorVisible(true))
                     store.dispatch(.setInspectorTab(.violations))
@@ -228,51 +248,51 @@ enum KairoCommandCatalog {
             ),
             KairoCommand(
                 id: "view.today",
-                title: "回到今天",
-                group: "视图",
+                title: I18n.t("menu.view.today", "Go to Today"),
+                group: .view,
                 shortcut: KairoShortcut(key: "t", modifiers: [.command, .option]),
                 action: { store.dispatch(.goToToday) }
             ),
             KairoCommand(
                 id: "view.criticalPath",
-                title: "显示/隐藏重要路径",
-                group: "视图",
+                title: I18n.t("menu.view.critical_path", "Show/Hide Critical Path"),
+                group: .view,
                 action: { store.dispatch(.toggleCriticalPath) }
             ),
             KairoCommand(
                 id: "view.filterBar",
-                title: "显示筛选栏",
-                group: "视图",
+                title: I18n.t("menu.view.filter_bar", "Show Filter Bar"),
+                group: .view,
                 action: { store.filterBarVisible = true }
             ),
             KairoCommand(
                 id: "view.dayWidthWider",
-                title: "加宽每日",
-                group: "视图",
+                title: I18n.t("menu.view.day_width_wider", "Wider Days"),
+                group: .view,
                 shortcut: KairoShortcut(key: "+", modifiers: .command),
-                aliases: ["日宽加宽", "放大日宽"],
+                aliases: [I18n.t("menu.view.day_width_wider.alias_a", "Increase day width"), I18n.t("menu.view.day_width_wider.alias_b", "Zoom day width in")],
                 action: { store.dispatch(.nudgeCustomDayWidth(by: GanttScale.dayWidthStep)) }
             ),
             KairoCommand(
                 id: "view.dayWidthNarrower",
-                title: "收窄每日",
-                group: "视图",
+                title: I18n.t("menu.view.day_width_narrower", "Narrower Days"),
+                group: .view,
                 shortcut: KairoShortcut(key: "-", modifiers: .command),
-                aliases: ["日宽收窄", "缩小日宽"],
+                aliases: [I18n.t("menu.view.day_width_narrower.alias_a", "Decrease day width"), I18n.t("menu.view.day_width_narrower.alias_b", "Zoom day width out")],
                 action: { store.dispatch(.nudgeCustomDayWidth(by: -GanttScale.dayWidthStep)) }
             ),
             KairoCommand(
                 id: "view.dayWidthReset",
-                title: "重置每日宽度",
-                group: "视图",
+                title: I18n.t("menu.view.day_width_reset", "Reset Day Width"),
+                group: .view,
                 shortcut: KairoShortcut(key: "0", modifiers: .command),
-                aliases: ["日宽重置"],
+                aliases: [I18n.t("menu.view.day_width_reset.alias", "Reset day width")],
                 action: { store.dispatch(.clearCustomDayWidth) }
             ),
             KairoCommand(
                 id: "find.show",
-                title: "查找…",
-                group: "查找",
+                title: I18n.t("menu.find.show", "Find…"),
+                group: .find,
                 shortcut: KairoShortcut(key: "f", modifiers: .command),
                 action: {
                     store.filterBarVisible = true
@@ -282,29 +302,29 @@ enum KairoCommandCatalog {
             ),
             KairoCommand(
                 id: "find.next",
-                title: "查找下一个",
-                group: "查找",
+                title: I18n.t("menu.find.next", "Find Next"),
+                group: .find,
                 shortcut: KairoShortcut(key: "g", modifiers: .command),
                 action: { store.find.findNext() }
             ),
             KairoCommand(
                 id: "find.previous",
-                title: "查找上一个",
-                group: "查找",
+                title: I18n.t("menu.find.previous", "Find Previous"),
+                group: .find,
                 shortcut: KairoShortcut(key: "g", modifiers: [.command, .shift]),
                 action: { store.find.findPrevious() }
             ),
             KairoCommand(
                 id: "find.regex",
-                title: "切换正则模式",
-                group: "查找",
+                title: I18n.t("menu.find.regex", "Toggle Regex Mode"),
+                group: .find,
                 shortcut: KairoShortcut(key: "e", modifiers: [.command, .option]),
                 action: { store.find.regexMode.toggle() }
             ),
             KairoCommand(
                 id: "palette.show",
-                title: "命令面板",
-                group: "查找",
+                title: I18n.t("menu.find.command_palette", "Command Palette"),
+                group: .find,
                 shortcut: KairoShortcut(key: "k", modifiers: .command),
                 action: { store.showCommandPalette = true }
             )
@@ -313,8 +333,8 @@ enum KairoCommandCatalog {
             // 序号/任务说明固定显示，故由 `configurable` 派生，不手写 8 条以免两处漂移。
             KairoCommand(
                 id: "view.outlineColumn.\(column.rawValue)",
-                title: "显示/隐藏\(Display.outlineColumnTitle(column))列",
-                group: "视图",
+                title: I18n.t("menu.view.outline_column", "Show/Hide %1$@ Column", Display.outlineColumnTitle(column)),
+                group: .view,
                 action: { store.dispatch(.toggleOutlineColumn(column)) }
             )
         }
@@ -329,36 +349,36 @@ struct KairoMenuCommands: Commands {
 
     var body: some Commands {
         CommandGroup(replacing: .appInfo) {
-            Button("关于 Kairo") { Self.showAboutPanel() }
+            Button(I18n.t("menu.app.about", "About Kairo")) { Self.showAboutPanel() }
             if let checkForUpdates {
-                Button("检查更新…") { checkForUpdates() }
+                Button(I18n.t("menu.app.check_for_updates", "Check for Updates…")) { checkForUpdates() }
             }
         }
         CommandGroup(replacing: .saveItem) {
             Divider()
-            items(group: "文件")
+            items(group: .file)
         }
         // 撤销/重做必须经过会话快照；替换系统 NSResponder 撤销入口。
         CommandGroup(replacing: .undoRedo) {
-            items(group: "编辑")
+            items(group: .edit)
         }
         CommandGroup(after: .pasteboard) {
             Divider()
-            items(group: "大纲")
+            items(group: .outline)
         }
-        CommandMenu("任务") {
-            items(group: "任务")
+        CommandMenu(KairoCommandGroup.task.title) {
+            items(group: .task)
         }
-        CommandMenu("视图") {
-            items(group: "视图")
+        CommandMenu(KairoCommandGroup.view.title) {
+            items(group: .view)
         }
-        CommandMenu("查找") {
-            items(group: "查找")
+        CommandMenu(KairoCommandGroup.find.title) {
+            items(group: .find)
         }
     }
 
     @ViewBuilder
-    private func items(group: String) -> some View {
+    private func items(group: KairoCommandGroup) -> some View {
         ForEach(commands.filter { $0.group == group }) { command in
             commandButton(command)
         }
@@ -387,7 +407,7 @@ struct KairoMenuCommands: Commands {
             .applicationName: "Kairo",
             .applicationVersion: appVersion,
             .credits: NSAttributedString(
-                string: "编译于 \(buildDescription)",
+                string: I18n.t("menu.app.about.built_at", "Built %1$@", buildDescription),
                 attributes: [.font: NSFont.systemFont(ofSize: 11), .foregroundColor: NSColor.secondaryLabelColor]
             ),
         ])
@@ -404,7 +424,7 @@ struct KairoMenuCommands: Commands {
            let modified = attributes[.modificationDate] as? Date {
             return Self.formatBuildTime(modified)
         }
-        return "未知时间"
+        return I18n.t("menu.app.about.unknown_time", "Unknown time")
     }
 
     /// 解析打包时写入的 `yyyyMMdd.HHmm` 时间戳。

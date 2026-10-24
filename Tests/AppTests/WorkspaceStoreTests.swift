@@ -122,7 +122,7 @@ struct WorkspaceStoreTests {
         // + 大纲列显隐 8 条（F-14-20：状态/违例/前置/开始/结束/持续/负责人/完成）。
         #expect(commands.count == 35)
         #expect(Set(commands.map(\.id)).count == commands.count)
-        #expect(Set(commands.map(\.group)) == Set(["文件", "编辑", "大纲", "任务", "视图", "查找"]))
+        #expect(Set(commands.map(\.group)) == Set(KairoCommandGroup.allCases))
         #expect(commands.allSatisfy { !$0.title.isEmpty })
         #expect(commands.contains { $0.id == "palette.show" })
     }
@@ -193,8 +193,11 @@ struct WorkspaceStoreTests {
         #expect(store.showCommandPalette)
 
         let commands = makeCatalog(store)
-        #expect(CommandPalette.matching("甘特", in: commands).map(\.id) == ["view.outline"])
-        #expect(CommandPalette.matching("任务视图", in: commands).map(\.id) == ["view.plan"])
+        // 别名是文案（随语言变），断言「按注册表里的别名能搜到该命令」而不是匹配某个中文串。
+        let ganttAlias = try #require(try command(commands, "view.outline").aliases.first)
+        #expect(CommandPalette.matching(ganttAlias, in: commands).map(\.id) == ["view.outline"])
+        let planAlias = try #require(try command(commands, "view.plan").aliases.first)
+        #expect(CommandPalette.matching(planAlias, in: commands).map(\.id) == ["view.plan"])
         #expect(CommandPalette.matching("  ", in: commands).count == commands.count)
         #expect(CommandPalette.matching("不存在的命令", in: commands).isEmpty)
     }
@@ -334,7 +337,7 @@ struct WorkspaceStoreTests {
 
         let newID = try #require(store.selection)
         let created = try #require(store.exportProject.tasks.first { $0.id == newID })
-        #expect(created.title == "新任务")
+        #expect(created.title == I18n.t("outline.new_task.title", "New Task"))
         #expect(created.parentID == nil)
         #expect(try indexOf(store, newID) == indexOf(store, backend.id) + 1)
         #expect(rows(store).contains { $0.id == newID })
@@ -349,8 +352,8 @@ struct WorkspaceStoreTests {
         let newID = try #require(store.selection)
         let created = try #require(store.exportProject.tasks.first { $0.id == newID })
         #expect(created.parentID == backend.id)
-        #expect(created.title == "新任务")
-        #expect(try row(store, "新任务").depth == 1)
+        #expect(created.title == I18n.t("outline.new_task.title", "New Task"))
+        #expect(try row(store, created.title).depth == 1)
     }
 
     @Test func groupDeleteRequiresConfirmationThenRemovesSubtree() throws {
@@ -529,7 +532,7 @@ struct WorkspaceStoreTests {
         store.dispatch(.reveal(UUID()))
 
         #expect(store.selection == nil)
-        #expect(store.notice == "任务已删除")
+        #expect(store.notice == I18n.t("alert.task_deleted", "Task deleted"))
         guard case .project = store.snapshot.inspector.content else {
             Issue.record("目标缺失后检查器应回到项目页")
             return
@@ -648,7 +651,7 @@ struct WorkspaceStoreTests {
         #expect(store.isLoading)
 
         store.openAsync(url: second)
-        #expect(store.notice?.contains("正在载入") == true)
+        #expect(store.notice == I18n.t("alert.loading_in_progress", "A project is still loading; try opening again in a moment"))
         #expect(store.pendingOpenURL == nil)
 
         gate.signal()
@@ -926,7 +929,11 @@ struct WorkspaceStoreTests {
 
         // 不存在的编号 → 提示可能被折叠或筛选隐藏。
         store.dispatch(.setPredecessors(frontend.id, "99"))
-        #expect(store.alertMessage?.contains("可能被折叠或筛选隐藏") == true)
+        #expect(store.alertMessage == I18n.t(
+            "error.dependency.predecessor_hidden",
+            "Predecessor not found: %1$@ (the task may be collapsed or filtered out)",
+            "99"
+        ))
         store.alertMessage = nil
 
         // 折叠群组后其子任务编号不可见 → 同样提示。
@@ -934,7 +941,11 @@ struct WorkspaceStoreTests {
         store.dispatch(.indent(review.id))
         store.dispatch(.toggleExpanded(backend.id))
         store.dispatch(.setPredecessors(backend.id, "1.1"))
-        #expect(store.alertMessage?.contains("可能被折叠或筛选隐藏") == true)
+        #expect(store.alertMessage == I18n.t(
+            "error.dependency.predecessor_hidden",
+            "Predecessor not found: %1$@ (the task may be collapsed or filtered out)",
+            "1.1"
+        ))
     }
 
     @Test func predecessorColumnReplacesWholeSet() throws {
@@ -978,7 +989,11 @@ struct WorkspaceStoreTests {
 
         // 成环：后继反过来指向前驱。
         store.dispatch(.setPredecessors(backend.id, String(frontend.id.uuidString.prefix(4))))
-        #expect(store.alertMessage?.contains("环") == true)
+        #expect(store.alertMessage == I18n.t(
+            "error.dependency.cycle",
+            "Adding this dependency would form a cycle: %1$@",
+            String(frontend.id.uuidString.prefix(4))
+        ))
         store.alertMessage = nil
         let unchanged = try #require(
             store.exportProject.tasks.first { $0.id == backend.id }
@@ -987,10 +1002,14 @@ struct WorkspaceStoreTests {
 
         // 未知 ID 与自依赖。
         store.dispatch(.setPredecessors(frontend.id, "ZZZZ"))
-        #expect(store.alertMessage?.contains("找不到") == true)
+        #expect(store.alertMessage == I18n.t(
+            "error.dependency.predecessor_not_found",
+            "Predecessor not found: %1$@",
+            "ZZZZ"
+        ))
         store.alertMessage = nil
         store.dispatch(.setPredecessors(frontend.id, String(frontend.id.uuidString.prefix(4))))
-        #expect(store.alertMessage?.contains("自身") == true)
+        #expect(store.alertMessage == I18n.t("error.dependency.self", "A task cannot depend on itself"))
     }
 
     // MARK: - 外部更新
@@ -1011,7 +1030,7 @@ struct WorkspaceStoreTests {
         store.checkExternalUpdate()
 
         #expect(store.externalUpdatePending)
-        #expect(store.exportProject.metadata.title == "未命名项目")
+        #expect(store.exportProject.metadata.title == I18n.t("alert.project.default_title", "Untitled Project"))
 
         store.dispatch(.keepLocal)
         #expect(!store.externalUpdatePending)
@@ -1034,7 +1053,14 @@ struct WorkspaceStoreTests {
 
         #expect(!store.externalUpdatePending)
         #expect(store.exportProject.metadata.title == "外部标题")
-        #expect(store.notice?.hasPrefix("已载入外部更新") == true)
+        let mtime = try #require(
+            try FileManager.default.attributesOfItem(atPath: url.path)[.modificationDate] as? Date
+        )
+        #expect(store.notice == I18n.t(
+            "alert.external_update_loaded",
+            "External update loaded at %1$@",
+            Display.time(mtime)
+        ))
     }
 
     /// 用独立会话重写磁盘文件，模拟其他进程的保存。
@@ -1184,7 +1210,11 @@ struct WorkspaceStoreTests {
         let store = makeStore(seedsDemoData: false)
         let commands = makeCatalog(store)
 
-        #expect(try command(commands, "view.outlineColumn.start").title == "显示/隐藏开始列")
+        #expect(try command(commands, "view.outlineColumn.start").title == I18n.t(
+            "menu.view.outline_column",
+            "Show/Hide %1$@ Column",
+            Display.outlineColumnTitle(.start)
+        ))
         #expect(!commands.contains { $0.id == "view.outlineColumn.number" }, "固定列不出现在显隐命令里")
         #expect(!commands.contains { $0.id == "view.outlineColumn.title" }, "固定列不出现在显隐命令里")
 

@@ -125,7 +125,7 @@ struct OutlineHeaderView: View {
                 set: { _ in onToggleColumn(column) }
             )) {
                 // 标签只写列名：勾选态本身表达显示/隐藏。
-                Text("\(Display.outlineColumnTitle(column))列")
+                Text(I18n.t("outline.column_toggle.label", "%1$@ column", Display.outlineColumnTitle(column)))
             }
         }
     }
@@ -135,13 +135,13 @@ struct OutlineHeaderView: View {
         case .status: return ""
         case .violation: return "!"
         case .number: return "#"
-        case .title: return "任务"
-        case .predecessors: return "前置"
-        case .start: return "开始"
-        case .finish: return "结束"
-        case .duration: return "持续"
-        case .assignee: return "负责人"
-        case .progress: return "完成"
+        case .title: return I18n.t("column.header.title", "Task")
+        case .predecessors: return I18n.t("column.header.predecessors", "Pred.")
+        case .start: return I18n.t("column.start", "Start")
+        case .finish: return I18n.t("column.finish", "Finish")
+        case .duration: return I18n.t("column.header.duration", "Dur.")
+        case .assignee: return I18n.t("column.header.assignee", "Owner")
+        case .progress: return I18n.t("column.header.progress", "Done")
         }
     }
 }
@@ -215,7 +215,7 @@ private struct OutlineColumnResizeHandle: View {
             }
             .offset(x: isLastColumn ? -Self.hotZoneWidth : 0)
             .accessibilityHidden(true)
-            .help("拖动调整列宽，双击复位")
+            .help(I18n.t("outline.column_width.help", "Drag to resize the column; double-click to reset"))
     }
 }
 
@@ -403,7 +403,7 @@ private struct OutlineRowView: View {
                     isSelected: isSelected
                 ))
                 .frame(width: 18)
-                .help("\(row.violationCount) 条违例")
+                .help(I18n.t("outline.violation_count.help", "%1$ld violations", row.violationCount))
             } else {
                 Color.clear.frame(width: 18)
             }
@@ -437,7 +437,7 @@ private struct OutlineRowView: View {
             }
 
             if editingTaskID == row.id {
-                TextField("任务标题", text: Binding(
+                TextField(I18n.t("outline.title.placeholder", "Task title"), text: Binding(
                     get: { row.title },
                     set: { store.dispatch(.rename(row.id, $0)) }
                 ))
@@ -460,7 +460,7 @@ private struct OutlineRowView: View {
                     if !focused, editingTaskID == row.id { editingTaskID = nil }
                 }
             } else {
-                Text(row.title.isEmpty ? "未命名" : row.title)
+                Text(row.title.isEmpty ? I18n.t("outline.untitled", "Untitled") : row.title)
                     .font(.system(
                         size: DesignTokens.bodyFontSize,
                         weight: row.kind == .group ? .semibold : .regular
@@ -479,7 +479,7 @@ private struct OutlineRowView: View {
                         DesignTokens.violationWarning,
                         isSelected: isSelected
                     ))
-                    .help("紧急")
+                    .help(Display.priorityTitle(.critical))
             }
             if row.isOverdue {
                 Image(systemName: "clock")
@@ -488,7 +488,7 @@ private struct OutlineRowView: View {
                         DesignTokens.overdue,
                         isSelected: isSelected
                     ))
-                    .help("已逾期")
+                    .help(I18n.t("outline.overdue", "Overdue"))
             }
             if row.deadlineRisk {
                 Image(systemName: "exclamationmark.circle")
@@ -497,7 +497,7 @@ private struct OutlineRowView: View {
                         DesignTokens.violationWarning,
                         isSelected: isSelected
                     ))
-                    .help("计划结束晚于截止日期")
+                    .help(I18n.t("outline.deadline_risk.help", "Scheduled finish is after the due date"))
             }
             if !row.hasSchedule, let reason = row.unscheduledReason {
                 Text(Display.unscheduledReason(reason))
@@ -543,25 +543,25 @@ private struct OutlineRowView: View {
 
     @ViewBuilder
     private var contextMenu: some View {
-        Button("新建同级任务") {
+        Button(I18n.t("action.new_sibling", "New Sibling Task")) {
             store.dispatch(.createSibling(after: row.id))
         }
-        Button("新建子任务") {
+        Button(I18n.t("action.new_child", "New Subtask")) {
             store.dispatch(.createTask(parentID: row.id, kind: .task))
         }
-        Button("复制任务链接") {
+        Button(I18n.t("action.copy_task_link", "Copy Task Link")) {
             store.dispatch(.copyTaskLink(row.id))
         }
         Divider()
-        Button("缩进") { store.dispatch(.indent(row.id)) }
-        Button("减少缩进") { store.dispatch(.outdent(row.id)) }
+        Button(I18n.t("action.indent", "Indent")) { store.dispatch(.indent(row.id)) }
+        Button(I18n.t("action.outdent", "Outdent")) { store.dispatch(.outdent(row.id)) }
         if row.kind == .group {
             Divider()
-            Button("新建群组") { store.dispatch(.createTask(parentID: row.id, kind: .group)) }
-            Button("新建里程碑") { store.dispatch(.createTask(parentID: row.id, kind: .milestone)) }
+            Button(I18n.t("action.new_group", "New Group")) { store.dispatch(.createTask(parentID: row.id, kind: .group)) }
+            Button(I18n.t("action.new_milestone", "New Milestone")) { store.dispatch(.createTask(parentID: row.id, kind: .milestone)) }
         }
         Divider()
-        Button("删除", role: .destructive) {
+        Button(I18n.t("action.delete", "Delete"), role: .destructive) {
             store.requestDelete(id: row.id)
         }
     }
@@ -665,7 +665,7 @@ private struct OutlineDateCell: View {
     @State private var hasKnownValue = false
 
     /// 结束列越界格的 tooltip / 无障碍说明；与检查器「结束」行同一文案。
-    private static let finishBoundaryHint = "结束须晚于开始，至少 1 天"
+    private static let finishBoundaryHint = I18n.t("date.field.finish_boundary_hint", "The finish must be later than the start, at least 1 day")
 
     var body: some View {
         // 单一视图 + 条件 help：`if let / else` 会因分支切换换掉视图类型，连带丢掉 @State
@@ -704,7 +704,7 @@ private struct OutlineDateCell: View {
             .accessibilityElement(children: .ignore)
             .accessibilityLabel(accessibilityLabel)
             .accessibilityValue(Display.isoDate(value))
-            .accessibilityHint(isEnabled ? "打开月历选择日期" : (disabledReason ?? ""))
+            .accessibilityHint(isEnabled ? I18n.t("date.field.open_calendar", "Open the calendar to pick a date") : (disabledReason ?? ""))
             .accessibilityAddTraits(isEnabled ? .isButton : [])
     }
 
@@ -757,12 +757,12 @@ private struct OutlineDateCell: View {
     }
 
     private var label: String {
-        column == .start ? "开始" : "结束"
+        column == .start ? I18n.t("column.start", "Start") : I18n.t("column.finish", "Finish")
     }
 
     /// 无障碍标签：与检查器同一措辞（「开始日期」/「结束日期」）。
     private var accessibilityLabel: String {
-        column == .start ? "开始日期" : "结束日期"
+        column == .start ? I18n.t("date.field.name.start", "Start date") : I18n.t("date.field.name.finish", "Finish date")
     }
 
     private var foreground: Color {
@@ -775,7 +775,7 @@ private struct OutlineDateCell: View {
     /// tooltip：禁用时说明原因；开始列启用态说明「显示排期、编辑意图」的口径差异（设计 §2）。
     private var helpText: String? {
         guard isEnabled else { return disabledReason }
-        return column == .start ? "设置为最早开始日期；依赖可能使排期后移" : nil
+        return column == .start ? I18n.t("date.field.start_help", "Sets the earliest start date; dependencies may push the schedule later") : nil
     }
 
     // MARK: - 交互

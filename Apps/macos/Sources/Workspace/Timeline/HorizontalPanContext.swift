@@ -58,7 +58,7 @@ final class HorizontalPanContext {
         // 内容跟手：向右滑（正位移）看更早日期 ⇒ 窗口起点减小。
         // 起点由本方法就地推进，避免连续事件拿到旧快照重复派发同一目标。
         let target = advance(byDays: days)
-        Self.logger.notice("平移提交：\(days, privacy: .public) 天 → \(target, privacy: .public)")
+        Self.logger.notice("pan commit: \(days, privacy: .public) days → \(target, privacy: .public)")
         store.dispatch(.panWindow(to: target))
     }
 

@@ -58,13 +58,13 @@ struct KairoApp: App {
                     }
                 }
                 .alert(
-                    "错误",
+                    I18n.t("alert.error.title", "Error"),
                     isPresented: Binding(
                         get: { errorMessage != nil },
                         set: { if !$0 { errorMessage = nil } }
                     )
                 ) {
-                    Button("好", role: .cancel) {}
+                    Button(I18n.t("action.ok", "OK"), role: .cancel) {}
                 } message: {
                     Text(errorMessage ?? "")
                 }
@@ -134,7 +134,7 @@ struct KairoApp: App {
             return
         }
         guard let link = KairoDeepLink.parse(url) else {
-            errorMessage = "无法识别的 Kairo 链接：\(url.absoluteString)"
+            errorMessage = I18n.t("error.deeplink.unrecognized", "Unrecognized Kairo link: %1$@", url.absoluteString)
             return
         }
         let project = store.exportProject
@@ -142,16 +142,16 @@ struct KairoApp: App {
         switch link.target {
         case .projectID:
             if !match.projectMatched {
-                errorMessage = "链接指向其他项目；当前项目为「\(project.metadata.title)」"
+                errorMessage = I18n.t("error.deeplink.other_project", "The link points to another project; the current project is “%1$@”", project.metadata.title)
             }
         case .taskID, .taskTitle:
             guard let id = match.taskID else {
-                errorMessage = "链接中的任务不在当前项目中：\(url.absoluteString)"
+                errorMessage = I18n.t("error.deeplink.task_missing", "The task in the link is not part of the current project: %1$@", url.absoluteString)
                 return
             }
             store.reveal(id)
             if match.matchCount > 1 {
-                errorMessage = "有 \(match.matchCount) 个同名任务，已定位第一个"
+                errorMessage = I18n.t("error.deeplink.duplicate_titles", "%1$ld tasks share that title; the first match was revealed", match.matchCount)
             }
         }
     }

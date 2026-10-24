@@ -26,7 +26,7 @@ struct FilterBar: View {
         HStack(spacing: 8) {
             Image(systemName: "line.3.horizontal.decrease.circle")
                 .foregroundStyle(DesignTokens.textSecondary)
-            TextField("筛选任务（如：进行中 逾期 tag:设计）", text: filterBinding)
+            TextField(I18n.t("chrome.filter.placeholder", "Filter tasks (e.g. in progress overdue tag:design)"), text: filterBinding)
                 .textFieldStyle(.plain)
                 .font(.system(size: DesignTokens.bodyFontSize))
                 .focused($filterFocused)
@@ -57,7 +57,7 @@ struct FilterBar: View {
                 Image(systemName: "magnifyingglass")
             }
             .buttonStyle(.plain)
-            .help("查找任务（⌘F）")
+            .help(I18n.t("chrome.filter.help", "Find tasks (⌘F)"))
 
             Button {
                 store.filterBarVisible = false
@@ -68,7 +68,7 @@ struct FilterBar: View {
                 Image(systemName: "xmark")
             }
             .buttonStyle(.plain)
-            .help("收起筛选栏")
+            .help(I18n.t("chrome.filter.collapse", "Hide the filter bar"))
         }
         .padding(.horizontal, 12)
         .frame(height: DesignTokens.filterBarHeight)
@@ -113,7 +113,7 @@ struct FindBar: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            TextField("查找", text: $find.lastFindString)
+            TextField(I18n.t("chrome.find.placeholder", "Find"), text: $find.lastFindString)
                 .textFieldStyle(.roundedBorder)
                 .frame(width: 140)
                 .focused($focused)
@@ -144,11 +144,11 @@ struct FindBar: View {
                     .foregroundStyle(find.regexMode ? DesignTokens.accentStrong : DesignTokens.textSecondary)
             }
             .buttonStyle(.plain)
-            .help("正则模式")
+            .help(I18n.t("chrome.find.regex.help", "Regular expression mode"))
             if find.invalidRegex {
                 Image(systemName: "exclamationmark.triangle")
                     .foregroundStyle(DesignTokens.violationWarning)
-                    .help("正则表达式无效")
+                    .help(I18n.t("chrome.find.regex.invalid", "Invalid regular expression"))
             }
         }
     }
@@ -165,19 +165,19 @@ struct StatusBarView: View {
             let width = geo.size.width
             HStack(spacing: 12) {
                 healthItem
-                metric(Display.percent(status.weightedProgress), help: "加权总进度")
-                metric("逾期 \(status.overdueCount)", help: "逾期未完成叶子任务")
+                metric(Display.percent(status.weightedProgress), help: I18n.t("statusbar.metric.weighted_progress.help", "Weighted overall progress"))
+                metric(I18n.t("statusbar.metric.overdue", "%1$ld overdue", status.overdueCount), help: I18n.t("statusbar.metric.overdue.help", "Overdue leaf tasks that are not done"))
                 if status.violationErrorCount + status.violationWarningCount > 0 {
                     metric(
-                        "违例 \(status.violationErrorCount + status.violationWarningCount)",
-                        help: "错误 \(status.violationErrorCount) / 警告 \(status.violationWarningCount)"
+                        I18n.t("statusbar.metric.violations", "%1$ld violations", status.violationErrorCount + status.violationWarningCount),
+                        help: I18n.t("statusbar.metric.violations.help", "%1$ld errors / %2$ld warnings", status.violationErrorCount, status.violationWarningCount)
                     )
                 }
                 if width >= 980, status.criticalPathCount > 0 {
-                    metric("重要路径 \(status.criticalPathCount)", help: "总宽延为 0 的任务数")
+                    metric(I18n.t("statusbar.metric.critical_path", "%1$ld critical path", status.criticalPathCount), help: I18n.t("statusbar.metric.critical_path.help", "Tasks with zero total slack"))
                 }
                 if width >= 1100, let days = status.remainingDays {
-                    metric("剩余 \(days) 天", help: "距项目结束")
+                    metric(I18n.t("statusbar.metric.remaining_days", "%1$ld days left", days), help: I18n.t("statusbar.metric.remaining_days.help", "Until the project end date"))
                 }
                 if width >= 1100, let summary = status.selectionSummary {
                     Text(summary)
@@ -198,10 +198,10 @@ struct StatusBarView: View {
                         .foregroundStyle(DesignTokens.textSecondary)
                 }
                 if !status.todayVisible {
-                    Button("今天") { store.dispatch(.goToToday) }
+                    Button(I18n.t("action.go_to_today", "Today")) { store.dispatch(.goToToday) }
                         .buttonStyle(.plain)
                         .foregroundStyle(DesignTokens.accentStrong)
-                        .help("回到今天（⌥⌘T）")
+                        .help(I18n.t("action.go_to_today.help", "Go to today (⌥⌘T)"))
                 }
                 Text(Display.saveStateTitle(status.saveState))
                     .foregroundStyle(saveColor)
@@ -223,7 +223,7 @@ struct StatusBarView: View {
             Text(Display.healthTitle(status.health))
                 .foregroundStyle(DesignTokens.textPrimary)
         }
-        .help("项目健康度：\(Display.healthTitle(status.health))")
+        .help(I18n.t("statusbar.health.help", "Project health: %1$@", Display.healthTitle(status.health)))
     }
 
     private var healthColor: Color {
@@ -260,12 +260,12 @@ struct ExternalUpdateBar: View {
             Image(systemName: "arrow.triangle.2.circlepath")
                 .font(.system(size: DesignTokens.captionFontSize))
                 .foregroundStyle(DesignTokens.violationWarning)
-            Text("项目已在磁盘上更新")
+            Text(I18n.t("alert.external_update.title", "The project was updated on disk"))
                 .font(.system(size: DesignTokens.bodyFontSize))
             Spacer(minLength: 0)
-            Button("重新载入") { confirmingReload = true }
+            Button(I18n.t("action.reload", "Reload")) { confirmingReload = true }
                 .controlSize(.small)
-            Button("保留本地") { store.dispatch(.keepLocal) }
+            Button(I18n.t("action.keep_local", "Keep local")) { store.dispatch(.keepLocal) }
                 .controlSize(.small)
         }
         .padding(.horizontal, 10)
@@ -275,13 +275,13 @@ struct ExternalUpdateBar: View {
             Rectangle().fill(DesignTokens.separator).frame(height: 1)
         }
         .confirmationDialog(
-            "重新载入会丢弃未保存的修改",
+            I18n.t("alert.external_update.confirm", "Reloading will discard unsaved changes"),
             isPresented: $confirmingReload
         ) {
-            Button("丢弃修改并重新载入", role: .destructive) {
+            Button(I18n.t("action.discard_and_reload", "Discard Changes and Reload"), role: .destructive) {
                 store.dispatch(.reloadExternal)
             }
-            Button("取消", role: .cancel) {}
+            Button(I18n.t("action.cancel", "Cancel"), role: .cancel) {}
         }
     }
 }
@@ -292,7 +292,7 @@ struct LoadingSkeletonView: View {
         VStack(alignment: .leading, spacing: 0) {
             HStack(spacing: 8) {
                 ProgressView().controlSize(.small)
-                Text("正在载入项目…")
+                Text(I18n.t("statusbar.loading.title", "Loading project…"))
                     .font(.system(size: DesignTokens.bodyFontSize))
                     .foregroundStyle(DesignTokens.textSecondary)
             }
@@ -319,6 +319,6 @@ struct LoadingSkeletonView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(DesignTokens.surfaceBase)
-        .accessibilityLabel("正在载入项目")
+        .accessibilityLabel(I18n.t("statusbar.loading.accessibility_label", "Loading project"))
     }
 }

@@ -142,8 +142,8 @@ struct UpdateSheet: View {
                 )
             }
             Text(info.securityCritical
-                ? "此更新包含安全修复，建议立即安装。下载并验证后需退出应用完成安装。"
-                : "下载并验证后需退出应用完成安装。")
+                ? I18n.t("update.headline.security_critical_note", "This update contains security fixes and should be installed now. The app must quit after the download is verified to finish installing.")
+                : I18n.t("update.headline.install_note", "The app must quit after the download is verified to finish installing."))
                 .font(.system(size: DesignTokens.captionFontSize))
                 .foregroundStyle(
                     info.securityCritical
@@ -165,7 +165,7 @@ struct UpdateSheet: View {
             EmptyView()
         case .upToDate:
             actionRow {
-                Button("好") { close() }
+                Button(I18n.t("action.ok", "OK")) { close() }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .tint(DesignTokens.accentBase)
@@ -173,7 +173,7 @@ struct UpdateSheet: View {
         case .updateAvailable(let info):
             HStack(spacing: 8) {
                 if !info.securityCritical {
-                    Button("跳过此版本") {
+                    Button(I18n.t("update.action.skip_version", "Skip This Version")) {
                         updater.skipCurrentUpdate()
                         onRequestClose()
                     }
@@ -182,9 +182,9 @@ struct UpdateSheet: View {
                     .foregroundStyle(DesignTokens.textSecondary)
                 }
                 Spacer(minLength: 0)
-                Button("稍后") { onRequestClose() }
+                Button(I18n.t("update.action.later", "Later")) { onRequestClose() }
                     .buttonStyle(.bordered)
-                Button("下载更新") { Task { await updater.download() } }
+                Button(I18n.t("update.action.download", "Download Update")) { Task { await updater.download() } }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .tint(DesignTokens.accentBase)
@@ -193,18 +193,18 @@ struct UpdateSheet: View {
             .padding(.vertical, 14)
         case .downloaded:
             actionRow {
-                Button("取消") { close() }
+                Button(I18n.t("action.cancel", "Cancel")) { close() }
                     .buttonStyle(.bordered)
-                Button("退出并安装") { install() }
+                Button(I18n.t("update.action.quit_and_install", "Quit and Install")) { install() }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .tint(DesignTokens.accentBase)
             }
         case .failed:
             actionRow {
-                Button("关闭") { close() }
+                Button(I18n.t("action.close", "Close")) { close() }
                     .buttonStyle(.bordered)
-                Button("重试") { Task { await updater.check() } }
+                Button(I18n.t("update.action.retry", "Retry")) { Task { await updater.check() } }
                     .keyboardShortcut(.defaultAction)
                     .buttonStyle(.borderedProminent)
                     .tint(DesignTokens.accentBase)
@@ -267,32 +267,32 @@ struct UpdateSheet: View {
 
     private var headline: String {
         switch updater.state {
-        case .idle, .checking: return "正在检查更新"
-        case .upToDate: return "已是最新版本"
-        case .updateAvailable(let info): return "发现新版本 \(info.version)"
-        case .downloading: return "正在下载更新"
-        case .downloaded: return "更新已下载并通过验证"
-        case .installing: return "正在安装更新"
-        case .failed: return "检查更新失败"
+        case .idle, .checking: return I18n.t("update.state.checking.title", "Checking for updates")
+        case .upToDate: return I18n.t("update.state.up_to_date.title", "Kairo is up to date")
+        case .updateAvailable(let info): return I18n.t("update.state.available.title", "Version %1$@ is available", info.version)
+        case .downloading: return I18n.t("update.state.downloading.title", "Downloading the update")
+        case .downloaded: return I18n.t("update.state.downloaded.title", "Update downloaded and verified")
+        case .installing: return I18n.t("update.state.installing.title", "Installing the update")
+        case .failed: return I18n.t("update.state.failed.title", "Update check failed")
         }
     }
 
     private var subheadline: String {
         switch updater.state {
         case .idle, .checking:
-            return "正在与更新服务器确认版本信息…"
+            return I18n.t("update.state.checking.subtitle", "Confirming the version with the update server…")
         case .upToDate:
-            return "当前版本 \(Self.currentVersionDescription)，无需更新。"
+            return I18n.t("update.state.up_to_date.subtitle", "Current version %1$@; no update needed.", Self.currentVersionDescription)
         case .updateAvailable:
-            return "当前版本 \(Self.currentVersionDescription)。"
+            return I18n.t("update.state.available.subtitle", "Current version %1$@.", Self.currentVersionDescription)
         case .downloading:
-            return "下载完成后需退出应用完成安装，请保持应用开启。"
+            return I18n.t("update.state.downloading.subtitle", "The app must quit to finish installing; keep it open until the download completes.")
         case .downloaded:
-            return "将退出应用、替换二进制并自动重启。"
+            return I18n.t("update.state.downloaded.subtitle", "Kairo will quit, replace the binary, and restart automatically.")
         case .installing:
-            return "应用即将退出并自动重启，请勿手动关闭。"
+            return I18n.t("update.state.installing.subtitle", "The app is about to quit and restart automatically; do not close it manually.")
         case .failed:
-            return "无法完成更新检查，可稍后重试。"
+            return I18n.t("update.state.failed.subtitle", "The update check could not be completed; try again later.")
         }
     }
 
@@ -302,6 +302,6 @@ struct UpdateSheet: View {
         guard let build = info["CFBundleVersion"] as? String, !build.isEmpty else {
             return version
         }
-        return "\(version)（Build \(build)）"
+        return I18n.t("update.version_description", "%1$@ (Build %2$@)", version, build)
     }
 }

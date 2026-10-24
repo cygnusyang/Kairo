@@ -41,29 +41,39 @@ enum AppLanguage: String, CaseIterable, Sendable {
     case english = "en"
     case simplifiedChinese = "zh-Hans"
 
-    /// 偏好键：缺失或取值非法时回退 `.system`。
+    /// 偏好键。
     static let defaultsKey = "KairoLanguage"
 
-    /// 持久化的用户选择。非法值不写回，读取时按 `.system` 处理。
+    /// 持久化的用户选择；缺失或取值非法（含被手工改成 `fr`）一律按 `.system` 处理。
+    static func stored(in defaults: UserDefaults = .standard) -> AppLanguage {
+        guard let raw = defaults.string(forKey: defaultsKey) else { return .system }
+        return AppLanguage(rawValue: raw) ?? .system
+    }
+
+    /// 写入用户选择（重启后生效）。
+    static func store(_ language: AppLanguage, in defaults: UserDefaults = .standard) {
+        defaults.set(language.rawValue, forKey: defaultsKey)
+    }
+
+    /// 持久化的用户选择（生产入口）。
     static var selected: AppLanguage {
-        get {
-            guard let raw = UserDefaults.standard.string(forKey: defaultsKey) else { return .system }
-            return AppLanguage(rawValue: raw) ?? .system
-        }
-        set {
-            UserDefaults.standard.set(newValue.rawValue, forKey: defaultsKey)
-        }
+        get { stored() }
+        set { store(newValue) }
     }
 
     /// 生效语言：`.system` 取系统首选语言中第一个受支持的语言，判不出时回退英文。
-    static var current: AppLanguage {
-        switch selected {
+    static func current(in defaults: UserDefaults = .standard) -> AppLanguage {
+        let choice = stored(in: defaults)
+        switch choice {
         case .system:
             return supported(from: Locale.preferredLanguages.first) ?? .english
         case .english, .simplifiedChinese:
-            return selected
+            return choice
         }
     }
+
+    /// 生效语言（生产入口）。
+    static var current: AppLanguage { current(in: .standard) }
 
     /// `.lproj` 目录名；`.system` 由 `current` 解析后不会走到这里。
     var bundleCode: String? {

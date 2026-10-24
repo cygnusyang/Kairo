@@ -46,7 +46,7 @@ struct InspectorView: View {
                             : DesignTokens.textSecondary)
                 }
                 .buttonStyle(.plain)
-                .help(snapshot.locked ? "解锁检查器" : "锁定当前任务")
+                .help(snapshot.locked ? I18n.t("inspector.lock.unlock", "Unlock Inspector") : I18n.t("inspector.lock.lock", "Lock to Current Task"))
             }
             Button(action: onClose) {
                 Image(systemName: "xmark")
@@ -54,7 +54,7 @@ struct InspectorView: View {
                     .foregroundStyle(DesignTokens.textSecondary)
             }
             .buttonStyle(.plain)
-            .help("隐藏检查器")
+            .help(I18n.t("action.inspector.hide", "Hide Inspector"))
         }
         .padding(.horizontal, 10)
         .frame(height: 40)
@@ -65,7 +65,7 @@ struct InspectorView: View {
         switch snapshot.content {
         case .task(let task): return task.title
         case .project(let project): return project.title
-        case .violations: return "违例"
+        case .violations: return I18n.t("column.violation", "Violations")
         }
     }
 
@@ -81,9 +81,9 @@ struct InspectorView: View {
 
     private var tabBar: some View {
         HStack(spacing: 0) {
-            tabButton(title: "检查器", tab: .inspector)
+            tabButton(title: I18n.t("inspector.title", "Inspector"), tab: .inspector)
             tabButton(
-                title: violationCount > 0 ? "违例 \(violationCount)" : "违例",
+                title: violationCount > 0 ? I18n.t("inspector.violations.count", "%1$ld violations", violationCount) : I18n.t("column.violation", "Violations"),
                 tab: .violations
             )
         }
@@ -137,10 +137,10 @@ struct InspectorView: View {
         HStack(spacing: 6) {
             Image(systemName: "arrow.triangle.2.circlepath")
                 .font(.system(size: 10))
-            Text("选择已变更：\(store.selectedTaskTitle ?? "未选择")")
+            Text(I18n.t("inspector.selection_changed.message", "Selection changed: %1$@", store.selectedTaskTitle ?? I18n.t("inspector.selection.none", "nothing selected")))
                 .lineLimit(1)
             Spacer(minLength: 0)
-            Button("切换") {
+            Button(I18n.t("action.switch", "Switch")) {
                 store.dispatch(.setInspectorLocked(false))
                 store.dispatch(.setInspectorLocked(true))
             }
@@ -156,10 +156,10 @@ struct InspectorView: View {
         HStack(spacing: 6) {
             Image(systemName: "exclamationmark.triangle")
                 .font(.system(size: 10))
-            Text("任务已删除：\(title)")
+            Text(I18n.t("inspector.task_deleted.message", "Task deleted: %1$@", title))
                 .lineLimit(1)
             Spacer(minLength: 0)
-            Button("关闭") {
+            Button(I18n.t("action.close", "Close")) {
                 store.dispatch(.setInspectorLocked(false))
             }
             .buttonStyle(.plain)
@@ -181,24 +181,24 @@ private struct TaskInspectorContent: View {
 
     var body: some View {
         if task.isAggregate {
-            Text("群组字段由子任务聚合，只读。")
+            Text(I18n.t("inspector.group_readonly", "Group fields are aggregated from subtasks and are read-only."))
                 .font(.system(size: DesignTokens.captionFontSize))
                 .foregroundStyle(DesignTokens.textSecondary)
         }
 
-        section("信息") {
-            FieldRow(label: "标题") {
-                TextField("标题", text: Binding(
+        section(I18n.t("inspector.section.info", "Info")) {
+            FieldRow(label: I18n.t("inspector.field.title", "Title")) {
+                TextField(I18n.t("inspector.field.title", "Title"), text: Binding(
                     get: { task.title },
                     set: { store.dispatch(.rename(task.taskID, $0)) }
                 ))
                 .textFieldStyle(.roundedBorder)
             }
-            FieldRow(label: "类型") {
+            FieldRow(label: I18n.t("inspector.field.kind", "Type")) {
                 Text(Display.kindTitle(task.kind))
                     .foregroundStyle(DesignTokens.textSecondary)
             }
-            FieldRow(label: "状态") {
+            FieldRow(label: I18n.t("column.status", "Status")) {
                 Menu {
                     ForEach(TaskStatus.allCases, id: \.self) { status in
                         Button {
@@ -213,7 +213,7 @@ private struct TaskInspectorContent: View {
                 .menuStyle(.borderlessButton)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            FieldRow(label: "优先级") {
+            FieldRow(label: I18n.t("inspector.field.priority", "Priority")) {
                 Menu {
                     ForEach(TaskPriority.allCases, id: \.self) { priority in
                         Button(Display.priorityTitle(priority)) {
@@ -226,8 +226,8 @@ private struct TaskInspectorContent: View {
                 .menuStyle(.borderlessButton)
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
-            FieldRow(label: "负责人") {
-                TextField("负责人", text: Binding(
+            FieldRow(label: I18n.t("column.assignee", "Assignee")) {
+                TextField(I18n.t("column.assignee", "Assignee"), text: Binding(
                     get: { task.assignee ?? "" },
                     set: { text in
                         let trimmed = text.trimmingCharacters(in: .whitespaces)
@@ -238,7 +238,7 @@ private struct TaskInspectorContent: View {
                 .disabled(task.isAggregate)
             }
             if !task.tags.isEmpty {
-                FieldRow(label: "标签") {
+                FieldRow(label: I18n.t("inspector.field.tags", "Tags")) {
                     Text(task.tags.joined(separator: " · "))
                         .foregroundStyle(DesignTokens.textSecondary)
                         .lineLimit(2)
@@ -246,14 +246,14 @@ private struct TaskInspectorContent: View {
             }
         }
 
-        section("排期") {
+        section(I18n.t("inspector.section.schedule", "Schedule")) {
             DateFieldRow(
-                label: "开始",
+                label: I18n.t("column.start", "Start"),
                 value: task.startDate,
-                placeholder: "未设置",
+                placeholder: I18n.t("date.field.placeholder", "Not set"),
                 helper: plannedStartHelper,
                 isEnabled: !task.isAggregate,
-                disabledReason: "群组字段由子任务聚合，只读",
+                disabledReason: I18n.t("date.field.disabled.aggregate", "Group fields are aggregated from subtasks and read-only"),
                 allowsClear: true,
                 preview: { startPreview(for: $0) },
                 onCommit: { date in
@@ -261,9 +261,9 @@ private struct TaskInspectorContent: View {
                 }
             )
             DateFieldRow(
-                label: "结束",
+                label: I18n.t("column.finish", "Finish"),
                 value: finishValue,
-                placeholder: "无排期",
+                placeholder: I18n.t("date.field.disabled.unscheduled", "Not scheduled"),
                 helper: finishHelper,
                 isEnabled: finishDisabledReason == nil,
                 disabledReason: finishDisabledReason,
@@ -276,8 +276,8 @@ private struct TaskInspectorContent: View {
                     store.dispatch(.setTaskFinish(task.taskID, finish: date, start: start))
                 }
             )
-            FieldRow(label: "持续时间") {
-                TextField("天", text: Binding(
+            FieldRow(label: I18n.t("inspector.field.duration", "Duration")) {
+                TextField(I18n.t("unit.day.short", "days"), text: Binding(
                     get: { task.durationDays.map { String(format: "%g", $0) } ?? "" },
                     set: { text in
                         store.dispatch(.setDuration(task.taskID, Double(text)))
@@ -287,30 +287,30 @@ private struct TaskInspectorContent: View {
                 // 里程碑恒为 0 天：与「结束」行一致，不提供编辑入口（设计 §1.1）。
                 .disabled(task.isAggregate || task.kind == .milestone)
             }
-            FieldRow(label: "投入") {
-                readOnly(task.effortHours.map { String(format: "%g 小时", $0) } ?? "—")
+            FieldRow(label: I18n.t("inspector.field.effort", "Effort")) {
+                readOnly(task.effortHours.map { String(format: I18n.t("unit.hours", "%g h", $0), $0) } ?? "—")
             }
-            FieldRow(label: "宽延") {
+            FieldRow(label: I18n.t("inspector.field.slack", "Slack")) {
                 readOnly(task.slackDays.map { Display.duration($0) } ?? "—")
             }
             DateFieldRow(
-                label: "截止日期",
+                label: I18n.t("inspector.field.due_date", "Due date"),
                 value: task.dueDate,
                 allowsClear: true,
                 onCommit: { date in
                     store.dispatch(.setDueDate(task.taskID, date))
                 }
             )
-            FieldRow(label: "排期策略") {
+            FieldRow(label: I18n.t("inspector.field.policy", "Scheduling policy")) {
                 readOnly(Display.scheduleTitle(task.schedulingPolicy))
             }
             if task.deadlineRisk {
-                Label("计划结束晚于截止日期", systemImage: "exclamationmark.circle")
+                Label(I18n.t("outline.deadline_risk.help", "Scheduled finish is after the due date"), systemImage: "exclamationmark.circle")
                     .font(.system(size: DesignTokens.captionFontSize))
                     .foregroundStyle(DesignTokens.violationWarning)
             }
             if task.isOverdue {
-                Label("已逾期", systemImage: "clock")
+                Label(I18n.t("outline.overdue", "Overdue"), systemImage: "clock")
                     .font(.system(size: DesignTokens.captionFontSize))
                     .foregroundStyle(DesignTokens.overdue)
             }
@@ -324,9 +324,9 @@ private struct TaskInspectorContent: View {
             }
         }
 
-        section("相关性") {
+        section(I18n.t("inspector.section.dependencies", "Dependencies")) {
             if task.predecessors.isEmpty {
-                Text("无前置任务")
+                Text(I18n.t("inspector.predecessors.empty", "No predecessors"))
                     .font(.system(size: DesignTokens.captionFontSize))
                     .foregroundStyle(DesignTokens.textSecondary)
             }
@@ -345,13 +345,13 @@ private struct TaskInspectorContent: View {
                             .foregroundStyle(DesignTokens.textSecondary)
                     }
                     .buttonStyle(.plain)
-                    .help("删除前置任务")
+                    .help(I18n.t("action.remove_predecessor", "Remove Predecessor"))
                 }
                 .font(.system(size: DesignTokens.captionFontSize))
                 .contentShape(Rectangle())
                 .onTapGesture { store.reveal(row.taskID) }
             }
-            Button("添加前置任务…") {
+            Button(I18n.t("action.add_predecessor", "Add Predecessors…")) {
                 showingDependencyPicker = true
             }
             .buttonStyle(.link)
@@ -359,7 +359,7 @@ private struct TaskInspectorContent: View {
 
             if !task.successors.isEmpty {
                 Divider()
-                Text("后继任务")
+                Text(I18n.t("inspector.successors.title", "Successors"))
                     .font(.system(size: DesignTokens.captionFontSize, weight: .semibold))
                     .foregroundStyle(DesignTokens.textSecondary)
                 ForEach(task.successors) { row in
@@ -377,7 +377,7 @@ private struct TaskInspectorContent: View {
             }
         }
 
-        section("进度") {
+        section(I18n.t("inspector.field.progress", "Progress")) {
             HStack(spacing: 8) {
                 Slider(
                     value: Binding(
@@ -393,11 +393,11 @@ private struct TaskInspectorContent: View {
             }
             .disabled(task.isAggregate)
             if let completedAt = task.completedAt {
-                FieldRow(label: "完成于") { readOnly(Display.date(completedAt)) }
+                FieldRow(label: I18n.t("inspector.field.completed_at", "Completed at")) { readOnly(Display.date(completedAt)) }
             }
         }
 
-        section("备注") {
+        section(I18n.t("inspector.field.notes", "Notes")) {
             TextEditor(text: Binding(
                 get: { task.notes },
                 set: { store.dispatch(.setNotes(task.taskID, $0)) }
@@ -410,9 +410,9 @@ private struct TaskInspectorContent: View {
             }
         }
 
-        section("资源") {
+        section(I18n.t("inspector.field.resources", "Resources")) {
             if task.assignmentNames.isEmpty {
-                Text("无分配")
+                Text(I18n.t("inspector.assignments.empty", "No assignments"))
                     .font(.system(size: DesignTokens.captionFontSize))
                     .foregroundStyle(DesignTokens.textSecondary)
             } else {
@@ -423,7 +423,7 @@ private struct TaskInspectorContent: View {
         }
 
         if !task.violations.isEmpty {
-            section("违例") {
+            section(I18n.t("column.violation", "Violations")) {
                 ForEach(task.violations, id: \.self) { violation in
                     Label(ViolationText.message(violation.reason), systemImage: "exclamationmark.triangle")
                         .font(.system(size: DesignTokens.captionFontSize))
@@ -434,7 +434,7 @@ private struct TaskInspectorContent: View {
             }
         }
 
-        Button("删除任务…", role: .destructive) {
+        Button(I18n.t("action.delete_task", "Delete Task…"), role: .destructive) {
             // 统一由 WorkspaceStore 判断是否需要确认与级联。
             store.requestDelete(id: task.taskID)
         }
@@ -458,7 +458,7 @@ private struct TaskInspectorContent: View {
     // MARK: - 日期字段
 
     /// 结束字段的最小可选日提示（越界格 tooltip / 无障碍说明）。
-    private static let finishBoundaryHint = "结束须晚于开始，至少 1 天"
+    private static let finishBoundaryHint = I18n.t("date.field.finish_boundary_hint", "The finish must be later than the start, at least 1 day")
 
     /// 「结束」换算采用的起点：排期起点优先，其次意图起点（设计 §1.4）。
     private var finishStart: Date? { task.scheduledStart ?? task.startDate }
@@ -482,9 +482,9 @@ private struct TaskInspectorContent: View {
     /// 结束行副行：排他口径 + 亚日持续时间的下限说明（M-4）。
     private var finishHelper: String {
         guard let duration = task.durationDays, duration > 0, duration < 1 else {
-            return "结束日不含当天"
+            return I18n.t("date.field.finish_exclusive", "The finish date is exclusive")
         }
-        return "结束日不含当天；持续时间不足 1 天，结束日按最少 1 天显示"
+        return I18n.t("date.field.finish_exclusive.subday", "The finish date is exclusive; the duration is under 1 day, so the finish shows at least 1 day")
     }
 
     /// 结束行最小可选日：起点 + 1 天（排他）；里程碑为起点当日（该行本身禁用）。
@@ -495,10 +495,10 @@ private struct TaskInspectorContent: View {
 
     /// 结束行禁用原因，判定顺序：群组 → 里程碑 → 无起点。
     private var finishDisabledReason: String? {
-        if task.isAggregate { return "群组字段由子任务聚合，只读" }
-        if task.kind == .milestone { return "里程碑无持续时间" }
+        if task.isAggregate { return I18n.t("date.field.disabled.aggregate", "Group fields are aggregated from subtasks and read-only") }
+        if task.kind == .milestone { return I18n.t("date.field.disabled.milestone", "Milestones have no duration") }
         if finishStart == nil {
-            return "无排期（\(Display.unscheduledReason(task.unscheduledReason))），无法设置结束"
+            return I18n.t("date.field.disabled.unscheduled_with_reason", "Not scheduled (%1$@); the end date cannot be set", Display.unscheduledReason(task.unscheduledReason))
         }
         return nil
     }
@@ -507,7 +507,7 @@ private struct TaskInspectorContent: View {
     private var plannedStartHelper: String? {
         guard let startDate = task.startDate, let planned = task.scheduledStart else { return nil }
         guard abs(ScheduleDateMath.dayOffset(from: startDate, to: planned)) >= 1 else { return nil }
-        return "计划开始 \(Display.isoDate(planned))"
+        return I18n.t("inspector.field.planned_start", "Planned start %1$@", Display.isoDate(planned))
     }
 
     /// 开始弹层预览：「开始日 – 结束日 · N 天」（按当前持续时间推结束日）。
@@ -527,12 +527,12 @@ private struct TaskInspectorContent: View {
             return span
         }
         let days = ScheduleDateMath.dayOffset(from: start, to: date)
-        return "\(span)（\(Display.duration(duration)) → \(days) 天）"
+        return I18n.t("inspector.field.duration.helper", "%1$@ (%2$@ → %3$ld days)", span, Display.duration(duration), days)
     }
 
     private static func spanText(from start: Date, to finish: Date) -> String {
         let days = ScheduleDateMath.dayOffset(from: start, to: finish)
-        return "\(monthDayText(start)) – \(monthDayText(finish)) · \(days) 天"
+        return I18n.t("inspector.field.date_range", "%1$@ – %2$@ · %3$ld days", monthDayText(start), monthDayText(finish), days)
     }
 
     private static func monthDayText(_ date: Date) -> String {
@@ -570,32 +570,32 @@ private struct ProjectInspectorContent: View {
     let project: ProjectInspector
 
     var body: some View {
-        section("项目") {
-            FieldRow(label: "标题") {
-                TextField("标题", text: Binding(
+        section(I18n.t("inspector.tab.project", "Project")) {
+            FieldRow(label: I18n.t("inspector.field.title", "Title")) {
+                TextField(I18n.t("inspector.field.title", "Title"), text: Binding(
                     get: { project.title },
                     set: { store.dispatch(.setProjectTitle($0)) }
                 ))
                 .textFieldStyle(.roundedBorder)
             }
             DateFieldRow(
-                label: "开始",
+                label: I18n.t("column.start", "Start"),
                 value: project.projectStart,
                 allowsClear: true,
                 onCommit: { store.dispatch(.setProjectStart($0)) }
             )
             DateFieldRow(
-                label: "结束",
+                label: I18n.t("column.finish", "Finish"),
                 value: project.projectEnd,
                 allowsClear: true,
                 onCommit: { store.dispatch(.setProjectEnd($0)) }
             )
-            FieldRow(label: "方向") {
+            FieldRow(label: I18n.t("inspector.field.direction", "Direction")) {
                 Menu {
-                    Button("尽快开始（ASAP）") {
+                    Button(I18n.t("inspector.direction.forward", "As soon as possible (ASAP)")) {
                         store.dispatch(.setProjectDirection(.forward))
                     }
-                    Button("尽快结束（ALAP）") {
+                    Button(I18n.t("inspector.direction.backward", "As late as possible (ALAP)")) {
                         store.dispatch(.setProjectDirection(.backward))
                     }
                 } label: {
@@ -606,7 +606,7 @@ private struct ProjectInspectorContent: View {
             }
         }
 
-        section("健康摘要") {
+        section(I18n.t("inspector.section.health", "Health summary")) {
             HStack(spacing: 6) {
                 Circle()
                     .fill(healthColor)
@@ -618,15 +618,15 @@ private struct ProjectInspectorContent: View {
                     .foregroundStyle(DesignTokens.textSecondary)
             }
             .font(.system(size: DesignTokens.bodyFontSize))
-            summaryLine("逾期", "\(project.summary.overdueCount)")
-            summaryLine("违例", "\(project.summary.errorCount) 错误 · \(project.summary.warningCount) 警告")
-            summaryLine("重要路径", "\(project.summary.criticalPathCount)")
-            summaryLine("剩余天数", project.summary.remainingDays.map { String($0) } ?? "—")
+            summaryLine(I18n.t("inspector.summary.overdue", "Overdue"), "\(project.summary.overdueCount)")
+            summaryLine(I18n.t("column.violation", "Violations"), I18n.t("inspector.summary.violations", "%1$ld errors · %2$ld warnings", project.summary.errorCount, project.summary.warningCount))
+            summaryLine(I18n.t("inspector.summary.critical_path", "Critical path"), "\(project.summary.criticalPathCount)")
+            summaryLine(I18n.t("inspector.summary.remaining_days", "Days left"), project.summary.remainingDays.map { String($0) } ?? "—")
         }
 
-        section("最近完成") {
+        section(I18n.t("inspector.section.recent", "Recently completed")) {
             if project.recentCompletions.isEmpty {
-                Text("暂无完成记录")
+                Text(I18n.t("inspector.recent.empty", "No completions yet"))
                     .font(.system(size: DesignTokens.captionFontSize))
                     .foregroundStyle(DesignTokens.textSecondary)
             }
@@ -637,8 +637,8 @@ private struct ProjectInspectorContent: View {
             }
         }
 
-        section("文件") {
-            summaryLine("保存状态", Display.saveStateTitle(project.saveState))
+        section(I18n.t("inspector.section.file", "File")) {
+            summaryLine(I18n.t("inspector.field.save_state", "Save state"), Display.saveStateTitle(project.saveState))
         }
     }
 
@@ -686,9 +686,9 @@ private struct ViolationInspectorContent: View {
     var body: some View {
         if violations.groups.isEmpty {
             VStack(alignment: .leading, spacing: 8) {
-                Label("无违例", systemImage: "checkmark.seal")
+                Label(I18n.t("inspector.violations.empty", "No violations"), systemImage: "checkmark.seal")
                     .foregroundStyle(DesignTokens.statusSuccess)
-                Text("已检查规则")
+                Text(I18n.t("inspector.violations.checked_rules", "Rules checked"))
                     .font(.system(size: DesignTokens.captionFontSize, weight: .semibold))
                     .foregroundStyle(DesignTokens.textSecondary)
                 ForEach(violations.checkedRules, id: \.code) { rule in
@@ -711,7 +711,7 @@ private struct ViolationInspectorContent: View {
             ForEach(violations.groups) { group in
                 VStack(alignment: .leading, spacing: 6) {
                     HStack(spacing: 6) {
-                        Text(group.severity == .error ? "错误" : "警告")
+                        Text(group.severity == .error ? I18n.t("inspector.severity.error", "Errors") : I18n.t("inspector.severity.warning", "Warnings"))
                             .font(.system(size: DesignTokens.captionFontSize, weight: .semibold))
                             .foregroundStyle(group.severity == .error
                                 ? DesignTokens.violationError

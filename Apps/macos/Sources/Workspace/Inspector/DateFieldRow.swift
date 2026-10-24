@@ -9,9 +9,9 @@ enum DateQuickAction: CaseIterable, Hashable {
 
     var title: String {
         switch self {
-        case .today: return "今天"
-        case .nextMonday: return "下周一"
-        case .plusWeek: return "+1 周"
+        case .today: return I18n.t("date.quick.today", "Today")
+        case .nextMonday: return I18n.t("date.quick.next_monday", "Next Monday")
+        case .plusWeek: return I18n.t("date.quick.plus_week", "+1 week")
         }
     }
 
@@ -58,7 +58,7 @@ struct DateFieldRow: View {
     /// 主值：行内渲染 `YYYY-MM-DD`。
     let value: Date?
     /// 无值时的占位文案。
-    var placeholder: String = "未设置"
+    var placeholder: String = I18n.t("date.field.placeholder", "Not set")
     /// 副行灰字（如「计划开始 2026-11-10」）。
     var helper: String? = nil
     var isEnabled: Bool = true
@@ -135,7 +135,7 @@ struct DateFieldRow: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(Self.accessibilityLabelText(label: label, value: value))
         .accessibilityValue(value.map { Self.accessibilityDateText($0) } ?? placeholder)
-        .accessibilityHint(isEnabled ? "打开月历选择日期" : (disabledReason ?? "打开月历选择日期"))
+        .accessibilityHint(isEnabled ? I18n.t("date.field.open_calendar", "Open the calendar to pick a date") : (disabledReason ?? I18n.t("date.field.open_calendar", "Open the calendar to pick a date")))
         .accessibilityAddTraits(isEnabled ? .isButton : [])
         .modifier(OptionalHelpModifier(text: isEnabled ? nil : disabledReason))
     }
@@ -183,17 +183,27 @@ struct DateFieldRow: View {
     static func accessibilityLabelText(
         label: String,
         value: Date?,
-        calendar: Calendar = .current
+        calendar: Calendar = .current,
+        locale: Locale = I18n.locale
     ) -> String {
-        let field = label.hasSuffix("日期") ? label : label + "日期"
-        guard let value else { return "\(field)，未设置" }
-        return "\(field)，\(accessibilityDateText(value, calendar: calendar))"
+        guard let value else {
+            return I18n.t("date.field.accessible.unset", "%1$@: not set", label)
+        }
+        return I18n.t(
+            "date.field.accessible.value",
+            "%1$@: %2$@",
+            label,
+            accessibilityDateText(value, calendar: calendar, locale: locale)
+        )
     }
 
-    /// 无障碍播报用中文日期「2026年11月6日」。
-    static func accessibilityDateText(_ date: Date, calendar: Calendar = .current) -> String {
-        let parts = calendar.dateComponents([.year, .month, .day], from: date)
-        return "\(parts.year ?? 0)年\(parts.month ?? 1)月\(parts.day ?? 1)日"
+    /// 无障碍播报用长日期：zh `2026年11月6日`，en `November 6, 2026`（F-0712 走本地化模板）。
+    static func accessibilityDateText(
+        _ date: Date,
+        calendar: Calendar = .current,
+        locale: Locale = I18n.locale
+    ) -> String {
+        Display.longDate(date, locale: locale)
     }
 }
 
@@ -288,7 +298,7 @@ struct CalendarPopover: View {
         HStack(spacing: 0) {
             navButton(
                 systemImage: "chevron.left",
-                label: "上个月",
+                label: I18n.t("date.calendar.previous_month", "Previous month"),
                 action: { shiftMonth(-1) }
             )
             Spacer(minLength: 0)
@@ -298,7 +308,7 @@ struct CalendarPopover: View {
             Spacer(minLength: 0)
             navButton(
                 systemImage: "chevron.right",
-                label: "下个月",
+                label: I18n.t("date.calendar.next_month", "Next month"),
                 action: { shiftMonth(1) }
             )
         }
@@ -348,7 +358,7 @@ struct CalendarPopover: View {
             }
         }
         .accessibilityElement(children: .contain)
-        .accessibilityLabel("\(Display.monthTitle(visibleMonth, calendar: calendar))月历")
+        .accessibilityLabel(I18n.t("date.calendar.title", "%1$@ calendar", Display.monthTitle(visibleMonth, calendar: calendar)))
         .focusable()
         .focusEffectDisabled()
         .focused($isGridFocused)
@@ -483,20 +493,20 @@ struct CalendarPopover: View {
             }
             Spacer(minLength: 0)
             if canClear ?? (allowsClear && selection != nil) {
-                Button("清除") {
+                Button(I18n.t("date.field.clear", "Clear")) {
                     onPick(nil)
                 }
                 .buttonStyle(.plain)
                 .font(.system(size: DesignTokens.captionFontSize))
                 .foregroundStyle(DesignTokens.textSecondary)
-                .accessibilityLabel("清除\(fieldName)")
+                .accessibilityLabel(I18n.t("date.field.clear_named", "Clear %1$@", fieldName))
             }
         }
         .frame(height: 30)
     }
 
-    private var fieldName: String {
-        label.hasSuffix("日期") ? label : label + "日期"
+    /// 无障碍播报用的字段名：直接用调用方给的标签，不再在本组件里拼「日期」后缀（F-0705）。
+    private var fieldName: String { label
     }
 
     // MARK: - 交互
@@ -613,11 +623,11 @@ struct CalendarPopover: View {
         isSelectable: Bool
     ) -> String {
         var parts = [Display.dayLabel(day, calendar: month.calendar)]
-        if month.isSameDay(day, today) { parts.append("今天") }
-        if let selection, month.isSameDay(day, selection) { parts.append("已选中") }
-        if !month.isInMonth(day) { parts.append("不在本月") }
-        if !isSelectable { parts.append("不可选") }
-        return parts.joined(separator: "，")
+        if month.isSameDay(day, today) { parts.append(I18n.t("date.quick.today", "Today")) }
+        if let selection, month.isSameDay(day, selection) { parts.append(I18n.t("date.calendar.badge.selected", "Selected")) }
+        if !month.isInMonth(day) { parts.append(I18n.t("date.calendar.badge.adjacent_month", "Outside this month")) }
+        if !isSelectable { parts.append(I18n.t("date.calendar.badge.unavailable", "Unavailable")) }
+        return parts.joined(separator: I18n.t("date.calendar.accessible.separator", ", "))
     }
 }
 

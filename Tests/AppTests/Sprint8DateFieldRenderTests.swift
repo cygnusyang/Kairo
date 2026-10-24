@@ -276,25 +276,37 @@ struct Sprint8DateFieldRenderTests {
 
     // MARK: - AC-S8-19 可静态断言的文案
 
+    /// 无障碍标签由「字段名 + 分隔符 + 值」组成：措辞随语言，结构固定（F-0705）。
     @Test func dateRowAccessibilityLabelsMatchDesign() {
+        let zh = Locale(identifier: "zh_CN")
         #expect(
             DateFieldRow.accessibilityLabelText(
                 label: "开始",
                 value: date(2026, 11, 6),
-                calendar: calendar
-            ) == "开始日期，2026年11月6日"
+                calendar: calendar,
+                locale: zh
+            ) == I18n.t("date.field.accessible.value", "%1$@: %2$@", "开始", "2026年11月6日")
         )
         #expect(
-            DateFieldRow.accessibilityLabelText(label: "开始", value: nil, calendar: calendar)
-                == "开始日期，未设置"
+            DateFieldRow.accessibilityLabelText(
+                label: "开始",
+                value: nil,
+                calendar: calendar,
+                locale: zh
+            ) == I18n.t("date.field.accessible.unset", "%1$@: not set", "开始")
         )
-        // 字段名已含「日期」时不重复追加。
+        // 字段名原样使用：本组件不再追加「日期」后缀。
         #expect(
-            DateFieldRow.accessibilityLabelText(label: "截止日期", value: nil, calendar: calendar)
-                == "截止日期，未设置"
+            DateFieldRow.accessibilityLabelText(
+                label: "截止日期",
+                value: nil,
+                calendar: calendar,
+                locale: zh
+            ) == I18n.t("date.field.accessible.unset", "%1$@: not set", "截止日期")
         )
     }
 
+    /// 单元格标签：日期 + 今天 / 已选中 / 不在本月 / 不可选，按固定顺序用分隔符拼接。
     @Test func dayLabelsDescribeTodaySelectionAndBounds() {
         let month = CalendarGrid.month(containing: date(2026, 11, 6), calendar: calendar)
         let label = CalendarPopover.dayAccessibilityLabel(
@@ -304,7 +316,11 @@ struct Sprint8DateFieldRenderTests {
             today: date(2026, 11, 6),
             isSelectable: false
         )
-        #expect(label == "11 月 6 日，星期五，今天，已选中，不可选")
+        #expect(label.hasPrefix(Display.dayLabel(date(2026, 11, 6), calendar: calendar)))
+        #expect(label.contains(I18n.t("date.quick.today", "Today")))
+        #expect(label.contains(I18n.t("date.calendar.badge.selected", "Selected")))
+        #expect(label.contains(I18n.t("date.calendar.badge.unavailable", "Unavailable")))
+        #expect(!label.contains(I18n.t("date.calendar.badge.adjacent_month", "Outside this month")))
 
         let outside = CalendarPopover.dayAccessibilityLabel(
             for: date(2026, 10, 26),
@@ -313,12 +329,21 @@ struct Sprint8DateFieldRenderTests {
             today: date(2026, 11, 6),
             isSelectable: true
         )
-        #expect(outside.hasPrefix("10 月 26 日，星期一"))
-        #expect(outside.contains("不在本月"))
+        #expect(outside.hasPrefix(Display.dayLabel(date(2026, 10, 26), calendar: calendar)))
+        #expect(outside.contains(I18n.t("date.calendar.badge.adjacent_month", "Outside this month")))
+        #expect(!outside.contains(I18n.t("date.calendar.badge.unavailable", "Unavailable")))
 
-        #expect(Display.monthTitle(date(2026, 11, 6), calendar: calendar) == "2026 年 11 月")
-        #expect(Display.weekdaySymbols(calendar: calendar) == ["一", "二", "三", "四", "五", "六", "日"])
+        // 格式化按注入 Locale 出结果（F-0712）：zh 与 en 各自锁定。
+        let zh = Locale(identifier: "zh_CN")
+        let en = Locale(identifier: "en_US")
+        #expect(Display.monthTitle(date(2026, 11, 6), calendar: calendar, locale: zh) == "2026年11月")
+        #expect(Display.monthTitle(date(2026, 11, 6), calendar: calendar, locale: en) == "November 2026")
+        #expect(Display.weekdaySymbols(calendar: calendar, locale: zh) == ["一", "二", "三", "四", "五", "六", "日"])
+        #expect(Display.weekdaySymbols(calendar: calendar, locale: en) == ["M", "T", "W", "T", "F", "S", "S"])
+        #expect(Display.date(date(2026, 11, 6), locale: zh) == "2026/11/6")
+        #expect(Display.date(date(2026, 11, 6), locale: en) == "11/6/2026")
         #expect(Display.isoDate(date(2026, 11, 6)) == "2026-11-06")
+        #expect(Display.isoDate(date(2026, 11, 6)) == Display.isoDate(date(2026, 11, 6)))
     }
 
     // MARK: - AC-S8-15 快捷项口径

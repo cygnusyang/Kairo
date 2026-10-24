@@ -93,7 +93,7 @@ struct TimelineHeaderView: View {
                     lastPanDays = nil
                 }
         )
-        .help("拖动平移时间窗")
+        .help(I18n.t("timeline.pan.help", "Drag to pan the time window"))
     }
 }
 
@@ -426,7 +426,7 @@ struct TimelineBody: View {
         var label = Self.previewDateText(startDay: preview.startDay, windowStart: gantt.windowStart)
         if preview.durationDays > 0 {
             let days = Int(preview.durationDays.rounded())
-            label += " · \(days) 天"
+            label += I18n.t("timeline.preview.duration", " · %1$ld days", days)
         }
         drawPreviewLabel(context: &context, size: size, text: label, x: rect.maxX + 6, y: rect.midY)
     }
@@ -468,14 +468,9 @@ struct TimelineBody: View {
         drawArrow(context: &context, from: CGPoint(x: startX, y: startY), to: end, color: DesignTokens.accentStrong.opacity(0.9))
     }
 
-    private static let previewDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "M月d日"
-        return formatter
-    }()
-
+    /// 拖拽预览的日期标签：展示格式，按生效 Locale 出（zh `11月6日`，en `Nov 6`，F-0712）。
     private static func previewDateText(startDay: Int, windowStart: Date) -> String {
-        previewDateFormatter.string(from: windowStart.addingTimeInterval(Double(startDay) * 86_400))
+        Display.shortMonthDay(windowStart.addingTimeInterval(Double(startDay) * 86_400))
     }
 
     private func drawPreviewLabel(
@@ -688,7 +683,7 @@ struct TimelineBody: View {
 
     private func labelText(bar: GanttBar, title: String) -> String {
         if bar.isCollapsedGroup {
-            return "\(title)（\(bar.childCount) 项）"
+            return I18n.t("timeline.bar.collapsed_group", "%1$@ (%2$ld items)", title, bar.childCount)
         }
         return title
     }

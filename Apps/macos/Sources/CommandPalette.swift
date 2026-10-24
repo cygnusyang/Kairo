@@ -32,7 +32,7 @@ struct CommandPalette: View {
                 HStack(spacing: 8) {
                     Image(systemName: "command")
                         .foregroundStyle(.secondary)
-                    TextField("搜索命令…", text: $query)
+                    TextField(I18n.t("palette.search.placeholder", "Search commands…"), text: $query)
                         .textFieldStyle(.plain)
                         .focused($fieldFocused)
                         .onSubmit(runFirstMatch)
@@ -42,7 +42,7 @@ struct CommandPalette: View {
                 Divider()
 
                 if filtered.isEmpty {
-                    ContentUnavailableView("无匹配命令", systemImage: "magnifyingglass")
+                    ContentUnavailableView(I18n.t("palette.empty.title", "No matching commands"), systemImage: "magnifyingglass")
                         .frame(height: 160)
                 } else {
                     ScrollView {
@@ -57,9 +57,9 @@ struct CommandPalette: View {
 
                 Divider()
                 HStack {
-                    Text("\(filtered.count) 条命令")
+                    Text(I18n.t("palette.result.count", "%1$ld commands", filtered.count))
                     Spacer()
-                    Text("⏎ 执行 · Esc 关闭")
+                    Text(I18n.t("palette.hint", "⏎ Run · Esc Close"))
                 }
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -86,7 +86,7 @@ struct CommandPalette: View {
             HStack(spacing: 10) {
                 Text(command.title)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                Text(command.group)
+                Text(command.group.title)
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 if let shortcut = command.shortcut {

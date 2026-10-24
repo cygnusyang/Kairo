@@ -21,10 +21,10 @@ struct DependencyPicker: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack {
-                Text("添加前置任务")
+                Text(I18n.t("inspector.dependency_picker.title", "Add predecessors"))
                     .font(.system(size: DesignTokens.bodyFontSize, weight: .semibold))
                 Spacer()
-                Button("取消") { dismiss() }
+                Button(I18n.t("action.cancel", "Cancel")) { dismiss() }
                     .buttonStyle(.plain)
                     .foregroundStyle(DesignTokens.textSecondary)
             }
@@ -32,15 +32,15 @@ struct DependencyPicker: View {
 
             Divider()
 
-            TextField("搜索任务", text: $query)
+            TextField(I18n.t("inspector.dependency_picker.search", "Search tasks"), text: $query)
                 .textFieldStyle(.roundedBorder)
                 .padding(12)
 
             if filtered.isEmpty {
                 ContentUnavailableView(
-                    "没有可选任务",
+                    I18n.t("inspector.dependency_picker.empty.title", "No matching tasks"),
                     systemImage: "magnifyingglass",
-                    description: Text("已排除自身、子任务与已有前置任务。")
+                    description: Text(I18n.t("inspector.dependency_picker.empty.message", "The task itself, its subtasks, and existing predecessors are excluded."))
                 )
                 .frame(maxHeight: .infinity)
             } else {
@@ -75,7 +75,7 @@ struct DependencyPicker: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 8) {
-                Picker("类型", selection: $type) {
+                Picker(I18n.t("inspector.dependency_picker.type", "Type"), selection: $type) {
                     ForEach(TaskDependency.DependencyType.allCases, id: \.self) { value in
                         Text(Display.dependencyTitle(value)).tag(value)
                     }
@@ -83,7 +83,7 @@ struct DependencyPicker: View {
                 .pickerStyle(.menu)
 
                 HStack(spacing: 8) {
-                    Text("延隔")
+                    Text(I18n.t("inspector.dependency_picker.lag", "Lag"))
                         .font(.system(size: DesignTokens.captionFontSize))
                         .foregroundStyle(DesignTokens.textSecondary)
                     Stepper(value: $lagDays, in: -30...30, step: 0.5) {
@@ -95,7 +95,7 @@ struct DependencyPicker: View {
 
                 HStack {
                     Spacer()
-                    Button("添加") {
+                    Button(I18n.t("inspector.dependency_picker.add", "Add")) {
                         guard let selectedID else { return }
                         onAdd(selectedID, type, lagDays)
                     }

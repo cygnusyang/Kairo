@@ -8,34 +8,70 @@ enum Display {
     /// 空值占位符：日期 / 时长 / 读数缺失时统一用它。
     static let placeholder = "—"
 
-    static let dateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "yyyy/M/d"
-        return formatter
-    }()
+    // MARK: - 日期（F-0712：展示格式一律按生效 Locale 走模板）
 
-    static let shortDateFormatter: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: "zh_CN")
-        formatter.dateFormat = "M/d"
-        return formatter
-    }()
+    /// 模板 → 已本地化的 DateFormatter 缓存。
+    ///
+    /// `setLocalizedDateFormatFromTemplate` 每次调用都要走一遍 ICU，逐帧渲染成本高；
+    /// 缓存键带上 Locale，两种语言共存时互不覆盖。
+    private final class FormatterCache: @unchecked Sendable {
+        private let lock = NSLock()
+        private var storage: [String: DateFormatter] = [:]
 
-    static func date(_ value: Date?) -> String {
-        guard let value else { return "—" }
-        return dateFormatter.string(from: value)
+        func formatter(template: String, locale: Locale) -> DateFormatter {
+            let key = "\(template)|\(locale.identifier)"
+            lock.lock()
+            defer { lock.unlock() }
+            if let cached = storage[key] { return cached }
+            let formatter = DateFormatter()
+            formatter.locale = locale
+            formatter.setLocalizedDateFormatFromTemplate(template)
+            storage[key] = formatter
+            return formatter
+        }
     }
 
-    static func shortDate(_ value: Date?) -> String {
-        guard let value else { return "—" }
-        return shortDateFormatter.string(from: value)
+    private static let formatters = FormatterCache()
+
+    private static func text(_ date: Date, template: String, locale: Locale) -> String {
+        formatters.formatter(template: template, locale: locale).string(from: date)
+    }
+
+    /// 完整日期（大纲列、违例参数）：zh `2026/11/6`，en `11/6/2026`。
+    static func date(_ value: Date?, locale: Locale = I18n.locale) -> String {
+        guard let value else { return placeholder }
+        return text(value, template: "yMd", locale: locale)
+    }
+
+    /// 短日期（状态栏可见区间）：zh `11/6`，en `11/6`。
+    static func shortDate(_ value: Date?, locale: Locale = I18n.locale) -> String {
+        guard let value else { return placeholder }
+        return text(value, template: "Md", locale: locale)
+    }
+
+    /// 无障碍用长日期：zh `2026年11月6日`，en `November 6, 2026`。
+    static func longDate(_ value: Date?, locale: Locale = I18n.locale) -> String {
+        guard let value else { return placeholder }
+        return text(value, template: "yMMMMd", locale: locale)
+    }
+
+    /// 甘特预览的月日：zh `11月6日`，en `Nov 6`。
+    static func shortMonthDay(_ value: Date, locale: Locale = I18n.locale) -> String {
+        text(value, template: "MMMd", locale: locale)
+    }
+
+    /// 提示条里的时刻（外部更新提示）：zh `17:32`，en `5:32 PM`。
+    ///
+    /// 判定为**展示格式**（F-0712）：只出现在用户可见的 notice 里，不参与任何比较或持久化。
+    static func time(_ value: Date, locale: Locale = I18n.locale) -> String {
+        value.formatted(Date.FormatStyle(date: .omitted, time: .shortened).locale(locale))
     }
 
     /// 检查器日期字段的行内格式 `2026-11-06`。
     ///
-    /// 与 `date`（`yyyy/M/d`）分开：大纲列、违例文案与 CLI 输出沿用既有格式，
-    /// 只有日历字段行用 ISO 口径（F-14-10 / R7）。
+    /// **判定为契约格式，不本地化**（F-0712）：`.kairo` 内容、命令行回执、MCP 参数与
+    /// 无障碍播报都用这个口径，换语言不得改变字节。故固定 `en_US_POSIX` + `yyyy-MM-dd`，
+    /// 由 `Tests/AppTests` 锁死两语言输出一致。
     static let isoDateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -44,41 +80,65 @@ enum Display {
     }()
 
     static func isoDate(_ value: Date?) -> String {
-        guard let value else { return "—" }
+        guard let value else { return placeholder }
         return isoDateFormatter.string(from: value)
     }
 
-    /// 月历头部「2026 年 11 月」。
-    static func monthTitle(_ date: Date, calendar: Calendar = .current) -> String {
-        let parts = calendar.dateComponents([.year, .month], from: date)
-        return "\(parts.year ?? 0) 年 \(parts.month ?? 1) 月"
+    /// 月历头部：zh `2026年11月`，en `November 2026`。
+    static func monthTitle(
+        _ date: Date,
+        calendar: Calendar = .current,
+        locale: Locale = I18n.locale
+    ) -> String {
+        text(date, template: "yMMMM", locale: locale)
     }
 
-    /// 星期表头短名，按 `calendar.firstWeekday` 起排（周首为周一则首项为「一」）。
-    static func weekdaySymbols(calendar: Calendar = .current) -> [String] {
-        // Calendar.weekday：1 = 周日 … 7 = 周六。
-        let names = ["日", "一", "二", "三", "四", "五", "六"]
-        let first = calendar.firstWeekday
+    /// 星期表头短名，按 `calendar.firstWeekday` 起排（周首为周一则首项为「一」/「M」）。
+    ///
+    /// 名称取自 Calendar 的本地化符号表（zh `日一二…`，en `S M T…`），顺序仍由首周日决定。
+    static func weekdaySymbols(
+        calendar: Calendar = .current,
+        locale: Locale = I18n.locale
+    ) -> [String] {
+        var localized = calendar
+        localized.locale = locale
+        let names = localized.veryShortWeekdaySymbols
+        let first = localized.firstWeekday
         return (0..<7).map { index in
             names[(first - 1 + index) % 7]
         }
     }
 
-    /// 无障碍日期标签「11 月 2 日，星期日」。
-    static func dayLabel(_ day: Date, calendar: Calendar = .current) -> String {
-        let parts = calendar.dateComponents([.month, .day, .weekday], from: day)
-        let names = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"]
-        let weekday = parts.weekday ?? 1
-        let name = names[min(max(weekday - 1, 0), names.count - 1)]
-        return "\(parts.month ?? 0) 月 \(parts.day ?? 0) 日，\(name)"
+    /// 无障碍日期标签：zh `11月2日，星期日`，en `November 2, Monday`。
+    static func dayLabel(
+        _ day: Date,
+        calendar: Calendar = .current,
+        locale: Locale = I18n.locale
+    ) -> String {
+        I18n.t(
+            "date.label.compose",
+            "%1$@, %2$@",
+            text(day, template: "MMMMd", locale: locale),
+            text(day, template: "EEEE", locale: locale)
+        )
     }
 
-    static func duration(_ days: Double?) -> String {
-        guard let days else { return "—" }
-        if abs(days.rounded() - days) < 0.0001 {
-            return "\(Int(days)) 天"
-        }
-        return String(format: "%.1f 天", days)
+    /// 时长：zh `3天` / `1.5天`，en `3 days` / `1.5 days`。
+    ///
+    /// 用 `Duration.UnitsFormatStyle`（Foundation 的本地化单位风格）而不是拼接中文单位：
+    /// 单位词与单复数由 ICU 决定，视图层不再持有单位文案。
+    static func duration(_ days: Double?, locale: Locale = I18n.locale) -> String {
+        guard let days, days.isFinite else { return placeholder }
+        let isWhole = abs(days.rounded() - days) < 0.0001
+        let fractional: Duration.UnitsFormatStyle.FractionalPartDisplayStrategy =
+            isWhole ? .hide() : .show(length: 1)
+        let style = Duration.UnitsFormatStyle(
+            allowedUnits: [.days],
+            width: .wide,
+            maximumUnitCount: 1,
+            fractionalPart: fractional
+        ).locale(locale)
+        return Duration.seconds(days * 86_400).formatted(style)
     }
 
     static func percent(_ value: Double) -> String {
@@ -88,25 +148,25 @@ enum Display {
     /// 大纲列名：列显隐菜单与「显示/隐藏X列」命令共用同一份文案（F-14-20）。
     static func outlineColumnTitle(_ column: OutlineColumn) -> String {
         switch column {
-        case .status: return "状态"
-        case .violation: return "违例"
-        case .number: return "序号"
-        case .title: return "任务说明"
-        case .predecessors: return "前置"
-        case .start: return "开始"
-        case .finish: return "结束"
-        case .duration: return "持续"
-        case .assignee: return "负责人"
-        case .progress: return "完成"
+        case .status: return I18n.t("column.status", "Status")
+        case .violation: return I18n.t("column.violation", "Violations")
+        case .number: return I18n.t("column.number", "#")
+        case .title: return I18n.t("column.title", "Task")
+        case .predecessors: return I18n.t("column.predecessors", "Predecessors")
+        case .start: return I18n.t("column.start", "Start")
+        case .finish: return I18n.t("column.finish", "Finish")
+        case .duration: return I18n.t("column.duration", "Duration")
+        case .assignee: return I18n.t("column.assignee", "Assignee")
+        case .progress: return I18n.t("column.progress", "Progress")
         }
     }
 
     static func statusTitle(_ status: TaskStatus) -> String {
         switch status {
-        case .pending: return "待办"
-        case .inProgress: return "进行中"
-        case .blocked: return "阻塞"
-        case .done: return "完成"
+        case .pending: return I18n.t("outline.status.pending", "To do")
+        case .inProgress: return I18n.t("outline.status.in_progress", "In progress")
+        case .blocked: return I18n.t("outline.status.blocked", "Blocked")
+        case .done: return I18n.t("outline.status.done", "Done")
         }
     }
 
@@ -121,63 +181,63 @@ enum Display {
 
     static func priorityTitle(_ priority: TaskPriority) -> String {
         switch priority {
-        case .low: return "低"
-        case .normal: return "普通"
-        case .high: return "高"
-        case .critical: return "紧急"
+        case .low: return I18n.t("outline.priority.low", "Low")
+        case .normal: return I18n.t("outline.priority.normal", "Normal")
+        case .high: return I18n.t("outline.priority.high", "High")
+        case .critical: return I18n.t("outline.priority.critical", "Critical")
         }
     }
 
     static func kindTitle(_ kind: TaskKind) -> String {
         switch kind {
-        case .task: return "任务"
-        case .group: return "群组"
-        case .milestone: return "里程碑"
+        case .task: return I18n.t("outline.kind.task", "Task")
+        case .group: return I18n.t("outline.kind.group", "Group")
+        case .milestone: return I18n.t("outline.kind.milestone", "Milestone")
         }
     }
 
     static func dependencyTitle(_ type: TaskDependency.DependencyType) -> String {
         switch type {
-        case .fs: return "完成 → 开始"
-        case .ff: return "完成 → 完成"
-        case .ss: return "开始 → 开始"
-        case .sf: return "开始 → 完成"
+        case .fs: return I18n.t("inspector.dependency.fs", "Finish → Start")
+        case .ff: return I18n.t("inspector.dependency.ff", "Finish → Finish")
+        case .ss: return I18n.t("inspector.dependency.ss", "Start → Start")
+        case .sf: return I18n.t("inspector.dependency.sf", "Start → Finish")
         }
     }
 
     static func unscheduledReason(_ reason: UnscheduledReason?) -> String {
         switch reason {
-        case .cycle: return "依赖环"
-        case .emptyGroup: return "空群组"
-        case .unavailable: return "不可排期"
-        case nil: return "未排期"
+        case .cycle: return I18n.t("outline.unscheduled.cycle", "Dependency cycle")
+        case .emptyGroup: return I18n.t("outline.unscheduled.empty_group", "Empty group")
+        case .unavailable: return I18n.t("outline.unscheduled.unavailable", "Cannot schedule")
+        case nil: return I18n.t("outline.unscheduled.none", "Not scheduled")
         }
     }
 
     static func directionTitle(_ direction: ScheduleDirection) -> String {
         switch direction {
-        case .forward: return "尽快开始（ASAP）"
-        case .backward: return "尽快结束（ALAP）"
+        case .forward: return I18n.t("inspector.direction.forward", "As soon as possible (ASAP)")
+        case .backward: return I18n.t("inspector.direction.backward", "As late as possible (ALAP)")
         }
     }
 
     static func scheduleTitle(_ policy: SchedulingPolicy) -> String {
-        policy == .asap ? "ASAP（尽早）" : "ALAP（尽晚）"
+        policy == .asap ? I18n.t("inspector.policy.asap", "ASAP (as early as possible)") : I18n.t("inspector.policy.alap", "ALAP (as late as possible)")
     }
 
     static func healthTitle(_ health: ProjectSummary.Health) -> String {
         switch health {
-        case .green: return "健康"
-        case .orange: return "注意"
-        case .red: return "风险"
+        case .green: return I18n.t("statusbar.health.green", "Healthy")
+        case .orange: return I18n.t("statusbar.health.orange", "Attention")
+        case .red: return I18n.t("statusbar.health.red", "At risk")
         }
     }
 
     static func saveStateTitle(_ state: SaveState) -> String {
         switch state {
-        case .saved: return "已保存"
-        case .unsaved: return "未保存"
-        case .failed: return "保存失败"
+        case .saved: return I18n.t("statusbar.save.saved", "Saved")
+        case .unsaved: return I18n.t("statusbar.save.unsaved", "Unsaved")
+        case .failed: return I18n.t("statusbar.save.failed", "Save failed")
         }
     }
 
