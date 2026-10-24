@@ -66,7 +66,7 @@
 |---|---|---|---|---|---|
 | E-01 | 22 处错误均带稳定码 | 参数错误矩阵 | 实测**两种错误形态**，都要判：① **协议层**（未知方法/未知工具）→ 顶层 `error.code` 为 JSON-RPC 数值码、`error.reason` 为 `KairoErrorCode.rawValue`；② **工具层**（缺参/非法 UUID/非法枚举）→ `result.isError == true` 且 `content[0].text` 解析出的 `reason` 为稳定码（内部 `code` 仍是 `invalid_argument` 字符串，属兼容字段，不作判据）。**期望** `reason` 全部匹配 `^[a-z]+(_[a-z]+)+$`，覆盖 22 条 throw 点 | 自动 | F-0708 |
 | E-02 | message 与 v0.8.5 逐字一致 | 基线 fixture `Tests/Fixtures/mcp-errors-v085.json`（code→message） | 同一请求下 `message` 与基线 `==`（逐字，含中文标点与全角括号）；**期望** 差异数 == 0 | 自动 | F-0708 |
-| E-03 | 任意 LANG 下内容一致 | 子进程启动 `KairoMCP` | `LANG=en_US.UTF-8` / `zh_CN.UTF-8` / `C.UTF-8` 各跑同一组请求（initialize / tools/list / 三个错误）：**期望** 递归规范化（对象键排序，含 `content[0].text` 内的嵌套 JSON）后内容完全一致。**注**：原始字节当前不一致——`JSONValue` 序列化未固定键序，同内容会随机换键序；若要收紧为逐字节，需 G3 给序列化加 `.sortedKeys` | 自动 | F-0708 |
+| E-03 | 任意 LANG 下**逐字节**一致 | 子进程启动 `KairoMCP` | `LANG=en_US.UTF-8` / `zh_CN.UTF-8` / `C.UTF-8` 各跑同一组请求（initialize / tools/list / 三个错误）：**期望** stdout **逐字节相同**（`cmp`）。前提：G3 给序列化加 `.sortedKeys`（与 CLI 的 `CLIOutput.swift` 同口径）。**过渡口径**：改动落地前用「递归规范化后内容一致」作旁证（脚本 `MCP_COMPARE=canonical`），**旁证不能替代字节判定**，该条在此期间保持红。实测依据：未固定键序时同 LANG 两次运行键序也不同 | 自动 | F-0708 |
 | E-04 | 协议结构不变 | 同上 | 成功响应顶层键集合 == `{jsonrpc,id,result}`；错误响应为 `{jsonrpc,id,error}`，且 `error` 键集合 ⊆ `{code,message,reason,data}`（`reason` 为加性字段）；**期望** `message` 仍含 v0.8.5 原中文子串，旧 consumer 的文本匹配可命中 | 自动 | F-0708 |
 
 ## F. 视图层（Apps/macos）
