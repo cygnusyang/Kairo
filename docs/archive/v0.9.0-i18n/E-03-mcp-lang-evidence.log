@@ -1,0 +1,71 @@
+# E-03 MCP 跨 LANG 输出一致性（人工证据，v0.9.0 阶段一）
+
+- 日期：2026-10-24
+- 二进制：`.build/debug/KairoMCP`（HEAD 0cdac4f 构建产物）
+- 请求序列（同一进程内）：`project_create`（projectStart 2026-11-02 / projectEnd 2026-11-05）→ `task_add` 甲 → `task_add` 乙（fs 依赖甲）→ `task_update` 甲（fs 依赖乙，制造环）→ `schedule_compute` → `violations_list`
+- 环境：`LANG=zh_CN.UTF-8 LC_ALL=zh_CN.UTF-8` 与 `LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8` 各跑一次
+- 归一化：UUID 因每次新建项目而不同（预期），比对前替换为 `<UUID>`
+
+## zh_CN 输出（归一化）
+
+```json
+{
+ "violations": [
+  {
+   "code": "schedule_cycle",
+   "reason": {
+    "cycle": {
+     "taskTitle": "甲"
+    }
+   },
+   "severity": "error",
+   "taskID": "<UUID>"
+  },
+  {
+   "code": "schedule_cycle",
+   "reason": {
+    "cycle": {
+     "taskTitle": "乙"
+    }
+   },
+   "severity": "error",
+   "taskID": "<UUID>"
+  }
+ ]
+}
+```
+
+## en_US 输出（归一化）
+
+```json
+{
+ "violations": [
+  {
+   "code": "schedule_cycle",
+   "reason": {
+    "cycle": {
+     "taskTitle": "甲"
+    }
+   },
+   "severity": "error",
+   "taskID": "<UUID>"
+  },
+  {
+   "code": "schedule_cycle",
+   "reason": {
+    "cycle": {
+     "taskTitle": "乙"
+    }
+   },
+   "severity": "error",
+   "taskID": "<UUID>"
+  }
+ ]
+}
+```
+
+## 结论
+
+- 两次输出归一化后**完全相同**
+- `violations_list` 的违例行**不含 message 字段**，只有 `code`（稳定码）+ `reason`（语义枚举）+ `severity` + `taskID`；渲染留给调用方，因此它与宿主语言无关是结构决定的，不是靠翻译保证的
+- JSON-RPC 错误响应（`error.code` + `error.reason` + 中文 `message`）的跨 LANG 字节一致性由 `mcp-lang-bytes.sh` 覆盖（5 条请求、三种 LANG，已 PASS）
