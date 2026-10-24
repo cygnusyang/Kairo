@@ -48,7 +48,7 @@ jobs:
       - name: 门禁 · 脚本变量不得紧跟全角字符（bash 3.2 会把全角并入变量名，#7）
         run: bash tools/check-shell-fullwidth.sh
 
-      - name: 门禁 · 多语言（硬编码中文 / Bundle.module / 键完整性）
+      - name: 门禁 · 多语言（零硬编码中文 / 无 Bundle.module / 键完整 / 白名单为空）
         run: |
           set -euo pipefail
           CATALOG="Apps/macos/Resources/Localizable.xcstrings"
@@ -57,7 +57,7 @@ jobs:
             exit 1
           fi
           bash tools/i18n-compile.sh "$RUNNER_TEMP/kairo-lproj"
-          bash tools/i18n-lint.sh --require-catalog --lproj-dir "$RUNNER_TEMP/kairo-lproj"
+          bash tools/i18n-lint.sh --require-catalog --fail-if-whitelist-nonempty --lproj-dir "$RUNNER_TEMP/kairo-lproj"
 
       - name: 自测 · 多语言门禁自身（用例只增不减）
         run: bash tools/i18n-lint-selftest.sh

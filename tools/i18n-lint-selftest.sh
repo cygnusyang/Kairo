@@ -1,6 +1,6 @@
 #!/bin/bash
 # i18n-lint 门禁自测（F-0711）。用例只增不减——新增检查项时在此追加用例，不得改小。
-# 现 29 例；其中「--require-catalog 齐全时三验全过」是 CI 判定「三项都验了」的基准。
+# 现 31 例；其中「--require-catalog 齐全时三验全过」是 CI 判定「三项都验了」的基准。
 # 末尾三例覆盖 --fail-if-whitelist-nonempty：那是发布闸门，由 tools/release.sh 调用，
 # 不在 CI 常规路径（开发期白名单必然非空，接 CI 会天天红）。
 #
@@ -265,6 +265,27 @@ expect "发布闸门 · 白名单为空 → 0" 0 "通过"
 new_tree release-gate-no-whitelist
 run bash tools/i18n-lint.sh --lproj-dir lproj --fail-if-whitelist-nonempty
 expect "发布闸门 · 缺白名单 → 2" 2 "未找到白名单"
+
+# —— CI 步骤参数（与 .github/workflows/ci.yml 的同名步骤逐字一致）——
+
+new_tree ci-step-nonempty
+run bash tools/i18n-lint.sh --write-whitelist
+mkdir -p "$T/Apps/macos/Resources"
+printf '{"sourceLanguage":"en","strings":{},"version":"1.0"}\n' > "$T/Apps/macos/Resources/Localizable.xcstrings"
+run bash tools/i18n-lint.sh --require-catalog --fail-if-whitelist-nonempty \
+    --catalog "$T/Apps/macos/Resources/Localizable.xcstrings" --lproj-dir lproj
+expect "CI 参数 · 白名单非空 → 1" 1 "发布闸门"
+
+new_tree ci-step-empty
+printf 'let status = "Status"\n' > "$T/Apps/macos/Sources/Workspace/Base.swift"
+mkdir -p "$T/Apps/macos/Resources"
+printf '{"sourceLanguage":"en","strings":{},"version":"1.0"}\n' > "$T/Apps/macos/Resources/Localizable.xcstrings"
+cat > "$T/tools/i18n-whitelist.txt" <<'WL'
+# 白名单已清零
+WL
+run bash tools/i18n-lint.sh --require-catalog --fail-if-whitelist-nonempty \
+    --catalog "$T/Apps/macos/Resources/Localizable.xcstrings" --lproj-dir lproj
+expect "CI 参数 · 白名单为空 → 0" 0 "通过"
 
 # —— i18n-compile.sh 的输入校验（不依赖 Xcode）——
 
