@@ -75,6 +75,15 @@ enum AppLanguage: String, CaseIterable, Sendable {
     /// 生效语言（生产入口）。
     static var current: AppLanguage { current(in: .standard) }
 
+    /// 菜单里的语言名：英文名与简体中文名各按自身语言写，界面上不混排。
+    var displayName: String {
+        switch self {
+        case .system: return I18n.t("menu.language.system", "Follow System")
+        case .english: return I18n.t("menu.language.english", "English")
+        case .simplifiedChinese: return I18n.t("menu.language.chinese_simplified", "Chinese (Simplified)")
+        }
+    }
+
     /// `.lproj` 目录名；`.system` 由 `current` 解析后不会走到这里。
     var bundleCode: String? {
         switch self {

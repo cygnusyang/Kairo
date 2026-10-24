@@ -24,6 +24,58 @@ struct LocalizationTests {
         #expect(value == "Custom · 12")
     }
 
+    // MARK: - 语言选择（F-0706）
+
+    private func makeDefaults() -> UserDefaults {
+        UserDefaults(suiteName: "kairo.apptests.i18n.\(UUID().uuidString)") ?? .standard
+    }
+
+    /// 缺失值 → 跟随系统。
+    @Test func languageDefaultsToSystemWhenUnset() {
+        #expect(AppLanguage.stored(in: makeDefaults()) == .system)
+    }
+
+    /// 非法值 → 回退跟随系统（不崩、不写回）。
+    @Test func invalidStoredLanguageFallsBackToSystem() {
+        let defaults = makeDefaults()
+        defaults.set("fr", forKey: AppLanguage.defaultsKey)
+        #expect(AppLanguage.stored(in: defaults) == .system)
+        defaults.set("zh_CN", forKey: AppLanguage.defaultsKey)
+        #expect(AppLanguage.stored(in: defaults) == .system)
+        defaults.set("", forKey: AppLanguage.defaultsKey)
+        #expect(AppLanguage.stored(in: defaults) == .system)
+    }
+
+    /// 选择可持久化并读回。
+    @Test func languageSelectionPersists() {
+        let defaults = makeDefaults()
+        for language in AppLanguage.allCases {
+            AppLanguage.store(language, in: defaults)
+            #expect(AppLanguage.stored(in: defaults) == language)
+        }
+    }
+
+    /// 跟随系统时按系统首选语言归一；非中文系统回退英文。
+    @Test func systemLanguageNormalizesPreferredLanguages() {
+        #expect(AppLanguage.supported(from: "zh-Hans-CN") == .simplifiedChinese)
+        #expect(AppLanguage.supported(from: "zh-Hant-TW") == .simplifiedChinese)
+        #expect(AppLanguage.supported(from: "en-GB") == .english)
+        #expect(AppLanguage.supported(from: "fr-FR") == nil)
+        #expect(AppLanguage.supported(from: nil) == nil)
+        #expect(AppLanguage.supported(from: "") == nil)
+    }
+
+    /// 语言决定 Locale：显式选择不受系统地区影响。
+    @Test func languageMapsToLocale() {
+        #expect(AppLanguage.english.locale.identifier == "en_US")
+        #expect(AppLanguage.simplifiedChinese.locale.identifier == "zh_CN")
+        let defaults = makeDefaults()
+        AppLanguage.store(.english, in: defaults)
+        #expect(AppLanguage.current(in: defaults) == .english)
+        AppLanguage.store(.simplifiedChinese, in: defaults)
+        #expect(AppLanguage.current(in: defaults) == .simplifiedChinese)
+    }
+
     // MARK: - Catalog 数据（A-07 / G-05 / G-06）
 
     /// Catalog 位于仓库内：由测试文件路径回推仓库根。

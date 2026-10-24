@@ -353,6 +353,8 @@ struct KairoMenuCommands: Commands {
             if let checkForUpdates {
                 Button(I18n.t("menu.app.check_for_updates", "Check for Updates…")) { checkForUpdates() }
             }
+            Divider()
+            languageMenu
         }
         CommandGroup(replacing: .saveItem) {
             Divider()
@@ -374,6 +376,28 @@ struct KairoMenuCommands: Commands {
         }
         CommandMenu(KairoCommandGroup.find.title) {
             items(group: .find)
+        }
+    }
+
+    // MARK: - 界面语言（F-0706）
+
+    /// 三档语言：跟随系统 / 简体中文 / English；写入偏好后重启生效。
+    ///
+    /// 不做运行中热切换：菜单栏常驻应用的视图重建路径分散（主窗口、面板、弹窗、菜单），
+    /// 需要为全链路注入 locale 并强制重建（设计 §5，P2 未验证）。
+    @ViewBuilder
+    private var languageMenu: some View {
+        let selected = AppLanguage.selected
+        Menu(I18n.t("menu.language.title", "Language")) {
+            ForEach(AppLanguage.allCases, id: \.self) { language in
+                Button {
+                    AppLanguage.selected = language
+                } label: {
+                    Text(selected == language ? "✓ \(language.displayName)" : language.displayName)
+                }
+            }
+            Divider()
+            Text(I18n.t("menu.language.restart_hint", "Takes effect after restarting Kairo"))
         }
     }
 
