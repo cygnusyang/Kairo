@@ -24,9 +24,10 @@
 
 - **界面双语（英文 / 简体中文）**：英文为源语言，简体中文为译文；语言按系统语言协商，`CFBundleLocalizations` 声明 `en` 与 `zh-Hans`，启动时确定。
 - **应用语言设置（三档）**：跟随系统 / English / 简体中文，持久化到 `KairoLanguage`；缺失或非法值（含被手工改坏）回退跟随系统。
-- **String Catalog（403 键）**：`Apps/macos/Resources/Localizable.xcstrings` 为唯一源文件；`.xcstrings` 不进任何 target 的 `resources`（SwiftPM 只原样拷贝、不编译，resource bundle 也没有 `Info.plist`），改由 `tools/i18n-compile.sh` 在打包期用 `xcstringstool` 编出 `en` / `zh-Hans` 两份 `.lproj`，`tools/build.sh` 在 `codesign` 之前拷进 `Contents/Resources/`；缺 Catalog 或任一语言目录直接失败，不产出单语包。
+- **String Catalog（419 键）**：`Apps/macos/Resources/Localizable.xcstrings` 为唯一源文件；`.xcstrings` 不进任何 target 的 `resources`（SwiftPM 只原样拷贝、不编译，resource bundle 也没有 `Info.plist`），改由 `tools/i18n-compile.sh` 在打包期用 `xcstringstool` 编出 `en` / `zh-Hans` 两份 `.lproj`，`tools/build.sh` 在 `codesign` 之前拷进 `Contents/Resources/`；缺 Catalog 或任一语言目录直接失败，不产出单语包。
 - **`KairoErrorCode`（47 个稳定码）**：`<group>_<detail>` 文法，其中 `schedule_start_after_project_window` 归因「任务开始日落在项目窗口外」；v0.9.0 起冻结，只增不改。
 - **`UpdaterErrorCode`（34 个稳定码）**：`updater_` 前缀，覆盖清单解析、签名校验、校验和、端点策略、下载、安装与产品校验（含 F-0719 的 `install_app_still_running` / `install_backup_failed` / `install_replace_failed`）；更新面板按码翻译。
+- **违例文案单一实现（F-0720）**：`violations_list` 恢复 `message` 字段（v0.8.5 有此字段，语义化后一度缺失）；文案由 `KairoCommands.ViolationText` 统一渲染，CLI 与 MCP 共用一份，阶段一均为中文。
 - **MCP 错误新增 `reason`**：`code` 六个取值冻结不变（`project_not_open` / `task_not_found` / `invalid_argument` / `file_unreadable` / `unsupported_format` / `internal_error`），`reason` 给出细粒度稳定码；`message` 保持中文原样，切英文排在 v0.10.0。
 - **CLI 语言策略**：`--lang <bcp47>` 与 `KAIRO_LANG`，优先级 命令行 > 环境变量 > 系统语言；系统语言不可判定时回退简体中文，既有中文脚本不受影响；`--json` 输出与语言无关，两种语言下字节一致。
 - **多语言 CI 门禁（`tools/i18n-lint.sh` + `tools/i18n-lint-selftest.sh`，31 例）**：零硬编码中文（白名单已清零）、`KairoCore` / `KairoCommands` / `KairoPresentation` 无 `Bundle.module`、两份 `.lproj` 的键集合与占位符一致、白名单为空；无跳过开关，Catalog 缺失即失败。
