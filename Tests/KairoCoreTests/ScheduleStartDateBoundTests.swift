@@ -172,3 +172,39 @@ struct ScheduleStartDateBoundTests {
         #expect(s.scheduledFinish == day(2026, 11, 22))
     }
 }
+
+// MARK: - F-0717 / D-024 「无下界」哨兵统一
+
+struct NoLowerBoundSentinelTests {
+    /// 哨兵只有一个取值：distantPast（旧实现里一条分支用 1970 纪元零点）。
+    @Test func sentinelIsTheSingleNamedConstant() {
+        #expect(ScheduleBounds.noLowerBound == Date.distantPast)
+    }
+
+    /// 无 startDate、无 startNoEarlierThan ⇒ 两个下界都取哨兵，被 max 吞掉，结果等于锚点。
+    @Test func taskWithoutAnyLowerBoundStartsAtAnchor() throws {
+        let t = TaskItem(title: "无下界", durationDays: 2)
+        let s = try #require(compute([t]).scheduled(t.id))
+
+        #expect(s.earliestStart == projectStart)
+        #expect(s.scheduledStart == projectStart)
+    }
+
+    /// 两种下界同时缺席与只缺一种时口径一致：哨兵不参与比较胜出。
+    @Test func constraintFloorAndIntentFloorAgreeWhenAbsent() throws {
+        let neither = TaskItem(title: "都无", durationDays: 1)
+        let constraintOnly = TaskItem(
+            title: "只有时限",
+            durationDays: 1,
+            constraint: .startNoEarlierThan(projectStart)
+        )
+        let intentOnly = TaskItem(title: "只有意图", startDate: projectStart, durationDays: 1)
+
+        let result = compute([neither, constraintOnly, intentOnly])
+        let starts = try [neither, constraintOnly, intentOnly].map {
+            try #require(result.scheduled($0.id)).earliestStart
+        }
+
+        #expect(Set(starts) == [projectStart])
+    }
+}

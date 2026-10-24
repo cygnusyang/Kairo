@@ -359,17 +359,19 @@ public enum ScheduleEngine {
 
     /// 任务意图开始日期对最早开始的下界（S8 / D-021）：显式 `startDate` 归一为当天零点后
     /// 作为「开始不早于」下界，不驱动提前。群组由子任务聚合，忽略自身 `startDate`。
-    /// 无下界时返回 `.distantPast`：它是「不存在下界」的哨兵而非日期，不可落到排期里
-    /// （与 `dayZero` 的纪元零点语义区分，M-7）。
+    /// 无下界时返回 `ScheduleBounds.noLowerBound`（`.distantPast`）：它是「不存在下界」的
+    /// 哨兵而非日期，不可落到排期里（与 `dayZero` 的纪元零点语义区分，M-7 / D-024）。
     private static func startDateLowerBound(_ task: TaskItem, calendar: Calendar) -> Date {
-        guard task.kind != .group, let startDate = task.startDate else { return .distantPast }
+        guard task.kind != .group, let startDate = task.startDate else {
+            return ScheduleBounds.noLowerBound
+        }
         return calendar.startOfDay(for: startDate)
     }
 
     /// 时限对最早开始的抬升：startNoEarlierThan 时取其日期，否则不下限。
     private static func constraintStartLowerBound(_ task: TaskItem, calendar: Calendar) -> Date {
         guard case .startNoEarlierThan(let d) = task.constraint else {
-            return Date(timeIntervalSince1970: 0)
+            return ScheduleBounds.noLowerBound
         }
         return calendar.startOfDay(for: d)
     }
@@ -414,6 +416,16 @@ public enum ScheduleEngine {
         }
         return Double(wholeDays) + to.timeIntervalSince(shifted) / secondsPerDay
     }
+}
+
+/// 排期边界哨兵（F-0717 / D-024）。
+///
+/// 「无下界」在排期里只有一个取值：`.distantPast`。它与纪元零点（`dayZero`）语义不同——
+/// 后者是真实日期，前者只作 `max` 的比较起点，绝不允许落进排期结果。同一语义两种写法
+/// （1970 vs distantPast）会让后续改动者误以为二者可互换，故收敛为具名常量。
+public enum ScheduleBounds {
+    /// 「不存在下界」的哨兵值。
+    public static let noLowerBound = Date.distantPast
 }
 
 /// 内部窗口（起止对）。
