@@ -75,8 +75,10 @@ struct UpdaterErrorCodeTests {
         #expect(coded.code == .checksumMismatch)
 
         let arbitrary = UpdaterManager.failure(from: URLError(.timedOut))
-        #expect(arbitrary.code == .installFailed)
-        #expect(arbitrary.parameters["detail"] != nil)
+        #expect(arbitrary.code == .checkFailed)
+        #expect(arbitrary.parameters["ref"] == UpdaterManager.checkFailureReference)
+        // 未知错误不得把 error 描述带进界面参数（本版契约：核心层不出自然语言）
+        #expect(arbitrary.parameters["detail"] == nil)
 
         let passthrough = UpdaterFailure(code: .checkFailed, parameters: ["ref": "X"])
         #expect(UpdaterManager.failure(from: passthrough) == passthrough)

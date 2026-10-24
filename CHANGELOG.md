@@ -10,6 +10,8 @@
 `KairoCore` / `KairoCommands` / `KairoPresentation` / `KairoUpdater` 仅有本仓库内部消费者，iPadOS 壳尚未发布；pre-1.0 不为下列删除保留兼容层。
 
 - 删除 `Violation.message`：违例只带 `reason`（语义枚举 + 参数）与派生的 `code`
+- **`violations_list` 的 `code` 取值改变**：原先返回规则码（`cycle`、`cannot_schedule_asap_alap` 等），现返回稳定错误码（`schedule_cycle`、`schedule_negative_slack` 等）。按旧码分支的脚本与提示词需改用新码或改用 `reason` 的语义字段。
+- **`violations_list[].reason` 为结构化语义值**，其 JSON 形状随 `ViolationReason` 演进，**不作为稳定契约**；稳定契约是 `code`（47 个冻结码）。
 - 删除 `RuleCategory.name`：规则名改由视图按 `violation.rule.<code>` 查 Catalog
 - 删除 `StatusBarSnapshot.zoomLabel` / `zoomDetail`：改为 `zoom: ZoomIndicator`（`preset` + `pointsPerDay`）
 - 删除 `ViolationItem.name` / `message`：改为 `code` + `reason`
@@ -38,6 +40,7 @@
 - **打包清单**：`CFBundleDevelopmentRegion` 由 `zh_CN` 改为 `en`，新增 `CFBundleLocalizations`（`en` / `zh-Hans`）。
 - **发版前置校验**：`tools/release.sh` 在改版本号之前编译 Catalog 并断言白名单为空，多语言闸门不合格即中止发版。
 - **快照零自然语言（F-0718）**：`OutlineSnapshot.filterSummary: String?` 改为 `filterExplanation: FilterExplanation?`，筛选说明由视图按语义结构渲染，快照不再携带整句。
+- **更新检查失败的兜底映射收紧**：未知错误（`URLError` 等）不再把 error 描述拼进界面参数，改为 `updater_check_failed` + 诊断号 `OTA-E-2001`；原始错误只进日志。
 - **安装失败只传稳定码（F-0719）**：更新安装不再把替换脚本的原文或中文字符串带给界面，只传稳定码与 `exitCode`；结果文件里 `message` 字段名保留（兼容旧版本脚本已写下的结果文件），内容改为稳定码，旧的中文取值解析为 `nil`，调用方只认退出码。
 
 ### 修复

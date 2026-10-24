@@ -12,8 +12,10 @@ if [[ ! -d "$VIEW_DIR" ]]; then
     exit 2
 fi
 
-VIOLATIONS=$(find -L "$VIEW_DIR" -type f -name '*.swift' -print0 \
-    | xargs -0 grep -nE '\b(Project|TaskItem|KairoSession|exportProject)\b' 2>/dev/null || true)
+# 剥掉注释与字符串字面量后再匹配：视图里的英文兜底文案（"Project"、"Set Project Start Date"）
+# 会误命中 \bProject\b，直接 grep 会让门禁「翻译得越多越红」。扫描器见 tools/scan_view_symbols.py。
+VIOLATIONS=$(python3 "$ROOT_DIR/tools/scan_view_symbols.py" "$VIEW_DIR" \
+    '\b(Project|TaskItem|KairoSession|exportProject)\b' 2>/dev/null || true)
 if [[ -n "$VIOLATIONS" ]]; then
     echo "gate-ui: 视图直接引用核心模型，违反 ADR-013：" >&2
     echo "$VIOLATIONS" >&2

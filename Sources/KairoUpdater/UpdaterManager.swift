@@ -337,6 +337,8 @@ public final class UpdaterManager: ObservableObject {
         if let coded = error as? any UpdaterCodedError {
             return UpdaterFailure(code: coded.code, parameters: coded.parameters)
         }
-        return UpdaterFailure(code: .installFailed, parameters: ["detail": "\(error)"])
+        // 未知错误（URLError 等）：只给稳定码 + 诊断号，绝不把 error 的 description 拼给界面。
+        // 原始错误由调用方写日志（updater.check 的 os.Logger），界面拿到的永远是可翻译的码。
+        return UpdaterFailure(code: .checkFailed, parameters: ["ref": Self.checkFailureReference])
     }
 }
