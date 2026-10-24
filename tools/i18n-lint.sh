@@ -317,6 +317,8 @@ def write_whitelist_file(path, found):
         '# 仅用于记录迁移基线：新出现的硬编码中文一律失败；已清理的条目会作为提示列出。',
         '# v0.9.0 发布前本文件应为空（视图层零中文），由 F-0705 收口时重新生成。',
         '# 重新生成：bash tools/i18n-lint.sh --write-whitelist',
+        '# 判据：不要用 grep -vc "^#"（旧格式末尾有空行，恒差 1）；用'
+        '#   --fail-if-whitelist-nonempty 的退出码，或 grep -v "^#" … | grep -c "[^[:space:]]"。',
     ]
     rows = []
     total = 0
