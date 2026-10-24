@@ -86,10 +86,44 @@ kairo violations --file demo.kairo           # cycles, out-of-range, deadline co
 Open the same file in the app (**File → Open**, or double-click the `.kairo`) and you see
 the outline and the timeline aligned row by row.
 
-> CLI output is currently Chinese; the app UI as well. English localisation is in progress —
-> the `.kairo` file, the flags and the MCP tool names are already language-neutral.
+> Since **v0.9.0** both the app and the CLI speak English and Simplified Chinese; see
+> [Language](#4-language). The `.kairo` file, the flags and the MCP tool names are
+> language-neutral either way.
 
-## 4. Hand it to an agent
+## 4. Language
+
+Both the app and the CLI speak English and Simplified Chinese.
+
+**App** — follows the system language (System Settings → General → Language & Region) and is
+resolved at launch: switch the language, then relaunch. Nothing to configure.
+
+**CLI** — resolves its language in this order:
+
+1. `--lang <bcp47>` (or `--lang=<bcp47>`)
+2. the `KAIRO_LANG` environment variable
+3. the system language
+4. **Simplified Chinese**, when the system language cannot be determined — v0.9.0 deliberately
+   keeps existing Chinese scripts working. If you match on output text, pin English explicitly.
+
+| `--lang` value | Output |
+|---|---|
+| `en` | English |
+| `zh-Hans` | Simplified Chinese |
+
+```bash
+kairo task list --file demo.kairo --lang en          # English (needs v0.9.0 or newer)
+KAIRO_LANG=zh-Hans kairo violations --file demo.kairo # pinned via environment
+kairo task list --file demo.kairo --lang en --json    # --json ignores the language
+```
+
+`--json` output never depends on the language: same bytes, same keys, same codes under either
+setting. An unsupported `--lang` value is a usage error and exits **2**; success exits 0 and a
+runtime failure exits 1.
+
+> `--lang` and `KAIRO_LANG` exist from **v0.9.0**. On v0.8.5 the CLI is Chinese-only and
+> rejects the flag as an unknown option.
+
+## 5. Hand it to an agent
 
 **Claude Code plugin** — slash commands plus automatic status write-back:
 
@@ -111,7 +145,7 @@ Then tell the agent, in `AGENTS.md` (or `CODEBUDDY.md` / `CLAUDE.md`): use Kairo
 for planning, mark completion with `status_update`, and never edit the `.kairo` file directly.
 The exact wording to copy lives in [Plugins/README.md](Plugins/README.md).
 
-## 5. What just happened
+## 6. What just happened
 
 - `demo.kairo` is the whole project: one JSON file, human-readable, diffable, safe to commit.
 - The schedule is derived, not stored: change an effort or a dependency and `schedule_compute`

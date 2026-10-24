@@ -29,6 +29,27 @@ the CLI depend on `KairoCommands` directly. Two scripts enforce this in CI:
 The macOS app is the only UI shell for now. `KairoCore`, `KairoCommands` and
 `KairoPresentation` build and test on Linux, which is what the Linux CI job verifies.
 
+### Where user-facing text lives
+
+Text is not a layer concern; it follows one rule: **only the view layer translates.**
+
+| Layer | Holds natural language? | Notes |
+|---|---|---|
+| `KairoCore` / `KairoCommands` / `KairoPresentation` | No | errors and violations are codes plus typed parameters; snapshots carry semantic values (`ZoomIndicator`, `ViolationReason`), never sentences |
+| macOS views (`Apps/macos`) | Yes — the single translation point | resolves keys from the String Catalog with an English fallback (`I18n.t`) |
+| CLI / MCP | Own renderers | no shared string table with the views; MCP reports a stable `code` plus a fine-grained `reason` |
+
+Two consequences worth knowing:
+
+- a snapshot is a public contract consumed by the app, the CLI and MCP; if it carried Chinese
+  sentences, the CLI and MCP language policy would be pinned to whatever the UI happens to say;
+- `KairoCore`, `KairoCommands` and `KairoPresentation` must not contain `Bundle.module` — there is
+  no localisation resource for them to load, and `tools/i18n-lint.sh` (check b) fails the build if
+  one appears.
+
+Key grammar, the packaging path (String Catalog compiled to `.lproj` at build time) and the CI
+gates: [docs/features/06-localization.md](docs/features/06-localization.md).
+
 ## 2. The write path
 
 Every mutation — from a click, a slash command, or an MCP tool call — goes through
