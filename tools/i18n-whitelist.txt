@@ -1,0 +1,408 @@
+# i18n-lint 白名单（F-0711）。格式：<仓库相对路径><TAB><Swift 字符串字面量原文>
+# 仅用于记录迁移基线：新出现的硬编码中文一律失败；已清理的条目会作为提示列出。
+# 重新生成：bash tools/i18n-lint.sh --write-whitelist
+
+Apps/macos/Sources/AppDelegate.swift	保存失败
+Apps/macos/Sources/AppDelegate.swift	保存并退出
+Apps/macos/Sources/AppDelegate.swift	取消
+Apps/macos/Sources/AppDelegate.swift	好
+Apps/macos/Sources/AppDelegate.swift	放弃修改并退出
+Apps/macos/Sources/AppDelegate.swift	无法保存项目文件，已取消退出。
+Apps/macos/Sources/AppDelegate.swift	有未保存的修改
+Apps/macos/Sources/AppDelegate.swift	退出将丢失当前项目的未保存修改。
+Apps/macos/Sources/CommandPalette.swift	\(filtered.count) 条命令
+Apps/macos/Sources/CommandPalette.swift	⏎ 执行 · Esc 关闭
+Apps/macos/Sources/CommandPalette.swift	搜索命令…
+Apps/macos/Sources/CommandPalette.swift	无匹配命令
+Apps/macos/Sources/CommandRegistry.swift	任务
+Apps/macos/Sources/CommandRegistry.swift	任务视图
+Apps/macos/Sources/CommandRegistry.swift	保存
+Apps/macos/Sources/CommandRegistry.swift	保存副本
+Apps/macos/Sources/CommandRegistry.swift	关于 Kairo
+Apps/macos/Sources/CommandRegistry.swift	减少缩进
+Apps/macos/Sources/CommandRegistry.swift	切换正则模式
+Apps/macos/Sources/CommandRegistry.swift	加宽每日
+Apps/macos/Sources/CommandRegistry.swift	另存为…
+Apps/macos/Sources/CommandRegistry.swift	命令面板
+Apps/macos/Sources/CommandRegistry.swift	回到今天
+Apps/macos/Sources/CommandRegistry.swift	图表聚焦
+Apps/macos/Sources/CommandRegistry.swift	大纲
+Apps/macos/Sources/CommandRegistry.swift	打开项目…
+Apps/macos/Sources/CommandRegistry.swift	撤销
+Apps/macos/Sources/CommandRegistry.swift	收窄每日
+Apps/macos/Sources/CommandRegistry.swift	放大日宽
+Apps/macos/Sources/CommandRegistry.swift	文件
+Apps/macos/Sources/CommandRegistry.swift	新建任务
+Apps/macos/Sources/CommandRegistry.swift	新建同级任务
+Apps/macos/Sources/CommandRegistry.swift	新建群组
+Apps/macos/Sources/CommandRegistry.swift	新建里程碑
+Apps/macos/Sources/CommandRegistry.swift	日宽加宽
+Apps/macos/Sources/CommandRegistry.swift	日宽收窄
+Apps/macos/Sources/CommandRegistry.swift	日宽重置
+Apps/macos/Sources/CommandRegistry.swift	显示/隐藏\(Display.outlineColumnTitle(column))列
+Apps/macos/Sources/CommandRegistry.swift	显示/隐藏违例面板
+Apps/macos/Sources/CommandRegistry.swift	显示/隐藏重要路径
+Apps/macos/Sources/CommandRegistry.swift	显示检查器·违例
+Apps/macos/Sources/CommandRegistry.swift	显示筛选栏
+Apps/macos/Sources/CommandRegistry.swift	未知时间
+Apps/macos/Sources/CommandRegistry.swift	查找
+Apps/macos/Sources/CommandRegistry.swift	查找…
+Apps/macos/Sources/CommandRegistry.swift	查找上一个
+Apps/macos/Sources/CommandRegistry.swift	查找下一个
+Apps/macos/Sources/CommandRegistry.swift	检查更新…
+Apps/macos/Sources/CommandRegistry.swift	甘特视图
+Apps/macos/Sources/CommandRegistry.swift	示例项目
+Apps/macos/Sources/CommandRegistry.swift	编译于 \(buildDescription)
+Apps/macos/Sources/CommandRegistry.swift	编辑
+Apps/macos/Sources/CommandRegistry.swift	缩小日宽
+Apps/macos/Sources/CommandRegistry.swift	缩进
+Apps/macos/Sources/CommandRegistry.swift	视图
+Apps/macos/Sources/CommandRegistry.swift	计划
+Apps/macos/Sources/CommandRegistry.swift	载入演示数据
+Apps/macos/Sources/CommandRegistry.swift	载入示例项目
+Apps/macos/Sources/CommandRegistry.swift	重做
+Apps/macos/Sources/CommandRegistry.swift	重置每日宽度
+Apps/macos/Sources/KairoApp.swift	好
+Apps/macos/Sources/KairoApp.swift	无法识别的 Kairo 链接：\(url.absoluteString)
+Apps/macos/Sources/KairoApp.swift	有 \(match.matchCount) 个同名任务，已定位第一个
+Apps/macos/Sources/KairoApp.swift	链接中的任务不在当前项目中：\(url.absoluteString)
+Apps/macos/Sources/KairoApp.swift	链接指向其他项目；当前项目为「\(project.metadata.title)」
+Apps/macos/Sources/KairoApp.swift	错误
+Apps/macos/Sources/Updater/UpdateSheet.swift	\(version)（Build \(build)）
+Apps/macos/Sources/Updater/UpdateSheet.swift	下载完成后需退出应用完成安装，请保持应用开启。
+Apps/macos/Sources/Updater/UpdateSheet.swift	下载并验证后需退出应用完成安装。
+Apps/macos/Sources/Updater/UpdateSheet.swift	下载更新
+Apps/macos/Sources/Updater/UpdateSheet.swift	关闭
+Apps/macos/Sources/Updater/UpdateSheet.swift	发现新版本 \(info.version)
+Apps/macos/Sources/Updater/UpdateSheet.swift	取消
+Apps/macos/Sources/Updater/UpdateSheet.swift	好
+Apps/macos/Sources/Updater/UpdateSheet.swift	将退出应用、替换二进制并自动重启。
+Apps/macos/Sources/Updater/UpdateSheet.swift	已是最新版本
+Apps/macos/Sources/Updater/UpdateSheet.swift	应用即将退出并自动重启，请勿手动关闭。
+Apps/macos/Sources/Updater/UpdateSheet.swift	当前版本 \(Self.currentVersionDescription)。
+Apps/macos/Sources/Updater/UpdateSheet.swift	当前版本 \(Self.currentVersionDescription)，无需更新。
+Apps/macos/Sources/Updater/UpdateSheet.swift	无法完成更新检查，可稍后重试。
+Apps/macos/Sources/Updater/UpdateSheet.swift	更新已下载并通过验证
+Apps/macos/Sources/Updater/UpdateSheet.swift	检查更新失败
+Apps/macos/Sources/Updater/UpdateSheet.swift	正在下载更新
+Apps/macos/Sources/Updater/UpdateSheet.swift	正在与更新服务器确认版本信息…
+Apps/macos/Sources/Updater/UpdateSheet.swift	正在安装更新
+Apps/macos/Sources/Updater/UpdateSheet.swift	正在检查更新
+Apps/macos/Sources/Updater/UpdateSheet.swift	此更新包含安全修复，建议立即安装。下载并验证后需退出应用完成安装。
+Apps/macos/Sources/Updater/UpdateSheet.swift	稍后
+Apps/macos/Sources/Updater/UpdateSheet.swift	跳过此版本
+Apps/macos/Sources/Updater/UpdateSheet.swift	退出并安装
+Apps/macos/Sources/Updater/UpdateSheet.swift	重试
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	丢弃修改并重新载入
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	今天
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	保留本地
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	剩余 \(days) 天
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	加权总进度
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	取消
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	回到今天（⌥⌘T）
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	总宽延为 0 的任务数
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	收起筛选栏
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	查找
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	查找任务（⌘F）
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	正则模式
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	正则表达式无效
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	正在载入项目
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	正在载入项目…
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	筛选任务（如：进行中 逾期 tag:设计）
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	距项目结束
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	违例 \(status.violationErrorCount + status.violationWarningCount)
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	逾期 \(status.overdueCount)
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	逾期未完成叶子任务
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	重新载入
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	重新载入会丢弃未保存的修改
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	重要路径 \(status.criticalPathCount)
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	错误 \(status.violationErrorCount) / 警告 \(status.violationWarningCount)
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	项目健康度：\(Display.healthTitle(status.health))
+Apps/macos/Sources/Workspace/Chrome/ChromeViews.swift	项目已在磁盘上更新
+Apps/macos/Sources/Workspace/Display.swift	%.1f 天
+Apps/macos/Sources/Workspace/Display.swift	ALAP（尽晚）
+Apps/macos/Sources/Workspace/Display.swift	ASAP（尽早）
+Apps/macos/Sources/Workspace/Display.swift	\(Int(days)) 天
+Apps/macos/Sources/Workspace/Display.swift	\(parts.month ?? 0) 月 \(parts.day ?? 0) 日，\(name)
+Apps/macos/Sources/Workspace/Display.swift	\(parts.year ?? 0) 年 \(parts.month ?? 1) 月
+Apps/macos/Sources/Workspace/Display.swift	一
+Apps/macos/Sources/Workspace/Display.swift	三
+Apps/macos/Sources/Workspace/Display.swift	不可排期
+Apps/macos/Sources/Workspace/Display.swift	二
+Apps/macos/Sources/Workspace/Display.swift	五
+Apps/macos/Sources/Workspace/Display.swift	任务
+Apps/macos/Sources/Workspace/Display.swift	任务说明
+Apps/macos/Sources/Workspace/Display.swift	低
+Apps/macos/Sources/Workspace/Display.swift	依赖环
+Apps/macos/Sources/Workspace/Display.swift	保存失败
+Apps/macos/Sources/Workspace/Display.swift	健康
+Apps/macos/Sources/Workspace/Display.swift	六
+Apps/macos/Sources/Workspace/Display.swift	前置
+Apps/macos/Sources/Workspace/Display.swift	四
+Apps/macos/Sources/Workspace/Display.swift	完成
+Apps/macos/Sources/Workspace/Display.swift	完成 → 完成
+Apps/macos/Sources/Workspace/Display.swift	完成 → 开始
+Apps/macos/Sources/Workspace/Display.swift	尽快开始（ASAP）
+Apps/macos/Sources/Workspace/Display.swift	尽快结束（ALAP）
+Apps/macos/Sources/Workspace/Display.swift	已保存
+Apps/macos/Sources/Workspace/Display.swift	序号
+Apps/macos/Sources/Workspace/Display.swift	开始
+Apps/macos/Sources/Workspace/Display.swift	开始 → 完成
+Apps/macos/Sources/Workspace/Display.swift	开始 → 开始
+Apps/macos/Sources/Workspace/Display.swift	待办
+Apps/macos/Sources/Workspace/Display.swift	持续
+Apps/macos/Sources/Workspace/Display.swift	日
+Apps/macos/Sources/Workspace/Display.swift	星期一
+Apps/macos/Sources/Workspace/Display.swift	星期三
+Apps/macos/Sources/Workspace/Display.swift	星期二
+Apps/macos/Sources/Workspace/Display.swift	星期五
+Apps/macos/Sources/Workspace/Display.swift	星期六
+Apps/macos/Sources/Workspace/Display.swift	星期四
+Apps/macos/Sources/Workspace/Display.swift	星期日
+Apps/macos/Sources/Workspace/Display.swift	普通
+Apps/macos/Sources/Workspace/Display.swift	未保存
+Apps/macos/Sources/Workspace/Display.swift	未排期
+Apps/macos/Sources/Workspace/Display.swift	注意
+Apps/macos/Sources/Workspace/Display.swift	状态
+Apps/macos/Sources/Workspace/Display.swift	空群组
+Apps/macos/Sources/Workspace/Display.swift	紧急
+Apps/macos/Sources/Workspace/Display.swift	结束
+Apps/macos/Sources/Workspace/Display.swift	群组
+Apps/macos/Sources/Workspace/Display.swift	负责人
+Apps/macos/Sources/Workspace/Display.swift	进行中
+Apps/macos/Sources/Workspace/Display.swift	违例
+Apps/macos/Sources/Workspace/Display.swift	里程碑
+Apps/macos/Sources/Workspace/Display.swift	阻塞
+Apps/macos/Sources/Workspace/Display.swift	风险
+Apps/macos/Sources/Workspace/Display.swift	高
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	+1 周
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	\(Display.monthTitle(visibleMonth, calendar: calendar))月历
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	\(field)，\(accessibilityDateText(value, calendar: calendar))
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	\(field)，未设置
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	\(parts.year ?? 0)年\(parts.month ?? 1)月\(parts.day ?? 1)日
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	上个月
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	下个月
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	下周一
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	不可选
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	不在本月
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	今天
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	已选中
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	打开月历选择日期
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	日期
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	未设置
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	清除
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	清除\(fieldName)
+Apps/macos/Sources/Workspace/Inspector/DateFieldRow.swift	，
+Apps/macos/Sources/Workspace/Inspector/DependencyPicker.swift	取消
+Apps/macos/Sources/Workspace/Inspector/DependencyPicker.swift	已排除自身、子任务与已有前置任务。
+Apps/macos/Sources/Workspace/Inspector/DependencyPicker.swift	延隔
+Apps/macos/Sources/Workspace/Inspector/DependencyPicker.swift	搜索任务
+Apps/macos/Sources/Workspace/Inspector/DependencyPicker.swift	没有可选任务
+Apps/macos/Sources/Workspace/Inspector/DependencyPicker.swift	添加
+Apps/macos/Sources/Workspace/Inspector/DependencyPicker.swift	添加前置任务
+Apps/macos/Sources/Workspace/Inspector/DependencyPicker.swift	类型
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	%g 小时
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	\(monthDayText(start)) – \(monthDayText(finish)) · \(days) 天
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	\(project.summary.errorCount) 错误 · \(project.summary.warningCount) 警告
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	\(span)（\(Display.duration(duration)) → \(days) 天）
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	任务已删除：\(title)
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	优先级
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	保存状态
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	信息
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	健康摘要
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	关闭
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	切换
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	删除任务…
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	删除前置任务
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	剩余天数
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	后继任务
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	备注
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	天
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	完成于
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	宽延
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	尽快开始（ASAP）
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	尽快结束（ALAP）
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	已检查规则
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	已逾期
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	开始
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	截止日期
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	投入
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	持续时间
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	排期
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	排期策略
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	文件
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	方向
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	无分配
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	无前置任务
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	无排期
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	无排期（\(Display.unscheduledReason(task.unscheduledReason))），无法设置结束
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	无违例
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	暂无完成记录
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	最近完成
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	未设置
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	标签
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	标题
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	检查器
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	添加前置任务…
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	状态
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	相关性
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	类型
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	结束
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	结束日不含当天
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	结束日不含当天；持续时间不足 1 天，结束日按最少 1 天显示
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	结束须晚于开始，至少 1 天
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	群组字段由子任务聚合，只读
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	群组字段由子任务聚合，只读。
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	解锁检查器
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	警告
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	计划开始 \(Display.isoDate(planned))
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	计划结束晚于截止日期
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	负责人
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	资源
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	进度
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	违例
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	违例 \(violationCount)
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	选择已变更：\(store.selectedTaskTitle ?? 
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	逾期
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	里程碑无持续时间
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	重要路径
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	锁定当前任务
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	错误
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	隐藏检查器
+Apps/macos/Sources/Workspace/Inspector/InspectorView.swift	项目
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	\(Display.outlineColumnTitle(column))列
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	\(row.violationCount) 条违例
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	任务
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	任务标题
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	减少缩进
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	删除
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	前置
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	复制任务链接
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	完成
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	已逾期
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	开始
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	开始日期
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	打开月历选择日期
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	拖动调整列宽，双击复位
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	持续
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	新建同级任务
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	新建子任务
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	新建群组
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	新建里程碑
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	未命名
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	紧急
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	结束
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	结束日期
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	结束须晚于开始，至少 1 天
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	缩进
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	计划结束晚于截止日期
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	设置为最早开始日期；依赖可能使排期后移
+Apps/macos/Sources/Workspace/Outline/OutlineTable.swift	负责人
+Apps/macos/Sources/Workspace/Timeline/DayWidthControl.swift	\(presetTitle(zoom))：\(Int(zoom.dayWidth)) 点/天
+Apps/macos/Sources/Workspace/Timeline/DayWidthControl.swift	\(title) \(Int(abs(delta))) 点/天
+Apps/macos/Sources/Workspace/Timeline/DayWidthControl.swift	周
+Apps/macos/Sources/Workspace/Timeline/DayWidthControl.swift	回到当前档位默认宽度
+Apps/macos/Sources/Workspace/Timeline/DayWidthControl.swift	日
+Apps/macos/Sources/Workspace/Timeline/DayWidthControl.swift	日宽
+Apps/macos/Sources/Workspace/Timeline/DayWidthControl.swift	更宽
+Apps/macos/Sources/Workspace/Timeline/DayWidthControl.swift	更窄
+Apps/macos/Sources/Workspace/Timeline/DayWidthControl.swift	月
+Apps/macos/Sources/Workspace/Timeline/DayWidthControl.swift	每日宽度
+Apps/macos/Sources/Workspace/Timeline/DayWidthControl.swift	范围 \(rangeHint) 点/天
+Apps/macos/Sources/Workspace/Timeline/DayWidthControl.swift	重置
+Apps/macos/Sources/Workspace/Timeline/HorizontalPanContext.swift	平移提交：\(days, privacy: .public) 天 → \(target, privacy: .public)
+Apps/macos/Sources/Workspace/Timeline/HorizontalScrollMonitor.swift	\n            首个滚动事件：dx=\(deltaX, privacy: .public) dy=\(deltaY, privacy: .public) \\n            shift=\(shift, privacy: .public) viewport=\(String(describing: viewport), privacy: .public) \\n            cursor=\(String(describing: cursor), privacy: .public) inside=\(cursorInside, privacy: .public)\n            
+Apps/macos/Sources/Workspace/Timeline/HorizontalScrollMonitor.swift	横向平移放行：\(reason.rawValue, privacy: .public)
+Apps/macos/Sources/Workspace/Timeline/HorizontalScrollMonitor.swift	横向平移消费：\(pixels, privacy: .public)pt
+Apps/macos/Sources/Workspace/Timeline/HorizontalScrollMonitor.swift	横向平移监听已安装（pid=\(ProcessInfo.processInfo.processIdentifier)）
+Apps/macos/Sources/Workspace/Timeline/HorizontalScrollMonitor.swift	横向平移首次消费：\(pixels, privacy: .public)pt
+Apps/macos/Sources/Workspace/Timeline/TimelineView.swift	 · \(days) 天
+Apps/macos/Sources/Workspace/Timeline/TimelineView.swift	M月d日
+Apps/macos/Sources/Workspace/Timeline/TimelineView.swift	\(title)（\(bar.childCount) 项）
+Apps/macos/Sources/Workspace/Timeline/TimelineView.swift	拖动平移时间窗
+Apps/macos/Sources/Workspace/WorkspaceView.swift	AI 筛选
+Apps/macos/Sources/Workspace/WorkspaceView.swift	\(mark)\(name)（\(Int(zoom.dayWidth)) 点/天）
+Apps/macos/Sources/Workspace/WorkspaceView.swift	✓ 适合项目
+Apps/macos/Sources/Workspace/WorkspaceView.swift	「\(pending.title)」包含 \(max(pending.affectedCount - 1, 0)) 个子任务，将一并删除。该操作可以撤销。
+Apps/macos/Sources/Workspace/WorkspaceView.swift	丢弃修改并打开
+Apps/macos/Sources/Workspace/WorkspaceView.swift	丢弃修改并载入
+Apps/macos/Sources/Workspace/WorkspaceView.swift	任务尚未排期
+Apps/macos/Sources/Workspace/WorkspaceView.swift	保存并打开
+Apps/macos/Sources/Workspace/WorkspaceView.swift	删除 \(pending.affectedCount) 个任务
+Apps/macos/Sources/Workspace/WorkspaceView.swift	删除群组「\($0.title)」？
+Apps/macos/Sources/Workspace/WorkspaceView.swift	删除？
+Apps/macos/Sources/Workspace/WorkspaceView.swift	取消
+Apps/macos/Sources/Workspace/WorkspaceView.swift	周
+Apps/macos/Sources/Workspace/WorkspaceView.swift	大纲
+Apps/macos/Sources/Workspace/WorkspaceView.swift	好
+Apps/macos/Sources/Workspace/WorkspaceView.swift	当前日宽：\(currentDayWidthText)
+Apps/macos/Sources/Workspace/WorkspaceView.swift	当前项目有未保存的修改
+Apps/macos/Sources/Workspace/WorkspaceView.swift	打开其他项目会丢失当前项目中未保存的修改。
+Apps/macos/Sources/Workspace/WorkspaceView.swift	新建任务
+Apps/macos/Sources/Workspace/WorkspaceView.swift	新建任务开始规划，或由 AI 智能体通过 MCP / CLI 导入现有 WBS。
+Apps/macos/Sources/Workspace/WorkspaceView.swift	新建群组
+Apps/macos/Sources/Workspace/WorkspaceView.swift	新建里程碑
+Apps/macos/Sources/Workspace/WorkspaceView.swift	无法完成操作
+Apps/macos/Sources/Workspace/WorkspaceView.swift	日
+Apps/macos/Sources/Workspace/WorkspaceView.swift	时间缩放
+Apps/macos/Sources/Workspace/WorkspaceView.swift	显示任务列表
+Apps/macos/Sources/Workspace/WorkspaceView.swift	显示任务条标签
+Apps/macos/Sources/Workspace/WorkspaceView.swift	显示检查器
+Apps/macos/Sources/Workspace/WorkspaceView.swift	显示重要路径
+Apps/macos/Sources/Workspace/WorkspaceView.swift	更宽
+Apps/macos/Sources/Workspace/WorkspaceView.swift	更窄
+Apps/macos/Sources/Workspace/WorkspaceView.swift	月
+Apps/macos/Sources/Workspace/WorkspaceView.swift	未设置项目开始日期，已按最早任务开始日期推导。
+Apps/macos/Sources/Workspace/WorkspaceView.swift	没有匹配的任务
+Apps/macos/Sources/Workspace/WorkspaceView.swift	清除筛选
+Apps/macos/Sources/Workspace/WorkspaceView.swift	自定义日宽…
+Apps/macos/Sources/Workspace/WorkspaceView.swift	自定义每日宽度
+Apps/macos/Sources/Workspace/WorkspaceView.swift	自然语言筛选已解析为结构化条件
+Apps/macos/Sources/Workspace/WorkspaceView.swift	视图
+Apps/macos/Sources/Workspace/WorkspaceView.swift	计划
+Apps/macos/Sources/Workspace/WorkspaceView.swift	计划 ⌥⌘1 · 大纲 ⌥⌘2
+Apps/macos/Sources/Workspace/WorkspaceView.swift	设置项目开始日期
+Apps/macos/Sources/Workspace/WorkspaceView.swift	设置项目开始日期，或检查相关性环与时限设置。
+Apps/macos/Sources/Workspace/WorkspaceView.swift	调整筛选条件，或清除筛选查看全部任务。
+Apps/macos/Sources/Workspace/WorkspaceView.swift	载入示例项目会丢弃当前项目中未保存的修改。
+Apps/macos/Sources/Workspace/WorkspaceView.swift	违例（⌥⌘V）
+Apps/macos/Sources/Workspace/WorkspaceView.swift	适合项目
+Apps/macos/Sources/Workspace/WorkspaceView.swift	重置宽度
+Apps/macos/Sources/Workspace/WorkspaceView.swift	隐藏任务列表
+Apps/macos/Sources/Workspace/WorkspaceView.swift	隐藏任务条标签
+Apps/macos/Sources/Workspace/WorkspaceView.swift	隐藏检查器
+Apps/macos/Sources/Workspace/WorkspaceView.swift	隐藏重要路径
+Apps/macos/Sources/Workspace/WorkspaceView.swift	项目中还没有任务
+Apps/macos/Sources/WorkspaceStore.swift	\(upgradeNotice)；\(warning)
+Apps/macos/Sources/WorkspaceStore.swift	、
+Apps/macos/Sources/WorkspaceStore.swift	「\(task.title)」已被筛选隐藏，已临时显示
+Apps/macos/Sources/WorkspaceStore.swift	任务
+Apps/macos/Sources/WorkspaceStore.swift	任务不能依赖自身
+Apps/macos/Sources/WorkspaceStore.swift	任务已删除
+Apps/macos/Sources/WorkspaceStore.swift	前置任务 ID 不唯一：\(idPart)
+Apps/macos/Sources/WorkspaceStore.swift	前置任务重复：\(idPart)
+Apps/macos/Sources/WorkspaceStore.swift	已保留本地版本
+Apps/macos/Sources/WorkspaceStore.swift	已升级到 v\(KairoFile.currentFormatVersion)
+Apps/macos/Sources/WorkspaceStore.swift	已另存为并升级到 v\(KairoFile.currentFormatVersion)
+Apps/macos/Sources/WorkspaceStore.swift	已复制任务链接
+Apps/macos/Sources/WorkspaceStore.swift	已载入外部更新
+Apps/macos/Sources/WorkspaceStore.swift	已载入外部更新 \(Self.clockFormatter.string(from: $0))
+Apps/macos/Sources/WorkspaceStore.swift	已载入外部更新 \(Self.clockFormatter.string(from: mtime))
+Apps/macos/Sources/WorkspaceStore.swift	已载入示例项目
+Apps/macos/Sources/WorkspaceStore.swift	找不到任务：\(id.uuidString.prefix(4))
+Apps/macos/Sources/WorkspaceStore.swift	找不到前置任务：\(idPart)
+Apps/macos/Sources/WorkspaceStore.swift	找不到前置任务：\(idPart)（任务可能被折叠或筛选隐藏）
+Apps/macos/Sources/WorkspaceStore.swift	排期已变化，请重新选择结束日期
+Apps/macos/Sources/WorkspaceStore.swift	新任务
+Apps/macos/Sources/WorkspaceStore.swift	新群组
+Apps/macos/Sources/WorkspaceStore.swift	新里程碑
+Apps/macos/Sources/WorkspaceStore.swift	无法识别的依赖类型：\(spec)（应为 fs/ff/ss/sf）
+Apps/macos/Sources/WorkspaceStore.swift	无法识别的前置任务：\(spec)
+Apps/macos/Sources/WorkspaceStore.swift	无法识别的延隔：\(spec)
+Apps/macos/Sources/WorkspaceStore.swift	未命名项目
+Apps/macos/Sources/WorkspaceStore.swift	正在载入项目，请稍后重试打开
+Apps/macos/Sources/WorkspaceStore.swift	没有可撤销的操作
+Apps/macos/Sources/WorkspaceStore.swift	没有可重做的操作
+Apps/macos/Sources/WorkspaceStore.swift	添加依赖会形成相关性环：\(id.uuidString.prefix(4))
+Apps/macos/Sources/WorkspaceStore.swift	结束日期必须晚于开始日期
+Apps/macos/Sources/WorkspaceStore.swift	载入期间项目有新修改，已保留本地内容；请再次确认打开

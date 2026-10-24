@@ -45,6 +45,18 @@ jobs:
       - name: 门禁 · 视图层不得直接引用核心模型（ADR-013）
         run: bash tools/gate-ui.sh
 
+      - name: 门禁 · 多语言（硬编码中文 / Bundle.module / 键完整性）
+        run: |
+          set -euo pipefail
+          CATALOG="Apps/macos/Resources/Localizable.xcstrings"
+          if [[ -f "$CATALOG" ]]; then
+            bash tools/i18n-compile.sh "$RUNNER_TEMP/kairo-lproj"
+            bash tools/i18n-lint.sh --lproj-dir "$RUNNER_TEMP/kairo-lproj"
+          else
+            echo "::notice title=i18n::未找到 ${CATALOG}（F-0705 未交付），跳过键与占位符检查；硬编码中文与 Bundle.module 两项照常执行"
+            bash tools/i18n-lint.sh --skip-catalog
+          fi
+
   linux:
     name: test · Linux（核心与接口层）
     runs-on: ubuntu-latest

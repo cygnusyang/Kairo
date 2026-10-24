@@ -287,7 +287,7 @@ F-0700 资源实验 → F-0701 键规范 → F-0713 断言分类（与后续并�
 | CHANGELOG | 新特性 + 两次 MINOR：v0.9.0 记语言支持与 MCP `code`；v0.10.0 记 MCP 文案变更（显著标注破坏点） | 两条 MINOR 版本条目 |
 | 术语表 | 新增「更新面板（UpdateSheet）」等条目与英文列 | `04-glossary.md` 扩列 |
 | QUICKSTART | CLI 新增 `--lang` | 补参数说明与示例 |
-| `tools/build.sh` | 清单语言键 + 资源拷贝 | 资源缺失时构建失败，不静默回退 |
-| CI | 新增硬编码中文门禁、缺键检查、`Bundle.module` 守卫 | 白名单入库；Linux 任务不变 |
+| `tools/build.sh` + `tools/i18n-compile.sh` | 清单语言键 + 构建期编译 Catalog + 资源拷贝 | 资源缺失时构建失败，不静默回退（§7.2） |
+| CI | 新增硬编码中文门禁、缺键检查、`Bundle.module` 守卫，落在 `tools/i18n-lint.sh`（含白名单 `tools/i18n-whitelist.txt`） | 白名单入库；Linux 任务不变；Catalog 未交付时 CI 打 `::notice` 说明后只跳过 (c)，不假绿 |
 | 测试套件 | 327 处含中文断言 | F-0713 分类后由 F-0710 改造 |
 | 架构文档 | 分层职责新增「文案归属」 | `ARCHITECTURE.md` 补一条约束并指向本文 |

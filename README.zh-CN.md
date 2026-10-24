@@ -45,6 +45,14 @@ AI 编码智能体擅长执行单个任务，但缺少调度侧的「对照物�
 
 > Codex 与 CodeBuddy 不装插件：直接用 MCP + 一段写进 `AGENTS.md` / `CODEBUDDY.md` 的约定。三个宿主怎么接、WBS 怎么拆、每条命令怎么复制，见 **[Plugins/README.md](Plugins/README.md)**。
 
+## 语言
+
+macOS 应用提供英文与简体中文，跟随系统语言。语言在启动时按包内 `CFBundleLocalizations`（`en`、`zh-Hans`）协商确定——在「系统设置 › 通用 › 语言与地区」切换语言后重启应用生效。英文系统下出现中文即为缺陷，请带上界面名反馈。
+
+CLI 不读应用包：语言按 `--lang <bcp47>` → `KAIRO_LANG` → 系统语言的顺序决定；系统语言不可判定时回退简体中文，保证既有中文脚本不被破坏。`--json` 输出与语言无关，两种语言下字节一致。
+
+实现方式（String Catalog 打包期编译成 `.lproj`、键文法、CI 门禁）见 [docs/features/06-localization.md](docs/features/06-localization.md)。English README: [README.md](README.md)。
+
 ## 和 AI 一起做项目：WBS 怎么走
 
 分工是固定的：**人定边界，AI 拆与执行，Kairo 记账并算账。**

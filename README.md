@@ -43,6 +43,14 @@ Same capability, four equal doors. All of them read and write the same `.kairo` 
 
 > Codex and CodeBuddy do not need a plugin: use MCP plus a short convention written into `AGENTS.md` / `CODEBUDDY.md`. How to wire up all three hosts, how to break down a WBS, and every command ready to copy — see **[Plugins/README.md](Plugins/README.md)**.
 
+## Language
+
+The macOS app ships in English and Simplified Chinese and follows the system language. It is resolved at launch from the bundle's `CFBundleLocalizations` (`en`, `zh-Hans`) — switch the language in System Settings › General › Language & Region, then relaunch. Chinese text showing up on an English system is a bug: please report it with the screen name.
+
+The CLI does not read the app bundle. It picks its language from `--lang <bcp47>`, then `KAIRO_LANG`, then the system locale; when the system language cannot be determined it falls back to Simplified Chinese, so existing Chinese scripts keep working. `--json` output is language-independent — identical bytes either way.
+
+How it is built — String Catalog compiled to `.lproj` at packaging time, key grammar, CI gates — see [docs/features/06-localization.md](docs/features/06-localization.md). 中文版说明见 [README.zh-CN.md](README.zh-CN.md)。
+
 ## Running a project with an AI: how the WBS flows
 
 The division of labour is fixed: **the human sets the boundaries, the AI breaks down and executes, Kairo keeps the books.**

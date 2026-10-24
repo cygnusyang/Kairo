@@ -3,6 +3,30 @@
 所有显著改动记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)；
 版本号遵循语义化版本。发布版本另见 [GitHub Releases](https://github.com/cygnusyang/Kairo/releases)。
 
+## [Unreleased] — v0.9.0 多语言（阶段一，开发中）
+
+<!-- 发版时把本节标题改为「## v0.9.0 — YYYY-MM-DD」：tools/release.sh 与 tools/release_notes.sh 按「## vX.Y.Z」抽取发布说明。 -->
+> 本节随 `feature/i18n-v0.9.0` 归集；发版前逐条核对是否已合入，未合入的条目移出或改写。
+
+### 新增
+
+- **界面双语（英文 / 简体中文）**：英文为源语言，简体中文为译文。语言按系统语言协商，包内 `CFBundleLocalizations` 声明 `en` 与 `zh-Hans`；启动时确定，切换系统语言后重启应用生效。（F-0705）
+- **打包期编译 String Catalog（F-0700 主路径 B）**：`.xcstrings` 只作源文件——SwiftPM 的 `.process` 资源只原样拷贝、不编译，生成的 resource bundle 也没有 `Info.plist`，因此运行期只认 `.app` 内的 `.lproj`。`tools/i18n-compile.sh` 用 `xcrun xcstringstool compile` 编出 `en` / `zh-Hans`，`tools/build.sh` 在 `codesign` **之前**把它们拷进 `Contents/Resources/`；缺 Catalog 或任一语言目录直接失败，不再产出单语包。（F-0709）
+- **CLI 语言策略**：`--lang <bcp47>` 与 `KAIRO_LANG`，优先级 命令行 > 环境变量 > 系统语言；**系统语言不可判定时回退简体中文**，保证既有中文脚本不被破坏（英文用户显式钉死语言即可）。`--lang` 取值非法按用法错误退出 2；`--json` 输出与语言无关，两种语言下字节一致。（F-0707）
+- **多语言 CI 门禁（`tools/i18n-lint.sh`）**：三项检查——白名单外新增硬编码中文字符串字面量（注释内中文不计）、`KairoCore` / `KairoCommands` / `KairoPresentation` 出现 `Bundle.module`、两份 `.lproj` 的键集合与占位符不一致。白名单 `tools/i18n-whitelist.txt` 入库作为迁移基线；Catalog 尚未交付时 CI 打印 `::notice` 后只跳过键检查，不假绿。（F-0711）
+
+### 变更
+
+- **MCP 错误带稳定 `reason`**：错误响应在既有 `code` 之外新增细粒度 `reason`（`KairoErrorCode` 的 rawValue）；`code` 的 5 个取值冻结不变，按 `invalid_argument` / `task_not_found` 匹配的消费者不受影响。`message` 阶段一保持中文逐字不变，切英文排在 v0.10.0。（F-0708）
+- **分层不再持有文案**：违例改为「错误码 + 参数」、会话与 Updater 错误码化、快照只带语义枚举；CLI 与 MCP 各自渲染，不与视图层共享文案表。（F-0703 / F-0704）
+- **违例码 `schedule_start_after_project_window`**：任务开始日落在项目窗口外时单独归因，不再报成「负宽延」；参数含任务开始日与项目窗口，中文文案点明是输入导致。（F-0715）
+- **打包清单**：`CFBundleDevelopmentRegion` 由 `zh_CN` 改为 `en`。
+
+### 修复
+
+- **时限窗口按日历日计算（D-023）**：原先用 `86400` 秒换算，跨夏令时（America/New_York 春进 / 秋退）会差一小时并误判时限冲突；改用日历加法。（F-0716）
+- **排期「无下界」哨兵统一（D-024）**：`startDateLowerBound` 与排期内部哨兵共用同一常量，行为不变。（F-0717）
+
 ## v0.8.5 — 2026-10-24
 
 ### 新增
