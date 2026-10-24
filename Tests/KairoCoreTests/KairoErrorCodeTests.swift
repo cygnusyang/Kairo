@@ -45,6 +45,14 @@ struct KairoErrorCodeTests {
         }
     }
 
+    /// 领域模型码 11 个（含 F-0703 新增的 model_resource_not_found：
+    /// 「资源不存在」原先无码可落，硬塞单位/效率码会错误归因）。
+    @Test func modelCodesCoverSessionValidationSites() {
+        let modelCodes = KairoErrorCode.allCases.filter { $0.rawValue.hasPrefix("model_") }
+        #expect(modelCodes.count == 11, "model 码应为 11 个，实际 \(modelCodes.count)")
+        #expect(KairoErrorCode.resourceNotFound.rawValue == "model_resource_not_found")
+    }
+
     /// 违例相关 8 个码齐全（F-0704 / F-0715 的判据前置）。
     @Test func scheduleCodesCoverEveryViolationReason() {
         let scheduleCodes = KairoErrorCode.allCases.filter { $0.rawValue.hasPrefix("schedule_") }
