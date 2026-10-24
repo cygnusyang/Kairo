@@ -55,6 +55,16 @@ if [[ ! -f "$CATALOG" ]]; then
     exit 2
 fi
 
+# 表名由文件名决定：Localizable.xcstrings → Localizable.strings，而运行期取词走
+# Bundle.localizedString(forKey:value:table: nil)，只读 Localizable 表。改成别的
+# 名字编译会得到 Foo.strings，界面静默显示英文兜底——直接拒绝。
+CATALOG_NAME="$(basename "$CATALOG")"
+if [[ "$CATALOG_NAME" != "Localizable.xcstrings" ]]; then
+    echo "i18n-compile: Catalog 文件名必须是 Localizable.xcstrings，收到：$CATALOG_NAME" >&2
+    echo "i18n-compile: xcstringstool 按文件名生成表名（Localizable.xcstrings → Localizable.strings），运行期只读 Localizable 表；改名的目录里请复制成 Localizable.xcstrings 再编译" >&2
+    exit 2
+fi
+
 if ! command -v xcrun >/dev/null 2>&1; then
     echo "i18n-compile: 未找到 xcrun，需要安装 Xcode 命令行工具" >&2
     exit 2
