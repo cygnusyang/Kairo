@@ -21,11 +21,15 @@ struct JSONRPCRequest: Codable, Equatable {
 /// JSON-RPC 2.0 错误对象。
 struct JSONRPCErrorObject: Codable, Equatable {
     var code: Int
+    /// 细粒度稳定码（`KairoErrorCode.rawValue`）：`code` 是 JSON-RPC 的数值码，
+    /// 不足以区分「解析失败 / 未知方法 / 缺 name / 未知工具」，故并列给出字符串码（F-0708）。
+    var reason: String?
     var message: String
     var data: JSONValue?
 
-    init(code: Int, message: String, data: JSONValue? = nil) {
+    init(code: Int, reason: String? = nil, message: String, data: JSONValue? = nil) {
         self.code = code
+        self.reason = reason
         self.message = message
         self.data = data
     }

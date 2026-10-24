@@ -3,19 +3,34 @@ import KairoCore
 import KairoCommands
 
 /// 工具层错误：非法参数（架构 §3.1 错误契约的 argument 类）。
+///
+/// `reason` 是细粒度稳定码（`KairoErrorCode`）：对外的 `code` 仍冻结为
+/// `invalid_argument`，消费者改按 `reason` 区分参数错误，不必再匹配中文文本（F-0708 阶段一）。
 enum ToolError: Error, Equatable, CustomStringConvertible {
-    case invalidArgument(String)
+    case invalidArgument(reason: KairoErrorCode, message: String)
+
+    /// 细粒度稳定码。
+    var reason: KairoErrorCode {
+        switch self {
+        case .invalidArgument(let reason, _): return reason
+        }
+    }
 
     var description: String {
         switch self {
-        case .invalidArgument(let message): return message
+        case .invalidArgument(_, let message): return message
         }
     }
 }
 
-/// 结构化工具失败（架构 §3.1：{code, message, taskID?}）。
+/// 结构化工具失败（架构 §3.1：{code, message, reason?, taskID?}）。
+///
+/// `code` 是冻结的粗粒度分类（5 值 + `internal_error`），不改取值——按它匹配的既有
+/// 消费者不能静默失效；`reason` 是本版新增的细粒度稳定码。`message` 阶段一保持中文
+/// 原样（设计 §6：先给码、下一个版本再切文案）。
 struct ToolFailure: Encodable {
     var code: String
+    var reason: String?
     var message: String
     var taskID: String?
 }
@@ -261,7 +276,7 @@ struct ToolRegistry {
     ) { args, session in
         let a = try ToolArgs(args)
         guard let nodesValue = args?.objectValue?["nodes"] else {
-            throw ToolError.invalidArgument("缺少参数 nodes")
+            throw ToolError.invalidArgument(reason: .mcpMissingParam, message: "缺少参数 nodes")
         }
         let nodes = try JSONValue.decode([WBSNode].self, from: nodesValue)
         let result = try session.importWBS(nodes: nodes)
@@ -305,7 +320,14 @@ struct ToolRegistry {
         inputSchema: Schema.object(properties: [:])
     ) { _, session in
         let vs = try session.violations()
-        return .object(["violations": .array(try vs.map { try JSONValue.json($0) })])
+        // 接口契约（设计 §B）：违例必须带稳定 `code`。`Violation.code` 是由 `reason` 推导的
+        // 计算属性，合成编码不会包含它，故在接口层显式投影，避免消费者只能读语义枚举。
+        let rows = try vs.map { violation -> JSONValue in
+            var object = try JSONValue.json(violation).objectValue ?? [:]
+            object["code"] = .string(violation.code.rawValue)
+            return .object(object)
+        }
+        return .object(["violations": .array(rows)])
     }
 
     private static let statusUpdate = MCPTool(
@@ -472,21 +494,21 @@ private struct ToolArgs {
 
     init(_ value: JSONValue?) throws {
         guard let object = value?.objectValue else {
-            throw ToolError.invalidArgument("参数必须是 JSON 对象")
+            throw ToolError.invalidArgument(reason: .mcpWrongType, message: "参数必须是 JSON 对象")
         }
         dict = object
     }
 
     func string(_ key: String) throws -> String {
         guard let value = dict[key]?.stringValue, !value.isEmpty else {
-            throw ToolError.invalidArgument("缺少参数 \(key)")
+            throw ToolError.invalidArgument(reason: .mcpMissingParam, message: "缺少参数 \(key)")
         }
         return value
     }
 
     func uuid(_ key: String) throws -> UUID {
         guard let uuid = try optionalUUID(key) else {
-            throw ToolError.invalidArgument("缺少参数 \(key)")
+            throw ToolError.invalidArgument(reason: .mcpMissingParam, message: "缺少参数 \(key)")
         }
         return uuid
     }
@@ -502,7 +524,7 @@ private struct ToolArgs {
     func optionalUUID(_ key: String) throws -> UUID? {
         guard let raw = dict[key]?.stringValue else { return nil }
         guard let uuid = UUID(uuidString: raw) else {
-            throw ToolError.invalidArgument("参数 \(key) 不是合法 UUID：\(raw)")
+            throw ToolError.invalidArgument(reason: .mcpMalformedUUID, message: "参数 \(key) 不是合法 UUID：\(raw)")
         }
         return uuid
     }
@@ -510,7 +532,7 @@ private struct ToolArgs {
     func optionalISODate(_ key: String) throws -> Date? {
         guard let raw = dict[key]?.stringValue else { return nil }
         guard let date = ISO8601DateFormatter().date(from: raw) else {
-            throw ToolError.invalidArgument("参数 \(key) 不是合法 ISO8601 日期：\(raw)")
+            throw ToolError.invalidArgument(reason: .mcpMalformedDate, message: "参数 \(key) 不是合法 ISO8601 日期：\(raw)")
         }
         return date
     }
@@ -520,20 +542,24 @@ private struct ToolArgs {
     func optionalDependencies(_ key: String) throws -> [TaskDependency]? {
         guard let value = dict[key] else { return nil }
         guard let array = value.arrayValue else {
-            throw ToolError.invalidArgument("参数 \(key) 必须是数组")
+            throw ToolError.invalidArgument(reason: .mcpWrongType, message: "参数 \(key) 必须是数组")
         }
         return try array.map { item in
             guard let obj = item.objectValue,
                   let rawID = obj["predecessorID"]?.stringValue,
                   let uuid = UUID(uuidString: rawID) else {
                 throw ToolError.invalidArgument(
-                    "参数 \(key) 的元素格式应为 {\"predecessorID\":\"UUID\",\"type\":\"fs\",\"lagDays\":0}"
+                    reason: .mcpMalformedDependency,
+                    message: "参数 \(key) 的元素格式应为 {\"predecessorID\":\"UUID\",\"type\":\"fs\",\"lagDays\":0}"
                 )
             }
             let type: TaskDependency.DependencyType
             if let rawType = obj["type"]?.stringValue {
                 guard let parsed = TaskDependency.DependencyType(rawValue: rawType) else {
-                    throw ToolError.invalidArgument("参数 \(key) 的相关性类型非法：\(rawType)（fs/ff/ss/sf）")
+                    throw ToolError.invalidArgument(
+                    reason: .mcpMalformedDependency,
+                    message: "参数 \(key) 的相关性类型非法：\(rawType)（fs/ff/ss/sf）"
+                )
                 }
                 type = parsed
             } else {
@@ -551,14 +577,15 @@ private struct ToolArgs {
     func optionalAssignments(_ key: String) throws -> [TaskAssignment]? {
         guard let value = dict[key] else { return nil }
         guard let array = value.arrayValue else {
-            throw ToolError.invalidArgument("参数 \(key) 必须是数组")
+            throw ToolError.invalidArgument(reason: .mcpWrongType, message: "参数 \(key) 必须是数组")
         }
         return try array.map { item in
             guard let obj = item.objectValue,
                   let rawID = obj["resourceID"]?.stringValue,
                   let uuid = UUID(uuidString: rawID) else {
                 throw ToolError.invalidArgument(
-                    "参数 \(key) 的元素格式应为 {\"resourceID\":\"UUID\",\"units\":1}"
+                    reason: .mcpMalformedAssignment,
+                    message: "参数 \(key) 的元素格式应为 {\"resourceID\":\"UUID\",\"units\":1}"
                 )
             }
             return TaskAssignment(resourceID: uuid, units: obj["units"]?.doubleValue ?? 1)
@@ -569,7 +596,10 @@ private struct ToolArgs {
         guard let raw = dict[key]?.stringValue else { return nil }
         let parts = raw.split(separator: ":", maxSplits: 1)
         guard parts.count == 2, let date = ISO8601DateFormatter().date(from: String(parts[1])) else {
-            throw ToolError.invalidArgument("参数 \(key) 格式应为 type:ISO8601（如 startNoLaterThan:2026-11-05T00:00:00Z）")
+            throw ToolError.invalidArgument(
+                reason: .mcpMalformedConstraint,
+                message: "参数 \(key) 格式应为 type:ISO8601（如 startNoLaterThan:2026-11-05T00:00:00Z）"
+            )
         }
         switch String(parts[0]) {
         case "startNoEarlierThan": return .startNoEarlierThan(date)
@@ -577,14 +607,14 @@ private struct ToolArgs {
         case "endNoEarlierThan": return .endNoEarlierThan(date)
         case "endNoLaterThan": return .endNoLaterThan(date)
         default:
-            throw ToolError.invalidArgument("参数 \(key) 非法时限类型：\(parts[0])")
+            throw ToolError.invalidArgument(reason: .mcpMalformedConstraint, message: "参数 \(key) 非法时限类型：\(parts[0])")
         }
     }
 
     func optionalSchedulingPolicy(_ key: String) throws -> SchedulingPolicy? {
         guard let raw = dict[key]?.stringValue else { return nil }
         guard let policy = SchedulingPolicy(rawValue: raw) else {
-            throw ToolError.invalidArgument("参数 \(key) 非法：\(raw)（asap/alap）")
+            throw ToolError.invalidArgument(reason: .mcpInvalidEnum, message: "参数 \(key) 非法：\(raw)（asap/alap）")
         }
         return policy
     }
@@ -592,7 +622,7 @@ private struct ToolArgs {
     func optionalKind(_ key: String) throws -> TaskKind? {
         guard let raw = dict[key]?.stringValue else { return nil }
         guard let kind = TaskKind(rawValue: raw) else {
-            throw ToolError.invalidArgument("参数 \(key) 非法：\(raw)（task/group/milestone）")
+            throw ToolError.invalidArgument(reason: .mcpInvalidEnum, message: "参数 \(key) 非法：\(raw)（task/group/milestone）")
         }
         return kind
     }
@@ -600,7 +630,7 @@ private struct ToolArgs {
     func optionalPriority(_ key: String) throws -> TaskPriority? {
         guard let raw = dict[key]?.stringValue else { return nil }
         guard let priority = TaskPriority(rawValue: raw) else {
-            throw ToolError.invalidArgument("参数 \(key) 非法：\(raw)（low/normal/high/critical）")
+            throw ToolError.invalidArgument(reason: .mcpInvalidEnum, message: "参数 \(key) 非法：\(raw)（low/normal/high/critical）")
         }
         return priority
     }
@@ -608,7 +638,7 @@ private struct ToolArgs {
     func optionalStatus(_ key: String) throws -> TaskStatus? {
         guard let raw = dict[key]?.stringValue else { return nil }
         guard let status = TaskStatus(rawValue: raw) else {
-            throw ToolError.invalidArgument("参数 \(key) 非法：\(raw)（pending/in_progress/done/blocked）")
+            throw ToolError.invalidArgument(reason: .mcpInvalidEnum, message: "参数 \(key) 非法：\(raw)（pending/in_progress/done/blocked）")
         }
         return status
     }
@@ -616,7 +646,7 @@ private struct ToolArgs {
     func optionalResourceKind(_ key: String) throws -> ResourceKind? {
         guard let raw = dict[key]?.stringValue else { return nil }
         guard let kind = ResourceKind(rawValue: raw) else {
-            throw ToolError.invalidArgument("参数 \(key) 非法：\(raw)（person/equipment/material/group）")
+            throw ToolError.invalidArgument(reason: .mcpInvalidEnum, message: "参数 \(key) 非法：\(raw)（person/equipment/material/group）")
         }
         return kind
     }
@@ -624,20 +654,24 @@ private struct ToolArgs {
     /// 批量回写清单：[{"taskID":"UUID","status":"done","progress":1}]。
     func statusUpdates(_ key: String) throws -> [KairoSession.StatusUpdateInput] {
         guard let array = dict[key]?.arrayValue else {
-            throw ToolError.invalidArgument("参数 \(key) 必须是数组")
+            throw ToolError.invalidArgument(reason: .mcpWrongType, message: "参数 \(key) 必须是数组")
         }
         return try array.map { item in
             guard let obj = item.objectValue,
                   let rawID = obj["taskID"]?.stringValue,
                   let uuid = UUID(uuidString: rawID) else {
                 throw ToolError.invalidArgument(
-                    "参数 \(key) 的元素格式应为 {\"taskID\":\"UUID\",\"status\":\"done\",\"progress\":1}"
+                    reason: .mcpMalformedBatchItem,
+                    message: "参数 \(key) 的元素格式应为 {\"taskID\":\"UUID\",\"status\":\"done\",\"progress\":1}"
                 )
             }
             let status: TaskStatus?
             if let rawStatus = obj["status"]?.stringValue {
                 guard let parsed = TaskStatus(rawValue: rawStatus) else {
-                    throw ToolError.invalidArgument("参数 \(key) 的状态非法：\(rawStatus)（pending/in_progress/done/blocked）")
+                    throw ToolError.invalidArgument(
+                        reason: .mcpMalformedBatchItem,
+                        message: "参数 \(key) 的状态非法：\(rawStatus)（pending/in_progress/done/blocked）"
+                    )
                 }
                 status = parsed
             } else {

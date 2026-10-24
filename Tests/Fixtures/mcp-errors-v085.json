@@ -1,0 +1,140 @@
+{
+  "note": "v0.8.5 的 MCP 错误 message 基线（逐字，含全角标点）。阶段一只新增 reason，message 不得变化；差异即回归。",
+  "source": "git show v0.8.5:Sources/KairoMCP/Tools.swift, Sources/KairoMCP/MCPServer.swift",
+  "cases": [
+    {
+      "id": "wrong_type_object",
+      "reason": "mcp_wrong_type",
+      "code": "invalid_argument",
+      "message": "参数必须是 JSON 对象"
+    },
+    {
+      "id": "wrong_type_array",
+      "reason": "mcp_wrong_type",
+      "code": "invalid_argument",
+      "message": "参数 dependencies 必须是数组"
+    },
+    {
+      "id": "missing_param_title",
+      "reason": "mcp_missing_param",
+      "code": "invalid_argument",
+      "message": "缺少参数 title"
+    },
+    {
+      "id": "missing_param_nodes",
+      "reason": "mcp_missing_param",
+      "code": "invalid_argument",
+      "message": "缺少参数 nodes"
+    },
+    {
+      "id": "missing_param_taskid",
+      "reason": "mcp_missing_param",
+      "code": "invalid_argument",
+      "message": "缺少参数 taskID"
+    },
+    {
+      "id": "malformed_uuid",
+      "reason": "mcp_malformed_uuid",
+      "code": "invalid_argument",
+      "message": "参数 taskID 不是合法 UUID：abc"
+    },
+    {
+      "id": "malformed_date",
+      "reason": "mcp_malformed_date",
+      "code": "invalid_argument",
+      "message": "参数 projectStart 不是合法 ISO8601 日期：nope"
+    },
+    {
+      "id": "malformed_dependency_item",
+      "reason": "mcp_malformed_dependency",
+      "code": "invalid_argument",
+      "message": "参数 dependencies 的元素格式应为 {\"predecessorID\":\"UUID\",\"type\":\"fs\",\"lagDays\":0}"
+    },
+    {
+      "id": "malformed_dependency_type",
+      "reason": "mcp_malformed_dependency",
+      "code": "invalid_argument",
+      "message": "参数 dependencies 的相关性类型非法：xx（fs/ff/ss/sf）"
+    },
+    {
+      "id": "malformed_assignment_item",
+      "reason": "mcp_malformed_assignment",
+      "code": "invalid_argument",
+      "message": "参数 assignments 的元素格式应为 {\"resourceID\":\"UUID\",\"units\":1}"
+    },
+    {
+      "id": "malformed_batch_item",
+      "reason": "mcp_malformed_batch_item",
+      "code": "invalid_argument",
+      "message": "参数 tasks 的元素格式应为 {\"taskID\":\"UUID\",\"status\":\"done\",\"progress\":1}"
+    },
+    {
+      "id": "malformed_batch_status",
+      "reason": "mcp_malformed_batch_item",
+      "code": "invalid_argument",
+      "message": "参数 tasks 的状态非法：paused（pending/in_progress/done/blocked）"
+    },
+    {
+      "id": "malformed_constraint_format",
+      "reason": "mcp_malformed_constraint",
+      "code": "invalid_argument",
+      "message": "参数 constraint 格式应为 type:ISO8601（如 startNoLaterThan:2026-11-05T00:00:00Z）"
+    },
+    {
+      "id": "malformed_constraint_type",
+      "reason": "mcp_malformed_constraint",
+      "code": "invalid_argument",
+      "message": "参数 constraint 非法时限类型：sometime"
+    },
+    {
+      "id": "invalid_enum_policy",
+      "reason": "mcp_invalid_enum",
+      "code": "invalid_argument",
+      "message": "参数 schedulingPolicy 非法：soon（asap/alap）"
+    },
+    {
+      "id": "invalid_enum_kind",
+      "reason": "mcp_invalid_enum",
+      "code": "invalid_argument",
+      "message": "参数 kind 非法：gantt（task/group/milestone）"
+    },
+    {
+      "id": "invalid_enum_priority",
+      "reason": "mcp_invalid_enum",
+      "code": "invalid_argument",
+      "message": "参数 priority 非法：urgent（low/normal/high/critical）"
+    },
+    {
+      "id": "invalid_enum_status",
+      "reason": "mcp_invalid_enum",
+      "code": "invalid_argument",
+      "message": "参数 status 非法：paused（pending/in_progress/done/blocked）"
+    },
+    {
+      "id": "invalid_enum_resource_kind",
+      "reason": "mcp_invalid_enum",
+      "code": "invalid_argument",
+      "message": "参数 kind 非法：robot（person/equipment/material/group）"
+    },
+    {
+      "id": "parse_error",
+      "reason": "mcp_parse_error",
+      "message": "解析失败：无效的 JSON-RPC"
+    },
+    {
+      "id": "method_not_found",
+      "reason": "mcp_method_not_found",
+      "message": "未知方法：frobnicate"
+    },
+    {
+      "id": "missing_tool_name",
+      "reason": "mcp_missing_tool_name",
+      "message": "tools/call 缺少 name"
+    },
+    {
+      "id": "unknown_tool",
+      "reason": "mcp_unknown_tool",
+      "message": "未知工具：nope"
+    }
+  ]
+}
