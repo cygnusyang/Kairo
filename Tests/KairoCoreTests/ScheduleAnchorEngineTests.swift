@@ -99,7 +99,9 @@ struct ScheduleAnchorEngineTests {
         #expect(codes.contains("cycle"))
         #expect(codes.contains("constraint_window_too_narrow"))
         // F-0704：规则名不再随核心层下发（名字由视图按 violation.rule.<code> 查 Catalog）。
-        #expect(ViolationEngine.ruleCategories.count == 7)
+        // F-0715：规则目录新增第 8 条（开始日落在项目窗口外）——有意行为变更。
+        #expect(ViolationEngine.ruleCategories.count == 8)
+        #expect(codes.contains("task_starts_outside_project_window"))
         #expect(ViolationEngine.ruleCategories.allSatisfy { $0.severity == .error })
     }
 }

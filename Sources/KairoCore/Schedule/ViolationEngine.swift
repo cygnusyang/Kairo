@@ -38,7 +38,11 @@ public enum ViolationEngine {
         .init(code: "constraint_window_too_narrow", severity: .error),
         .init(code: "cannot_schedule_asap_alap", severity: .error),
         .init(code: "constraint_is_dependency", severity: .error),
-        .init(code: "constraint_is_prerequisite", severity: .error)
+        .init(code: "constraint_is_prerequisite", severity: .error),
+        // F-0715 / D-022：开始日落在项目窗口外。v0.9.0 起新增的第 8 条规则——
+        // 旧实现把这种情形报成 cycle/负宽延，规则目录里没有对应条目；
+        // 违例页空态清单因此多一行，属**有意行为变更**（不是为迁就测试而改）。
+        .init(code: "task_starts_outside_project_window", severity: .error)
     ]
 
     public static func check(
