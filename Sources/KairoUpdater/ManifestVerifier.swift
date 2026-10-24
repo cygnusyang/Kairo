@@ -14,7 +14,8 @@ import CryptoKit
 /// 清单验签（纯逻辑，可独立测试）。
 public enum ManifestVerifier {
     /// 验签显式错误（fail-closed：任何失败即拒装）。
-    public enum VerificationError: Error, LocalizedError {
+    /// 验签失败（F-0703）：码 + 参数，文案由更新面板渲染。
+    public enum VerificationError: Error, UpdaterCodedError {
         /// 清单非 JSON / 结构损坏。
         case invalidJSON
         /// 缺 `signature` 字段。
@@ -26,20 +27,17 @@ public enum ManifestVerifier {
         /// Ed25519 验签不通过（清单被篡改 / 非官方签名）。
         case signatureMismatch
 
-        public var errorDescription: String? {
+        public var code: UpdaterErrorCode {
             switch self {
-            case .invalidJSON:
-                return "更新清单格式无效，无法验签。"
-            case .missingSignature:
-                return "更新清单缺少签名，已拒绝。"
-            case .invalidPublicKey:
-                return "更新验签公钥无效。"
-            case .invalidSignatureData:
-                return "更新清单签名数据无效。"
-            case .signatureMismatch:
-                return "更新清单签名校验失败，已拒绝安装。"
+            case .invalidJSON: return .manifestInvalidJSON
+            case .missingSignature: return .signatureMissing
+            case .invalidPublicKey: return .publicKeyInvalid
+            case .invalidSignatureData: return .signatureDataInvalid
+            case .signatureMismatch: return .signatureMismatch
             }
         }
+
+        public var parameters: [String: String] { [:] }
     }
 
     /// canonical JSON（双侧同实现）：sortedKeys + withoutEscapingSlashes，

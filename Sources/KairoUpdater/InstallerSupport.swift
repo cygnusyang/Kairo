@@ -12,7 +12,7 @@ public protocol Installing {
 }
 
 /// 安装显式错误（fail-closed：任何一步失败即呈现 failed）。
-public enum InstallError: Error, LocalizedError, Equatable {
+public enum InstallError: Error, UpdaterCodedError, Equatable {
     case unzipFailed(String)
     case appNotFound
     case scriptWriteFailed(String)
@@ -20,18 +20,24 @@ public enum InstallError: Error, LocalizedError, Equatable {
     /// 启动路径错位（运行中 App ≠ 安装目标）。
     case launchPathMismatch
 
-    public var errorDescription: String? {
+    public var code: UpdaterErrorCode {
         switch self {
-        case .unzipFailed(let detail):
-            return "更新包解压失败：\(detail)"
-        case .appNotFound:
-            return "更新包内未找到 .app，已拒绝安装。"
-        case .scriptWriteFailed(let detail):
-            return "安装脚本写入失败：\(detail)"
-        case .scriptLaunchFailed(let detail):
-            return "启动安装脚本失败：\(detail)"
-        case .launchPathMismatch:
-            return "当前运行的应用不是已安装版本（应用程序文件夹），请从「应用程序」中执行更新。"
+        case .unzipFailed: return .unzipFailed
+        case .appNotFound: return .appNotFound
+        case .scriptWriteFailed: return .scriptWriteFailed
+        case .scriptLaunchFailed: return .scriptLaunchFailed
+        case .launchPathMismatch: return .launchPathMismatch
+        }
+    }
+
+    public var parameters: [String: String] {
+        switch self {
+        case .unzipFailed(let detail),
+             .scriptWriteFailed(let detail),
+             .scriptLaunchFailed(let detail):
+            return ["detail": detail]
+        case .appNotFound, .launchPathMismatch:
+            return [:]
         }
     }
 }

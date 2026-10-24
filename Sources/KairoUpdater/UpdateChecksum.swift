@@ -10,18 +10,23 @@ import Foundation
 import CryptoKit
 
 /// 下载包 SHA256 校验的显式错误（用户可见文案 fail-closed）。
-public enum UpdateChecksumError: Error, LocalizedError {
+public enum UpdateChecksumError: Error, UpdaterCodedError {
     /// 计算失败（下载文件不可读 / 读取中断）。
     case readFailed(String)
     /// 与清单声明不一致（fail-closed 拒装）。
     case mismatch
 
-    public var errorDescription: String? {
+    public var code: UpdaterErrorCode {
         switch self {
-        case .readFailed(let detail):
-            return "下载包完整性校验失败：无法读取下载文件（\(detail)）。"
-        case .mismatch:
-            return "下载包完整性校验失败（SHA256 不匹配），已拒绝安装。"
+        case .readFailed: return .checksumReadFailed
+        case .mismatch: return .checksumMismatch
+        }
+    }
+
+    public var parameters: [String: String] {
+        switch self {
+        case .readFailed(let detail): return ["detail": detail]
+        case .mismatch: return [:]
         }
     }
 }

@@ -2,6 +2,13 @@ import Foundation
 import KairoCore
 
 /// 命令层统一错误（接口层结构化错误契约；MCP 工具与 CLI 共用）。
+///
+/// 两层码（F-0703）：
+/// - code：冻结的粗粒度分类（5 值），CLI 退出码与既有 MCP 消费者的匹配依据，不改值；
+/// - reason：细粒度稳定码（KairoErrorCode），取代「按 message 文本匹配」的脆弱用法。
+///
+/// message 仍保留：阶段一 CLI 的人类输出逐字等于 v0.8.5，MCP 的错误 message 也保持中文；
+/// 核心层与视图层一律不读它（读 code / reason 后自行渲染）。
 public struct SessionError: Error, Equatable, Sendable, CustomStringConvertible {
     public enum Code: String, Equatable, Sendable {
         case projectNotOpen = "project_not_open"
@@ -12,16 +19,41 @@ public struct SessionError: Error, Equatable, Sendable, CustomStringConvertible 
     }
 
     public var code: Code
+    /// 细粒度稳定错误码（接口层输出；与语言无关）。
+    public var reason: KairoErrorCode
+    /// 人类可读说明（阶段一中文原样；核心/视图不读）。
     public var message: String
     public var taskID: UUID?
 
-    public init(code: Code, message: String, taskID: UUID? = nil) {
+    public init(
+        code: Code,
+        reason: KairoErrorCode,
+        message: String,
+        taskID: UUID? = nil
+    ) {
         self.code = code
+        self.reason = reason
         self.message = message
         self.taskID = taskID
     }
 
     public var description: String { message }
+}
+
+/// 载入期的规范化警告（F-0703）：只带码与参数，中文 / 英文由调用方渲染。
+///
+/// 典型场景：旧数据里「有子项但 kind 不是 group」的任务在载入时被提升为群组，
+/// 用户需要知道项目被改动过。
+public struct LoadWarning: Codable, Hashable, Sendable {
+    public var code: KairoErrorCode
+    public var taskID: UUID?
+    public var taskTitle: String?
+
+    public init(code: KairoErrorCode, taskID: UUID? = nil, taskTitle: String? = nil) {
+        self.code = code
+        self.taskID = taskID
+        self.taskTitle = taskTitle
+    }
 }
 
 /// 可选字段补丁（ADR-013）：区分「不修改」「设为值」「清空」。
@@ -117,19 +149,29 @@ public final class KairoSession {
             // 保留来源版本：迁移在读取时完成，但磁盘仍可能是旧格式直至保存。
             decoded = try KairoFile.read(from: url)
         } catch let error as KairoFileError {
-            // 版本高于当前或无法迁移到当前版本 = 格式不受支持；
-            // 版本字段损坏 = 文件损坏/不是 .kairo。message 保留原始说明。
+            // 粗码 code 保持 v0.8.5 口径（决定 CLI 退出码与 MCP 分类）；
+            // 细码 reason 四例透传，取代「按 message 文本猜是哪一种格式问题」。
             let code: SessionError.Code
+            let reason: KairoErrorCode
             switch error {
-            case .unsupportedFormatVersion, .noMigrationPath, .migrationFailed:
+            case .unsupportedFormatVersion:
                 code = .unsupportedFormat
+                reason = .unsupportedFormat
+            case .noMigrationPath:
+                code = .unsupportedFormat
+                reason = .noMigrationPath
+            case .migrationFailed:
+                code = .unsupportedFormat
+                reason = .migrationFailed
             case .malformedFormatVersion:
                 code = .fileUnreadable
+                reason = .malformedFormatVersion
             }
-            throw SessionError(code: code, message: error.description)
+            throw SessionError(code: code, reason: reason, message: error.description)
         } catch {
             throw SessionError(
                 code: .fileUnreadable,
+                reason: .fileUnreadable,
                 message: "无法读取项目文件：\(url.lastPathComponent)"
             )
         }
@@ -166,8 +208,8 @@ public final class KairoSession {
         markSaved()
     }
 
-    /// 加载规范化警告（如「有子项的任务已按群组处理」）。
-    public private(set) var loadWarnings: [String] = []
+    /// 加载规范化警告（如「有子项的任务已按群组处理」）：只带码与参数，文案由调用方渲染。
+    public private(set) var loadWarnings: [LoadWarning] = []
 
     /// 更新项目元数据；开始/结束日期可显式清空。
     @discardableResult
@@ -212,11 +254,15 @@ public final class KairoSession {
     /// 群组唯一判据为 `kind == .group`；有子项但类型不符的旧数据在加载时规范化。
     private func normalizeGroupKinds(in project: Project) {
         let parentIDs = Set(project.tasks.compactMap(\.parentID))
-        var warnings: [String] = []
+        var warnings: [LoadWarning] = []
         for (index, task) in project.tasks.enumerated()
         where parentIDs.contains(task.id) && task.kind != .group {
             project.tasks[index].kind = .group
-            warnings.append("任务「\(task.title)」有子项，已按群组处理")
+            warnings.append(LoadWarning(
+                code: .groupPromoted,
+                taskID: task.id,
+                taskTitle: task.title
+            ))
         }
         loadWarnings = warnings
     }
@@ -229,6 +275,7 @@ public final class KairoSession {
         guard let target else {
             throw SessionError(
                 code: .invalidArgument,
+                reason: .noSavePath,
                 message: "未指定保存路径（请提供 --path 或先打开项目）"
             )
         }
@@ -236,7 +283,11 @@ public final class KairoSession {
         do {
             try KairoFile.save(project, to: target)
         } catch {
-            throw SessionError(code: .fileUnreadable, message: "保存失败：\(error.localizedDescription)")
+            throw SessionError(
+                code: .fileUnreadable,
+                reason: .writeFailed,
+                message: "保存失败：\(error.localizedDescription)"
+            )
         }
         projectURL = target
         sourceFormatVersion = KairoFile.currentFormatVersion
@@ -267,7 +318,7 @@ public final class KairoSession {
     ) throws -> UUID {
         guard let project else { throw notOpen() }
         if let parentID, project.tasksByID[parentID] == nil {
-            throw SessionError(code: .invalidArgument, message: "父任务不存在", taskID: parentID)
+            throw SessionError(code: .invalidArgument, reason: .parentNotFound, message: "父任务不存在", taskID: parentID)
         }
         promoteToGroupIfNeeded(parentID, in: project)
         try validate(assignments: assignments, in: project)
@@ -309,7 +360,7 @@ public final class KairoSession {
     public func getTask(id: UUID) throws -> TaskItem {
         guard let project else { throw notOpen() }
         guard let task = project.tasksByID[id] else {
-            throw SessionError(code: .taskNotFound, message: "任务不存在", taskID: id)
+            throw SessionError(code: .taskNotFound, reason: .taskNotFound, message: "任务不存在", taskID: id)
         }
         return task
     }
@@ -335,7 +386,7 @@ public final class KairoSession {
     ) throws -> TaskItem {
         guard let project else { throw notOpen() }
         guard let index = project.tasks.firstIndex(where: { $0.id == id }) else {
-            throw SessionError(code: .taskNotFound, message: "任务不存在", taskID: id)
+            throw SessionError(code: .taskNotFound, reason: .taskNotFound, message: "任务不存在", taskID: id)
         }
         if let assignments { try validate(assignments: assignments, in: project) }
         var task = project.tasks[index]
@@ -372,11 +423,11 @@ public final class KairoSession {
     public func updateTask(id: UUID, patch: TaskPatch) throws -> TaskItem {
         guard let project else { throw notOpen() }
         guard let index = project.tasks.firstIndex(where: { $0.id == id }) else {
-            throw SessionError(code: .taskNotFound, message: "任务不存在", taskID: id)
+            throw SessionError(code: .taskNotFound, reason: .taskNotFound, message: "任务不存在", taskID: id)
         }
         if let assignments = patch.assignments { try validate(assignments: assignments, in: project) }
         if let progress = patch.progress, !(0...1).contains(progress) {
-            throw SessionError(code: .invalidArgument, message: "进度必须介于 0 与 1 之间", taskID: id)
+            throw SessionError(code: .invalidArgument, reason: .progressOutOfRange, message: "进度必须介于 0 与 1 之间", taskID: id)
         }
         var task = project.tasks[index]
         if let title = patch.title { task.title = title }
@@ -420,16 +471,18 @@ public final class KairoSession {
         guard parentID != id else {
             throw SessionError(
                 code: .invalidArgument,
+                reason: .parentNotFound,
                 message: "父任务不能是任务自身",
                 taskID: id
             )
         }
         guard project.tasksByID[parentID] != nil else {
-            throw SessionError(code: .invalidArgument, message: "父任务不存在", taskID: parentID)
+            throw SessionError(code: .invalidArgument, reason: .parentNotFound, message: "父任务不存在", taskID: parentID)
         }
         guard !OutlineEditor.subtreeIDs(of: id, in: project.tasks).contains(parentID) else {
             throw SessionError(
                 code: .invalidArgument,
+                reason: .moveIntoSubtree,
                 message: "不能把任务移动到自身或后代之下",
                 taskID: id
             )
@@ -442,6 +495,7 @@ public final class KairoSession {
               project.tasks.contains(where: { $0.parentID == id }) else { return }
         throw SessionError(
             code: .invalidArgument,
+            reason: .parentNotFound,
             message: "任务存在子项，不能改为非群组类型",
             taskID: id
         )
@@ -469,6 +523,7 @@ public final class KairoSession {
         for assignment in assignments where !resourceIDs.contains(assignment.resourceID) {
             throw SessionError(
                 code: .invalidArgument,
+                reason: .resourceNotFound,
                 message: "资源不存在",
                 taskID: assignment.resourceID
             )
@@ -491,7 +546,7 @@ public final class KairoSession {
     private func deleteSubtree(id: UUID) throws -> Int {
         guard let project else { throw notOpen() }
         guard project.tasksByID[id] != nil else {
-            throw SessionError(code: .taskNotFound, message: "任务不存在", taskID: id)
+            throw SessionError(code: .taskNotFound, reason: .taskNotFound, message: "任务不存在", taskID: id)
         }
         let removed = OutlineEditor.subtreeIDs(of: id, in: project.tasks)
         let remaining = project.tasks.filter { !removed.contains($0.id) }
@@ -538,12 +593,19 @@ public final class KairoSession {
             return updated
         case .failure(let error):
             let message: String
+            let reason: KairoErrorCode
             switch error {
-            case .taskNotFound: message = "任务不存在"
-            case .targetNotFound: message = "目标父级不存在"
-            case .moveIntoSubtree: message = "不能把任务移动到自身或后代之下"
+            case .taskNotFound:
+                message = "任务不存在"
+                reason = .taskNotFound
+            case .targetNotFound:
+                message = "目标父级不存在"
+                reason = .parentNotFound
+            case .moveIntoSubtree:
+                message = "不能把任务移动到自身或后代之下"
+                reason = .moveIntoSubtree
             }
-            throw SessionError(code: .invalidArgument, message: message, taskID: id)
+            throw SessionError(code: .invalidArgument, reason: reason, message: message, taskID: id)
         }
     }
 
@@ -568,13 +630,22 @@ public final class KairoSession {
             return project.tasksByID[taskID]!
         case .failure(let error):
             let message: String
+            let reason: KairoErrorCode
             switch error {
-            case .taskNotFound: message = "任务不存在"
-            case .predecessorNotFound: message = "前驱任务不存在"
-            case .selfDependency: message = "任务不能依赖自身"
-            case .cycle: message = "该依赖会形成相关性环"
+            case .taskNotFound:
+                message = "任务不存在"
+                reason = .taskNotFound
+            case .predecessorNotFound:
+                message = "前驱任务不存在"
+                reason = .dependencyPredecessorNotFound
+            case .selfDependency:
+                message = "任务不能依赖自身"
+                reason = .dependencySelf
+            case .cycle:
+                message = "该依赖会形成相关性环"
+                reason = .dependencyCycle
             }
-            throw SessionError(code: .invalidArgument, message: message, taskID: taskID)
+            throw SessionError(code: .invalidArgument, reason: reason, message: message, taskID: taskID)
         }
     }
 
@@ -588,7 +659,7 @@ public final class KairoSession {
             markChanged()
             return project.tasksByID[taskID]!
         case .failure:
-            throw SessionError(code: .taskNotFound, message: "任务不存在", taskID: taskID)
+            throw SessionError(code: .taskNotFound, reason: .taskNotFound, message: "任务不存在", taskID: taskID)
         }
     }
 
@@ -599,7 +670,7 @@ public final class KairoSession {
     public func importWBS(nodes: [WBSNode], parentID: UUID? = nil) throws -> WBSImportResult {
         guard let project else { throw notOpen() }
         if let parentID, project.tasksByID[parentID] == nil {
-            throw SessionError(code: .invalidArgument, message: "父任务不存在", taskID: parentID)
+            throw SessionError(code: .invalidArgument, reason: .parentNotFound, message: "父任务不存在", taskID: parentID)
         }
         var rootIDs: [UUID] = []
         var idByTitle: [String: UUID] = [:]
@@ -692,10 +763,10 @@ public final class KairoSession {
     public func statusUpdate(id: UUID, status: TaskStatus? = nil, progress: Double? = nil) throws -> TaskItem {
         guard let project else { throw notOpen() }
         guard let index = project.tasks.firstIndex(where: { $0.id == id }) else {
-            throw SessionError(code: .taskNotFound, message: "任务不存在", taskID: id)
+            throw SessionError(code: .taskNotFound, reason: .taskNotFound, message: "任务不存在", taskID: id)
         }
         if let progress, !(0...1).contains(progress) {
-            throw SessionError(code: .invalidArgument, message: "进度必须介于 0 与 1 之间", taskID: id)
+            throw SessionError(code: .invalidArgument, reason: .progressOutOfRange, message: "进度必须介于 0 与 1 之间", taskID: id)
         }
         var task = project.tasks[index]
         Self.applyStatus(status: status, progress: progress, to: &task)
@@ -794,7 +865,7 @@ public final class KairoSession {
     public func groupProgress(id: UUID) throws -> Double {
         guard let project else { throw notOpen() }
         guard let task = project.tasksByID[id] else {
-            throw SessionError(code: .taskNotFound, message: "任务不存在", taskID: id)
+            throw SessionError(code: .taskNotFound, reason: .taskNotFound, message: "任务不存在", taskID: id)
         }
         let leaves = leafDescendants(of: id, in: project)
         guard !leaves.isEmpty else { return task.progress }
@@ -829,10 +900,10 @@ public final class KairoSession {
     ) throws -> UUID {
         guard let project else { throw notOpen() }
         if units <= 0 {
-            throw SessionError(code: .invalidArgument, message: "资源单位必须为正数")
+            throw SessionError(code: .invalidArgument, reason: .resourceUnitInvalid, message: "资源单位必须为正数")
         }
         if efficiency <= 0 {
-            throw SessionError(code: .invalidArgument, message: "资源效率必须为正数")
+            throw SessionError(code: .invalidArgument, reason: .resourceEfficiencyInvalid, message: "资源效率必须为正数")
         }
         let resource = Resource(name: name, kind: kind, units: units, efficiency: efficiency)
         project.resources.append(resource)
@@ -849,6 +920,10 @@ public final class KairoSession {
     // MARK: - 私有
 
     private func notOpen() -> SessionError {
-        SessionError(code: .projectNotOpen, message: "未打开项目（请先 project open / project create）")
+        SessionError(
+            code: .projectNotOpen,
+            reason: .projectNotOpen,
+            message: "未打开项目（请先 project open / project create）"
+        )
     }
 }

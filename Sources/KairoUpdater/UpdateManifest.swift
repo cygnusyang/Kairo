@@ -33,22 +33,28 @@ public struct UpdateManifest: Codable, Equatable {
     public let signature: String
 
     /// 清单解析与合法性显式错误（fail-closed：任何不满足即拒装）。
-    public enum ParseError: Error, LocalizedError, Equatable {
+    /// 清单解析失败（F-0703）：只暴露码与参数，文案由更新面板渲染。
+    public enum ParseError: Error, UpdaterCodedError, Equatable {
         case invalidJSON(String)
         case missingField(String)
         case unsupportedSchemaVersion(Int)
         case wrongAppId(String)
 
-        public var errorDescription: String? {
+        public var code: UpdaterErrorCode {
             switch self {
-            case .invalidJSON(let detail):
-                return "更新清单格式无效：\(detail)"
-            case .missingField(let key):
-                return "更新清单缺少必需字段：\(key)。"
-            case .unsupportedSchemaVersion(let v):
-                return "更新清单 schema 版本 \(v) 不受支持，已拒绝安装。"
-            case .wrongAppId(let id):
-                return "更新清单 appId「\(id)」与本应用不匹配，已拒绝安装。"
+            case .invalidJSON: return .manifestInvalidJSON
+            case .missingField: return .manifestMissingField
+            case .unsupportedSchemaVersion: return .manifestSchemaUnsupported
+            case .wrongAppId: return .manifestAppIDMismatch
+            }
+        }
+
+        public var parameters: [String: String] {
+            switch self {
+            case .invalidJSON(let detail): return ["detail": detail]
+            case .missingField(let key): return ["field": key]
+            case .unsupportedSchemaVersion(let version): return ["schemaVersion": String(version)]
+            case .wrongAppId(let appId): return ["appId": appId]
             }
         }
     }

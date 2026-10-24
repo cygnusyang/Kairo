@@ -28,7 +28,8 @@ public struct AppProductVerifier: ProductVerifying {
     }
 
     /// 验签显式错误（fail-closed：任何一级不过即拒装）。
-    public enum VerificationError: Error, LocalizedError {
+    /// 产物验签失败（F-0703）：码 + 参数，文案由更新面板渲染。
+    public enum VerificationError: Error, UpdaterCodedError {
         /// 无法基于路径创建静态代码对象（非 bundle / 不可读）。
         case cannotCreateCode(OSStatus)
         /// 无法读取签名信息。
@@ -40,18 +41,26 @@ public struct AppProductVerifier: ProductVerifying {
         /// CDHash 不匹配（expected, actual）——「合法签名但非官方构建」防线。
         case cdHashMismatch(expected: String, actual: String)
 
-        public var errorDescription: String? {
+        public var code: UpdaterErrorCode {
             switch self {
-            case .cannotCreateCode(let status):
-                return "无法读取待安装应用的签名信息（OSStatus \(status)）。"
-            case .cannotReadSigningInfo(let status):
-                return "无法读取应用签名信息（OSStatus \(status)）。"
+            case .cannotCreateCode: return .codeCreateFailed
+            case .cannotReadSigningInfo: return .signingInfoUnreadable
+            case .missingCdHash: return .cdhashMissing
+            case .identifierMismatch: return .identifierMismatch
+            case .cdHashMismatch: return .cdhashMismatch
+            }
+        }
+
+        public var parameters: [String: String] {
+            switch self {
+            case .cannotCreateCode(let status), .cannotReadSigningInfo(let status):
+                return ["status": String(status)]
+            case .identifierMismatch(let identifier):
+                return ["identifier": identifier]
+            case .cdHashMismatch(let expected, let actual):
+                return ["expected": expected, "actual": actual]
             case .missingCdHash:
-                return "应用签名信息缺少 CDHash，已拒绝安装。"
-            case .identifierMismatch(let id):
-                return "应用标识符「\(id)」与预期不符，已拒绝安装。"
-            case .cdHashMismatch:
-                return "应用 CDHash 与更新清单不符，已拒绝安装（可能非官方构建）。"
+                return [:]
             }
         }
     }

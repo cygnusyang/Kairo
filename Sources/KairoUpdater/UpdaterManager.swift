@@ -46,16 +46,21 @@ public struct UpdateInfo: Equatable {
 }
 
 /// UpdateInfo 构造的显式错误。
-public enum UpdateInfoError: Error, LocalizedError {
+public enum UpdateInfoError: Error, UpdaterCodedError {
     case invalidDownloadURL(String)
     case invalidBuildTime(String)
 
-    public var errorDescription: String? {
+    public var code: UpdaterErrorCode {
         switch self {
-        case .invalidDownloadURL(let url):
-            return "更新清单下载地址无效：\(url)。"
-        case .invalidBuildTime(let time):
-            return "更新清单构建时间无效：\(time)。"
+        case .invalidDownloadURL: return .downloadURLInvalid
+        case .invalidBuildTime: return .buildTimeInvalid
+        }
+    }
+
+    public var parameters: [String: String] {
+        switch self {
+        case .invalidDownloadURL(let url): return ["url": url]
+        case .invalidBuildTime(let time): return ["buildTime": time]
         }
     }
 }
@@ -76,8 +81,8 @@ public enum UpdaterState: Equatable {
     case downloaded
     /// 安装中（退出 + 替换 + relaunch）
     case installing
-    /// 失败（用户可见文案）
-    case failed(String)
+    /// 失败（码 + 参数；文案由更新面板按 code 渲染）
+    case failed(UpdaterFailure)
 }
 
 /// OTA 状态机。零网络姿态：不做启动静默检查、不做定时后台检查——由 UI
@@ -150,7 +155,10 @@ public final class UpdaterManager: ObservableObject {
                 data = try await fetcher.fetchManifest(from: manifestURL)
             } catch {
                 log("清单拉取失败 url=\(manifestURL.absoluteString) error=\(error)")
-                state = .failed(Self.checkNetworkFailureMessage)
+                state = .failed(UpdaterFailure(
+                    code: .checkFailed,
+                    parameters: ["ref": Self.checkFailureReference]
+                ))
                 return
             }
             let manifest = try UpdateManifest.parse(data, expectedAppId: expectedAppId)
@@ -161,7 +169,7 @@ public final class UpdaterManager: ObservableObject {
             resolveCheckOutcome(manifest: manifest, info: info)
         } catch {
             log("检查更新失败 error=\(error)")
-            state = .failed(Self.userMessage(from: error))
+            state = .failed(Self.failure(from: error))
         }
     }
 
@@ -190,7 +198,7 @@ public final class UpdaterManager: ObservableObject {
         } catch {
             pendingProduct = nil
             log("下载/验签失败 error=\(error)")
-            state = .failed(Self.userMessage(from: error))
+            state = .failed(Self.failure(from: error))
         }
     }
 
@@ -212,7 +220,7 @@ public final class UpdaterManager: ObservableObject {
         } catch {
             pendingProduct = nil
             log("安装失败 error=\(error)")
-            state = .failed(Self.userMessage(from: error))
+            state = .failed(Self.failure(from: error))
         }
     }
 
@@ -244,13 +252,13 @@ public final class UpdaterManager: ObservableObject {
         }
         guard let data = try? Data(contentsOf: resultURL),
               let result = try? JSONDecoder().decode(InstallResult.self, from: data) else {
-            state = .failed("无法读取上次更新的结果，请确认当前应用是否已是最新版本。")
+            state = .failed(UpdaterFailure(code: .installResultUnreadable))
             return
         }
         guard result.success else {
-            state = .failed(result.message.isEmpty
-                ? "上次更新失败（退出码 \(result.code)）。"
-                : "上次更新失败（退出码 \(result.code)）：\(result.message)")
+            var parameters = ["exitCode": String(result.code)]
+            if !result.message.isEmpty { parameters["detail"] = result.message }
+            state = .failed(UpdaterFailure(code: .installFailed, parameters: parameters))
             return
         }
         if let backupPath = userDefaults.string(forKey: ZipAppInstaller.pendingBackupPathDefaultsKey),
@@ -282,13 +290,22 @@ public final class UpdaterManager: ObservableObject {
     ///（securityCritical 例外，禁跳必显）。
     private func resolveCheckOutcome(manifest: UpdateManifest, info: UpdateInfo) {
         guard let order = VersionCompare.compare(currentVersion, manifest.version) else {
-            state = .failed("无法解析版本号「\(manifest.version)」或当前版本「\(currentVersion)」。")
+            state = .failed(UpdaterFailure(
+                code: .versionUnparsable,
+                parameters: ["version": manifest.version, "currentVersion": currentVersion]
+            ))
             return
         }
         switch order {
         case .ascending:
             if VersionCompare.isBelow(currentVersion, minimum: manifest.minimumVersion) {
-                state = .failed("当前版本（\(currentVersion)）低于该更新的最低版本（\(manifest.minimumVersion)），无法自动安装。请手动下载最新版本。")
+                state = .failed(UpdaterFailure(
+                    code: .minimumVersionUnmet,
+                    parameters: [
+                        "currentVersion": currentVersion,
+                        "minimumVersion": manifest.minimumVersion,
+                    ]
+                ))
                 return
             }
             if !info.securityCritical, userDefaults.string(forKey: skippedVersionKey) == manifest.version {
@@ -301,11 +318,15 @@ public final class UpdaterManager: ObservableObject {
         }
     }
 
-    /// 检查网络失败的短文案（错误码固定，完整错误只进日志）。
-    public static let checkNetworkFailureMessage = "检查更新失败（OTA-E-2001），请稍后重试。"
+    /// 检查失败的诊断号（完整错误只进日志；界面按 code + 该诊断号出提示）。
+    nonisolated public static let checkFailureReference = "OTA-E-2001"
 
-    /// 错误 → 用户可见文案（LocalizedError 优先）。
-    public static func userMessage(from error: Error) -> String {
-        (error as? LocalizedError)?.errorDescription ?? "更新失败：\(error)"
+    /// 任意错误 → 结构化失败（实现 UpdaterCodedError 的错误保留码与参数，其余兜底）。
+    nonisolated public static func failure(from error: Error) -> UpdaterFailure {
+        if let failure = error as? UpdaterFailure { return failure }
+        if let coded = error as? any UpdaterCodedError {
+            return UpdaterFailure(code: coded.code, parameters: coded.parameters)
+        }
+        return UpdaterFailure(code: .installFailed, parameters: ["detail": "\(error)"])
     }
 }

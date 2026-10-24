@@ -143,11 +143,14 @@ struct UpdaterManagerTests {
             installer: StubInstaller(appURL: URL(fileURLWithPath: "/tmp/Test.app")),
             userDefaults: defaults)
         await manager.check()
-        guard case .failed(let message) = manager.state else {
+        guard case .failed(let failure) = manager.state else {
             Issue.record("期望 failed，实际 \(manager.state)")
             return
         }
-        #expect(message.contains("最低版本"))
+        // F-0703：失败态只带码与参数，文案由更新面板渲染（不再断言中文串）。
+        #expect(failure.code == .minimumVersionUnmet)
+        #expect(failure.parameters["minimumVersion"] == "2.0.0")
+        #expect(failure.parameters["currentVersion"] == "1.0.0")
     }
 
     @Test func networkFailureIsNotSilentlyUpToDate() async throws {
@@ -164,11 +167,13 @@ struct UpdaterManagerTests {
             installer: StubInstaller(appURL: URL(fileURLWithPath: "/tmp/Test.app")),
             userDefaults: defaults)
         await manager.check()
-        guard case .failed(let message) = manager.state else {
+        guard case .failed(let failure) = manager.state else {
             Issue.record("期望 failed，实际 \(manager.state)")
             return
         }
-        #expect(message.contains("OTA-E-2001"))
+        #expect(failure.code == .checkFailed)
+        // 诊断号随参数下发（日志与支持渠道沿用 OTA-E-2001）。
+        #expect(failure.parameters["ref"] == UpdaterManager.checkFailureReference)
     }
 
     @Test func invalidSignatureFailsClosed() async throws {

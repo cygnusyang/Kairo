@@ -25,17 +25,21 @@ public protocol DataDownloading {
 // MARK: - 显式错误
 
 /// HTTP 非 2xx 响应。
-public struct OTAHTTPError: Error, LocalizedError {
+public struct OTAHTTPError: Error, UpdaterCodedError {
     public let statusCode: Int
-    public var errorDescription: String? { "更新服务器返回 HTTP \(statusCode)。" }
+
+    public var code: UpdaterErrorCode { .httpStatus }
+    public var parameters: [String: String] { ["status": String(statusCode)] }
 
     public init(statusCode: Int) { self.statusCode = statusCode }
 }
 
 /// 下载产物落盘失败（临时文件移动失败）。
-public struct OTADownloadMoveError: Error, LocalizedError {
+public struct OTADownloadMoveError: Error, UpdaterCodedError {
     public let detail: String
-    public var errorDescription: String? { "下载产物保存失败：\(detail)" }
+
+    public var code: UpdaterErrorCode { .downloadSaveFailed }
+    public var parameters: [String: String] { ["detail": detail] }
 
     public init(detail: String) { self.detail = detail }
 }

@@ -19,18 +19,23 @@ public struct UpdateEndpointPolicy {
     }
 
     /// 显式错误（fail-closed：非白名单一律拒绝，不静默降级）。
-    public enum PolicyError: Error, LocalizedError {
+    public enum PolicyError: Error, UpdaterCodedError {
         /// 非 https（强制 HTTPS）。
         case insecureScheme(String)
         /// host 不在白名单（nil = 无 host 的 URL）。
         case hostNotAllowed(String?)
 
-        public var errorDescription: String? {
+        public var code: UpdaterErrorCode {
             switch self {
-            case .insecureScheme(let scheme):
-                return "更新请求必须使用 HTTPS（当前 scheme 为 \(scheme)）。"
-            case .hostNotAllowed(let host):
-                return "更新端点 \(host ?? "（无 host）") 不在白名单内，已拒绝连接。"
+            case .insecureScheme: return .endpointScheme
+            case .hostNotAllowed: return .endpointHost
+            }
+        }
+
+        public var parameters: [String: String] {
+            switch self {
+            case .insecureScheme(let scheme): return ["scheme": scheme]
+            case .hostNotAllowed(let host): return ["host": host ?? ""]
             }
         }
     }
