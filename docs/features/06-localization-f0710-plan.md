@@ -1,6 +1,7 @@
 # F-0710 断言改造执行计划
 
 > 依据：[06-localization-cases.md](./06-localization-cases.md)、[06-localization-assertions.md](./06-localization-assertions.md)、[06-localization.md](./06-localization.md) §8。
+> **名称已与已提交源码对齐**（`ViolationReason` / `KairoErrorCode` / `ZoomPreset` / `ZoomIndicator` / `DateFieldAvailability`），对不上的 3 处单列于 §7。
 > 本文只定「哪条断言改成什么、依赖谁先落地」，**不含测试文件改动**。Tests/ 按 target 分属 G2/G3/G4，F-0710 开工前不动一行。
 
 ## 0. 边界与口径
@@ -14,11 +15,11 @@
 
 | target | 需跟译 | 常量抽取 | 合计 | 归属 | 主依赖 |
 |---|---|---|---|---|---|
-| AppTests | 50 | 40 | 90 | G4 | F-0703 / F-0705 |
+| AppTests | 50 | 40 | 90 | G4 | F-0705（需 G4 暴露 noticeKey） / F-0705（需 G4 暴露 alertKey） |
 | KairoPresentationTests | 17 | 2 | 19 | G2 | F-0704 / F-0712 |
 | KairoCoreTests | 8 | 28 | 36 | G2 | F-0703 / F-0702 |
 | InterfaceTests | 9 | 9 | 18 | G3 | F-0707 / F-0708 |
-| KairoUpdaterTests | 2 | 0 | 2 | G2 | F-0703 |
+| KairoUpdaterTests | 2 | 0 | 2 | G2 | F-0703（已交付 UpdaterErrorCode） / F-0703 |
 | **合计** | **86** | **79** | **165** | — | — |
 
 ## 2. 逐文件改造计划
@@ -41,18 +42,18 @@
 
 | 位置 | 现行断言 | 目标断言 | 依赖 |
 |---|---|---|---|
-| :94 | `store.notice?.contains("已升级") != true` | noticeCode != .formatUpgraded | F-0703 |
+| :94 | `store.notice?.contains("已升级") != true` | noticeKey != "alert.upgraded_to" | F-0705（需 G4 暴露 noticeKey） |
 | :149 | `store.exportProject.metadata.title == "旧版项目"` | 抽为文件顶部常量，断言不变 | — |
-| :152 | `store.notice?.contains("已升级") != true` | noticeCode != .formatUpgraded | F-0703 |
-| :169 | `store.notice == "已升级到 v\(KairoFile.currentFormatVersion)"` | noticeCode == .formatUpgraded && noticeArgs["version"] == "\(KairoFile.currentFormatVersion)" | F-0703 |
-| :176 | `store.notice?.contains("已升级") != true` | noticeCode != .formatUpgraded | F-0703 |
-| :246 | `store.notice?.contains("已升级") != true` | noticeCode != .formatUpgraded | F-0703 |
-| :280 | `store.notice == "已升级到 v\(KairoFile.currentFormatVersion)"` | noticeCode == .formatUpgraded && noticeArgs["version"] == "\(KairoFile.currentFormatVersion)" | F-0703 |
-| :325 | `store.notice?.contains("已升级") != true` | noticeCode != .formatUpgraded | F-0703 |
+| :152 | `store.notice?.contains("已升级") != true` | noticeKey != "alert.upgraded_to" | F-0705（需 G4 暴露 noticeKey） |
+| :169 | `store.notice == "已升级到 v\(KairoFile.currentFormatVersion)"` | noticeKey == "alert.upgraded_to" && noticeArgs.count == 1 | F-0705（需 G4 暴露 noticeKey） |
+| :176 | `store.notice?.contains("已升级") != true` | noticeKey != "alert.upgraded_to" | F-0705（需 G4 暴露 noticeKey） |
+| :246 | `store.notice?.contains("已升级") != true` | noticeKey != "alert.upgraded_to" | F-0705（需 G4 暴露 noticeKey） |
+| :280 | `store.notice == "已升级到 v\(KairoFile.currentFormatVersion)"` | noticeKey == "alert.upgraded_to" && noticeArgs.count == 1 | F-0705（需 G4 暴露 noticeKey） |
+| :325 | `store.notice?.contains("已升级") != true` | noticeKey != "alert.upgraded_to" | F-0705（需 G4 暴露 noticeKey） |
 | :326 | `store.exportProject.metadata.title == "第三个项目"` | 抽为文件顶部常量，断言不变 | — |
-| :346 | `store.notice?.contains("已升级") != true` | noticeCode != .formatUpgraded | F-0703 |
-| :385 | `notice.contains("已升级到 v\(KairoFile.currentFormatVersion)")` | noticeCode == .formatUpgraded && noticeArgs["version"] == "\(KairoFile.currentFormatVersion)" | F-0703 |
-| :386 | `notice.contains("已按群组处理")` | noticeCode == .groupsMigrated && noticeArgs["count"] == "2" | F-0703 |
+| :346 | `store.notice?.contains("已升级") != true` | noticeKey != "alert.upgraded_to" | F-0705（需 G4 暴露 noticeKey） |
+| :385 | `notice.contains("已升级到 v\(KairoFile.currentFormatVersion)")` | noticeKey == "alert.upgraded_to" && noticeArgs.count == 1 | F-0705（需 G4 暴露 noticeKey） |
+| :386 | `notice.contains("已按群组处理")` | noticeKey == "alert.notice.combined" && noticeArgs.count == 2 | F-0705（需 G4 暴露 noticeKey） |
 
 **AppTests/WorkspaceStoreTests.swift**
 
@@ -81,49 +82,49 @@
 | :471 | `try task(store, "第二次改名").title == "第二次改名"` | 抽为文件顶部常量，断言不变 | — |
 | :477 | `try task(store, "第二次改名").title == "第二次改名"` | 抽为文件顶部常量，断言不变 | — |
 | :508 | `store.snapshot.statusBar.selectionSummary == "Code Review 搜索模块"` | 抽为文件顶部常量，断言不变 | — |
-| :532 | `store.notice == "任务已删除"` | noticeCode == .taskDeleted | F-0703 |
+| :532 | `store.notice == "任务已删除"` | noticeKey == "alert.task_deleted" | F-0705（需 G4 暴露 noticeKey） |
 | :579 | `store.exportProject.metadata.title == "未保存标题"` | 抽为文件顶部常量，断言不变 | — |
 | :583 | `store.exportProject.metadata.title == "未保存标题"` | 抽为文件顶部常量，断言不变 | — |
 | :593 | `store.exportProject.metadata.title == "另一个项目"` | 抽为文件顶部常量，断言不变 | — |
 | :625 | `store.exportProject.metadata.title == "载入期间编辑"` | 抽为文件顶部常量，断言不变 | — |
-| :651 | `store.notice?.contains("正在载入") == true` | noticeCode == .loading | F-0703 |
+| :651 | `store.notice?.contains("正在载入") == true` | noticeKey == "alert.loading_in_progress" | F-0705（需 G4 暴露 noticeKey） |
 | :660 | `store.exportProject.metadata.title == "第一个项目"` | 抽为文件顶部常量，断言不变 | — |
 | :706 | `reloaded.exportProject.metadata.title == "面板打开后修改"` | 抽为文件顶部常量，断言不变 | — |
 | :737 | `store.viewState.filterText == "发布"` | 抽为文件顶部常量，断言不变 | — |
 | :744 | `store.viewState.filterText == "发布"` | 抽为文件顶部常量，断言不变 | — |
-| :929 | `store.alertMessage?.contains("可能被折叠或筛选隐藏") == true` | alertCode == .predecessorHiddenByCollapseOrFilter | F-0703 |
-| :937 | `store.alertMessage?.contains("可能被折叠或筛选隐藏") == true` | alertCode == .predecessorHiddenByCollapseOrFilter | F-0703 |
-| :981 | `store.alertMessage?.contains("环") == true` | alertCode == .dependencyCycle | F-0703 |
-| :990 | `store.alertMessage?.contains("找不到") == true` | alertCode == .taskNotFound | F-0703 |
-| :993 | `store.alertMessage?.contains("自身") == true` | alertCode == .selfDependency | F-0703 |
+| :929 | `store.alertMessage?.contains("可能被折叠或筛选隐藏") == true` | alertKey == "error.dependency.predecessor_hidden" | F-0705（需 G4 暴露 alertKey） |
+| :937 | `store.alertMessage?.contains("可能被折叠或筛选隐藏") == true` | alertKey == "error.dependency.predecessor_hidden" | F-0705（需 G4 暴露 alertKey） |
+| :981 | `store.alertMessage?.contains("环") == true` | alertKey == "error.dependency.cycle" | F-0705（需 G4 暴露 alertKey） |
+| :990 | `store.alertMessage?.contains("找不到") == true` | alertKey == "error.task.not_found" | F-0705（需 G4 暴露 alertKey） |
+| :993 | `store.alertMessage?.contains("自身") == true` | alertKey == "error.dependency.self" | F-0705（需 G4 暴露 alertKey） |
 | :1014 | `store.exportProject.metadata.title == "未命名项目"` | 抽为文件顶部常量，断言不变 | — |
 | :1036 | `store.exportProject.metadata.title == "外部标题"` | 抽为文件顶部常量，断言不变 | — |
-| :1037 | `store.notice?.hasPrefix("已载入外部更新") == true` | noticeCode == .externalUpdateLoaded | F-0703 |
+| :1037 | `store.notice?.hasPrefix("已载入外部更新") == true` | noticeKey == "alert.external_update_loaded" | F-0705（需 G4 暴露 noticeKey） |
 | :1187 | `try command(commands, "view.outlineColumn.start").title == "显示/隐藏开始列"` | command.id == "view.outlineColumn.start"（标题由键存在测试覆盖） | F-0705 |
 
 **AppTests/Sprint8TaskDateActionTests.swift**
 
 | 位置 | 现行断言 | 目标断言 | 依赖 |
 |---|---|---|---|
-| :144 | `store.alertMessage == "结束日期必须晚于开始日期"` | alertCode == .finishNotAfterStart | F-0703 |
-| :157 | `store.alertMessage == "结束日期必须晚于开始日期"` | alertCode == .finishNotAfterStart | F-0703 |
-| :197 | `store.alertMessage == "排期已变化，请重新选择结束日期"` | alertCode == .scheduleChangedReselectFinish | F-0703 |
-| :214 | `store.alertMessage == "结束日期必须晚于开始日期"` | alertCode == .finishNotAfterStart | F-0703 |
+| :144 | `store.alertMessage == "结束日期必须晚于开始日期"` | alertKey == "alert.finish_after_start" | F-0705（需 G4 暴露 alertKey） |
+| :157 | `store.alertMessage == "结束日期必须晚于开始日期"` | alertKey == "alert.finish_after_start" | F-0705（需 G4 暴露 alertKey） |
+| :197 | `store.alertMessage == "排期已变化，请重新选择结束日期"` | alertKey == "alert.schedule_changed" | F-0705（需 G4 暴露 alertKey） |
+| :214 | `store.alertMessage == "结束日期必须晚于开始日期"` | alertKey == "alert.finish_after_start" | F-0705（需 G4 暴露 alertKey） |
 
 **AppTests/Sprint8DateAcceptanceTests.swift**
 
 | 位置 | 现行断言 | 目标断言 | 依赖 |
 |---|---|---|---|
-| :243 | `store.alertMessage == "结束日期必须晚于开始日期"` | alertCode == .finishNotAfterStart | F-0703 |
-| :252 | `store.alertMessage == "结束日期必须晚于开始日期"` | alertCode == .finishNotAfterStart | F-0703 |
+| :243 | `store.alertMessage == "结束日期必须晚于开始日期"` | alertKey == "alert.finish_after_start" | F-0705（需 G4 暴露 alertKey） |
+| :252 | `store.alertMessage == "结束日期必须晚于开始日期"` | alertKey == "alert.finish_after_start" | F-0705（需 G4 暴露 alertKey） |
 | :531 | `DateQuickAction.allCases.map(\.title) == ["今天", "下周一", "+1 周"]` | 抽为文件顶部常量，断言不变 | — |
-| :589 | `store.alertMessage == "排期已变化，请重新选择结束日期"` | alertCode == .scheduleChangedReselectFinish | F-0703 |
+| :589 | `store.alertMessage == "排期已变化，请重新选择结束日期"` | alertKey == "alert.schedule_changed" | F-0705（需 G4 暴露 alertKey） |
 
 **AppTests/DayWidthControlTests.swift**
 
 | 位置 | 现行断言 | 目标断言 | 依赖 |
 |---|---|---|---|
-| :44 | `store.snapshot.statusBar.zoomLabel == "自定义"` | store.snapshot.statusBar.zoomLabel == .custom | F-0704 |
+| :44 | `store.snapshot.statusBar.zoomLabel == "自定义"` | store.snapshot.statusBar.zoom.preset == .custom | F-0704 |
 
 **AppTests/SaveAsTests.swift**
 
@@ -143,7 +144,7 @@
 | :184 | `store.suggestedSaveFilename == "已有.kairo"` | 抽常量 Fixture.existingProjectTitle，断言不变 | — |
 | :209 | `reopened.metadata.title == "格式版本检查"` | 抽为文件顶部常量，断言不变 | — |
 | :270 | `try KairoFile.load(from: newURL).metadata.title == "另存后再修改"` | 抽为文件顶部常量，断言不变 | — |
-| :294 | `store.notice?.hasPrefix("已载入外部更新") != true` | noticeCode != .externalUpdateLoaded | F-0703 |
+| :294 | `store.notice?.hasPrefix("已载入外部更新") != true` | noticeKey != "alert.external_update_loaded" | F-0705（需 G4 暴露 noticeKey） |
 | :297 | `try KairoFile.load(from: originalURL).metadata.title == "旧文件被外部改写"` | 抽为文件顶部常量，断言不变 | — |
 | :318 | `try KairoFile.load(from: newURL).metadata.title == "面板打开期间的编辑"` | 抽为文件顶部常量，断言不变 | — |
 | :344 | `store.exportProject.metadata.title == "面板中修改"` | 抽为文件顶部常量，断言不变 | — |
@@ -161,12 +162,12 @@
 
 | 位置 | 现行断言 | 目标断言 | 依赖 |
 |---|---|---|---|
-| :662 | `custom.zoomLabel == "自定义"` | custom.zoomLabel == .custom | F-0704 |
+| :662 | `custom.zoomLabel == "自定义"` | custom.zoom.preset == .custom | F-0704 |
 | :663 | `custom.zoomDetail == "20 点/天"` | 见 §3 | F-0712 |
-| :666 | `fractional.zoomLabel == "自定义"` | fractional.zoomLabel == .custom | F-0704 |
+| :666 | `fractional.zoomLabel == "自定义"` | fractional.zoom.preset == .custom | F-0704 |
 | :667 | `fractional.zoomDetail == "12.5 点/天"` | 见 §3 | F-0712 |
-| :675 | `preset.zoomLabel == "日"` | preset.zoomLabel == .day | F-0704 |
-| :692 | `fit.zoomLabel == "适合项目"` | fit.zoomLabel == .fit | F-0704 |
+| :675 | `preset.zoomLabel == "日"` | preset.zoom.preset == .day | F-0704 |
+| :692 | `fit.zoomLabel == "适合项目"` | fit.zoom.preset == .fit | F-0704 |
 
 **KairoPresentationTests/PresenterTests.swift**
 
@@ -175,21 +176,21 @@
 | :131 | `snapshot.outline.filterSummary?.contains("筛选") == true` | snapshot.outline.filterSummary == .active（枚举，非摘要串） | F-0704 |
 | :392 | `project.title == "演示项目"` | 抽为文件顶部常量，断言不变 | — |
 | :423 | `inspector.groups[0].items[0].name == "相关性环"` | 抽为文件顶部常量，断言不变 | — |
-| :483 | `snapshot.statusBar.zoomLabel == "日"` | snapshot.statusBar.zoomLabel == .day | F-0704 |
+| :483 | `snapshot.statusBar.zoomLabel == "日"` | snapshot.statusBar.zoom.preset == .day | F-0704 |
 
 **KairoPresentationTests/DayWidthTests.swift**
 
 | 位置 | 现行断言 | 目标断言 | 依赖 |
 |---|---|---|---|
-| :338 | `custom.zoomLabel == "自定义"` | custom.zoomLabel == .custom | F-0704 |
+| :338 | `custom.zoomLabel == "自定义"` | custom.zoom.preset == .custom | F-0704 |
 | :339 | `custom.zoomDetail == "20 点/天"` | 见 §3 | F-0712 |
-| :342 | `fractional.zoomLabel == "自定义"` | fractional.zoomLabel == .custom | F-0704 |
+| :342 | `fractional.zoomLabel == "自定义"` | fractional.zoom.preset == .custom | F-0704 |
 | :343 | `fractional.zoomDetail == "12.5 点/天"` | 见 §3 | F-0712 |
-| :346 | `preset.zoomLabel == "日"` | preset.zoomLabel == .day | F-0704 |
+| :346 | `preset.zoomLabel == "日"` | preset.zoom.preset == .day | F-0704 |
 | :347 | `preset.zoomDetail == "32 点/天"` | 见 §3 | F-0712 |
-| :352 | `fit.zoomLabel == "适合项目"` | fit.zoomLabel == .fit | F-0704 |
+| :352 | `fit.zoomLabel == "适合项目"` | fit.zoom.preset == .fit | F-0704 |
 | :353 | `fit.zoomDetail?.hasSuffix("点/天") == true` | 见 §3 | F-0712 |
-| :362 | `statusBar.zoomLabel == "自定义"` | statusBar.zoomLabel == .custom | F-0704 |
+| :362 | `statusBar.zoomLabel == "自定义"` | statusBar.zoom.preset == .custom | F-0704 |
 
 ### 2.3 KairoCoreTests（归属 G2）
 
@@ -215,9 +216,9 @@
 |---|---|---|---|
 | :139 | `decoded.project.metadata.title == "当前格式"` | 抽为文件顶部常量，断言不变 | — |
 | :174 | `decoded.project.metadata.title == "端到端 v2 v3"` | 抽为文件顶部常量，断言不变 | — |
-| :297 | `reason.contains("合成迁移拒绝继续")` | migrationError == .syntheticMigrationRejected | F-0703 |
-| :321 | `reason.contains("合成迁移拒绝继续")` | migrationError == .syntheticMigrationRejected | F-0703 |
-| :343 | `reason.contains("解码")` | migrationError == .decodeFailed | F-0703 |
+| :297 | `reason.contains("合成迁移拒绝继续")` | migrationError == .migrationFailed（按实际枚举，见 §7） | F-0703 |
+| :321 | `reason.contains("合成迁移拒绝继续")` | migrationError == .migrationFailed（按实际枚举，见 §7） | F-0703 |
+| :343 | `reason.contains("解码")` | migrationError == .migrationFailed（解码失败归此码，待确认） | F-0703 |
 
 **KairoCoreTests/ProjectStateTests.swift**
 
@@ -330,7 +331,7 @@
 
 | 位置 | 现行断言 | 目标断言 | 依赖 |
 |---|---|---|---|
-| :150 | `message.contains("最低版本")` | errorCode == .belowMinimumVersion | F-0703 |
+| :150 | `message.contains("最低版本")` | errorCode == .minimumVersionUnmet | F-0703（已交付 UpdaterErrorCode） |
 
 **KairoUpdaterTests/InstallerTests.swift**
 
@@ -393,3 +394,12 @@
 | 否定式断言改名后恒真 | 掩盖回归 | B1 每条否定式配一条肯定式对照 |
 | 与 coder 抢同一测试文件 | 冲突/覆盖 | 按 2.x 的归属列，等对应 coder 提交后再进该文件 |
 
+## 7. 与源码对不上的 3 处（待裁定）
+
+| # | 计划假设 | 源码实际 | 处置建议 |
+|---|---|---|---|
+| 1 | `alertCode` / `noticeCode` 两个枚举 | **不存在**。`WorkspaceStore` 仍是 `@Published var alertMessage: String?` 与 `private(set) var notice: String?`，取词在调用点内联 `I18n.t("alert.finish_after_start", "The finish date…")` | 26 条断言已改为 `alertKey == "alert.finish_after_start"` 形态，**前提是 G4 暴露 `alertKey` / `noticeKey`**（或 `lastAlert: (key, args)`）。不暴露则只剩两种差解：断 `I18n.t(key)` 与实现同源（恒真）、断非空（等于没断）。请裁定是否要 G4 加这两个可观测字段 |
+| 2 | `migrationError == .syntheticMigrationRejected` / `.decodeFailed` | `KairoErrorCode` 只有 `storage_migration_failed` 一个码 | 3 条按 `.migrationFailed` 断；若要区分「合成迁移拒绝」与「解码失败」，需扩码（建议 `storage_migration_decode_failed`），否则只能断文本（不推荐） |
+| 3 | `errorCode == .autoLaunchFailed` | `UpdaterErrorCode` 无此 case，最接近的是 `.scriptLaunchFailed`（`updater_script_launch_failed`） | 请 core 确认 `InstallerTests:70`「自动启动失败」实际走哪个码；确认前该条标 `updater_*`，不猜 |
+
+> 三项都不阻塞 B0（84 条常量抽取）与 B2（接口层 9 条）；只影响 B1 中 26 条 alert/notice 断言的最终形态。
