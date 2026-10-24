@@ -96,7 +96,12 @@ cat > "$APP_BUNDLE/Contents/Info.plist" <<PLIST
 <plist version="1.0">
 <dict>
   <key>CFBundleDevelopmentRegion</key>
-  <string>zh_CN</string>
+  <string>en</string>
+  <key>CFBundleLocalizations</key>
+  <array>
+    <string>en</string>
+    <string>zh-Hans</string>
+  </array>
   <key>CFBundleExecutable</key>
   <string>${APP_NAME}</string>
   <key>CFBundleIdentifier</key>
@@ -194,6 +199,23 @@ if [[ -d "$MENUBAR_SRC" ]]; then
 fi
 
 printf 'APPL????' > "$APP_BUNDLE/Contents/PkgInfo"
+
+# 本地化资源（F-0700 主路径 B，docs/features/06-localization.md §7）
+# .xcstrings 只作源，编译成 .lproj 后拷进 Contents/Resources；必须早于 codesign，
+# 否则资源不在签名覆盖内（R4）。缺 Catalog 或任一语言目录一律失败，不静默回退。
+LPROJ_DIR="$DIST_DIR/lproj"
+echo "==> 编译本地化资源 → $LPROJ_DIR"
+if ! bash "$ROOT/tools/i18n-compile.sh" "$LPROJ_DIR"; then
+  echo "本地化资源编译失败，停止打包（需要 Xcode 命令行工具与 $ROOT/Apps/macos/Resources/Localizable.xcstrings）" >&2
+  exit 1
+fi
+for LANG_ID in en zh-Hans; do
+  if [[ ! -d "$LPROJ_DIR/$LANG_ID.lproj" ]]; then
+    echo "缺少本地化目录：$LPROJ_DIR/${LANG_ID}.lproj（Catalog 未提供 ${LANG_ID}）" >&2
+    exit 1
+  fi
+  cp -R "$LPROJ_DIR/$LANG_ID.lproj" "$APP_BUNDLE/Contents/Resources/"
+done
 
 # 本地 ad-hoc 签名，避免 Gatekeeper 拦住未签名包
 if command -v codesign >/dev/null 2>&1; then
