@@ -45,6 +45,9 @@ jobs:
       - name: 门禁 · 视图层不得直接引用核心模型（ADR-013）
         run: bash tools/gate-ui.sh
 
+      - name: 门禁 · 脚本变量不得紧跟全角字符（bash 3.2 会把全角并入变量名，#7）
+        run: bash tools/check-shell-fullwidth.sh
+
       - name: 门禁 · 多语言（硬编码中文 / Bundle.module / 键完整性）
         run: |
           set -euo pipefail

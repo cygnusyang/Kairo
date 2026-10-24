@@ -30,7 +30,7 @@ NOTES="$(awk -v t="$TAG" '
 NOTES="$(printf '%s' "$NOTES" | sed -e '/./,$!d' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')"
 
 if [[ -z "${NOTES// /}" ]]; then
-  echo "CHANGELOG.md 中没有「## $TAG」章节" >&2
+  echo "CHANGELOG.md 中没有「## ${TAG}」章节" >&2
   exit 1
 fi
 

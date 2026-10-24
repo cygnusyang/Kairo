@@ -58,7 +58,7 @@ if [[ "$SKIP_BUILD" -eq 0 ]]; then
 fi
 
 if [[ ! -d "$APP" ]]; then
-  echo "未找到应用包: $APP（先跑 tools/build.sh，或去掉 --skip-build）" >&2
+  echo "未找到应用包: ${APP}（先跑 tools/build.sh，或去掉 --skip-build）" >&2
   exit 1
 fi
 

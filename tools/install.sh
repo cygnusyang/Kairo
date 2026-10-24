@@ -50,7 +50,7 @@ done
 
 if [[ "$BUILD_FIRST" -eq 1 || ! -d "$APP_SRC" ]]; then
   if [[ ! -d "$APP_SRC" ]]; then
-    echo "==> 未找到 $APP_SRC，先编译打包"
+    echo "==> 未找到 ${APP_SRC}，先编译打包"
   else
     echo "==> --build：重新编译打包"
   fi
