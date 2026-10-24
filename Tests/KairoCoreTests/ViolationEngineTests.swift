@@ -293,3 +293,71 @@ struct StartAfterProjectWindowAttributionTests {
         #expect(!codes(vs).contains(.startAfterProjectWindow))
     }
 }
+
+// MARK: - F-0716 / D-023 时限窗口按日历日（America/New_York 跨 DST）
+
+private let newYork: Calendar = {
+    var c = Calendar(identifier: .gregorian)
+    c.timeZone = TimeZone(identifier: "America/New_York")!
+    return c
+}()
+
+private func nyDay(_ y: Int, _ m: Int, _ d: Int) -> Date {
+    newYork.date(from: DateComponents(year: y, month: m, day: d))!
+}
+
+/// 违例检查必须使用与排期同一个日历：混用 UTC 会把 DST 差异算成 0 小时（这正是 D-023 的坑）。
+private func nyViolations(_ result: ScheduleResult, _ tasks: [TaskItem]) -> [Violation] {
+    ViolationEngine.check(result: result, tasks: tasks, calendar: newYork)
+}
+
+struct ConstraintWindowCalendarDayTests {
+    /// 秋退：2025-11-02 回拨，窗口 2 个日历日是 49 小时。
+    /// 旧实现按 49h/24 = 2.0417 天判「装得下」；日历日口径是 2 天，装不下 2.02 天。
+    @Test func windowAcrossFallBackCountsCalendarDays() {
+        var t = task("跨回拨任务", duration: 2.02,
+                     constraint: .startNoEarlierThan(nyDay(2025, 11, 1)))
+        t.dueDate = nyDay(2025, 11, 3)
+        let result = ScheduleEngine.compute(
+            tasks: [t],
+            projectStart: nyDay(2025, 10, 27),
+            projectEnd: nyDay(2025, 12, 1),
+            calendar: newYork
+        )
+        let window = nyViolations(result, [t]).filter { $0.code == .constraintWindowTooNarrow }
+        #expect(window.count == 1)
+        guard case .constraintWindowTooNarrow(_, let windowDays, let requiredDays)?
+            = window.first?.reason else { return }
+        #expect(windowDays == 2)
+        #expect(requiredDays == 2)
+    }
+
+    /// 春进：2025-03-09 前拨，窗口 2 个日历日是 47 小时。
+    /// 旧实现按 47h/24 = 1.9583 天误报「过窄」；日历日口径是 2 天，装得下 1.98 天。
+    @Test func windowAcrossSpringForwardDoesNotReportFalsePositive() {
+        var t = task("跨前拨任务", duration: 1.98,
+                     constraint: .startNoEarlierThan(nyDay(2025, 3, 8)))
+        t.dueDate = nyDay(2025, 3, 10)
+        let result = ScheduleEngine.compute(
+            tasks: [t],
+            projectStart: nyDay(2025, 3, 3),
+            projectEnd: nyDay(2025, 3, 20),
+            calendar: newYork
+        )
+        #expect(!codes(nyViolations(result, [t])).contains(.constraintWindowTooNarrow))
+    }
+
+    /// 春进下的 endNoEarlierThan 反解：x − 持续 必须按日历日，否则会提前 1 小时误报。
+    @Test func endNoEarlierThanResolutionStaysOnCalendarDays() {
+        let t = task("结束不早于任务", duration: 2,
+                     constraint: .endNoEarlierThan(nyDay(2025, 3, 10)))
+        let result = ScheduleEngine.compute(
+            tasks: [t],
+            projectStart: nyDay(2025, 3, 8),
+            projectEnd: nyDay(2025, 3, 20),
+            calendar: newYork
+        )
+        let conflicts = nyViolations(result, [t]).filter { $0.code == .constraintVsDependency }
+        #expect(conflicts.isEmpty, "跨前拨不应误报窗口装不下持续时间：\(conflicts.map(\.reason))")
+    }
+}

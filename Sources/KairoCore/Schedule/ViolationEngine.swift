@@ -13,6 +13,9 @@ import Foundation
 ///   endNoEarlierThan(x)  ：F-30-05，最晚结束 < x；x − 持续 < 最早开始（同上）。
 ///   endNoLaterThan(x)    ：F-30-04，最早结束 > x。
 /// 双时限模型：任务同时带开始侧与结束侧时限且窗口 < 持续时间 → F-30-03（时限靠得太近）。
+///
+/// 日期算术与调度同源：一律按日历日（`Calendar` 整日加减），不按 86 400 秒折算——
+/// 跨夏令时切换时秒折算会让窗口宽窄 1 小时，产生误报 / 漏报（F-0716 / D-023）。
 public enum ViolationEngine {
     /// 规则目录（F-30）：违例页空态与检查器从同一来源读取，界面不复制规则清单。
     ///
@@ -102,22 +105,23 @@ public enum ViolationEngine {
     ) -> [Violation] {
         result.tasks.compactMap { s in
             guard let task = byID[s.taskID], task.constraint != nil else { return nil }
-            guard let window = Self.constraintWindow(for: task) else { return nil }
-            let needed = s.durationDays * 86_400
-            guard window < needed else { return nil }
+            guard let windowDays = Self.constraintWindowDays(for: task, calendar: calendar) else {
+                return nil
+            }
+            guard windowDays < s.durationDays else { return nil }
             return Violation(
                 reason: .constraintWindowTooNarrow(
                     taskTitle: task.title,
-                    windowDays: Int(window / 86_400),
-                    requiredDays: Int(needed / 86_400)
+                    windowDays: Int(windowDays),
+                    requiredDays: Int(s.durationDays)
                 ),
                 taskID: s.taskID
             )
         }
     }
 
-    /// 同时存在开始侧与结束侧时限时，返回两者间隔（秒）；否则 nil。
-    private static func constraintWindow(for task: TaskItem) -> TimeInterval? {
+    /// 同时存在开始侧与结束侧时限时，返回两者间隔（日历日）；否则 nil。
+    private static func constraintWindowDays(for task: TaskItem, calendar: Calendar) -> Double? {
         guard let c = task.constraint else { return nil }
         let startSide: Date?
         let endSide: Date?
@@ -133,7 +137,7 @@ public enum ViolationEngine {
         guard let start = startSide ?? task.startDate, let end = endSide ?? task.dueDate else {
             return nil
         }
-        return end.timeIntervalSince(start)
+        return daysBetween(start, end, in: calendar)
     }
 
     // MARK: - F-30-06 负宽延（无法安排 ASAP/ALAP）
@@ -217,7 +221,7 @@ public enum ViolationEngine {
                         taskID: s.taskID
                     ))
                 }
-                if x.addingTimeInterval(s.durationDays * 86_400) > s.latestFinish {
+                if addDays(x, s.durationDays, in: calendar) > s.latestFinish {
                     violations.append(Violation(
                         reason: .constraintConflict(
                             taskTitle: task.title,
@@ -238,7 +242,7 @@ public enum ViolationEngine {
                         taskID: s.taskID
                     ))
                 }
-                if x.addingTimeInterval(-s.durationDays * 86_400) < s.earliestStart {
+                if addDays(x, -s.durationDays, in: calendar) < s.earliestStart {
                     violations.append(Violation(
                         reason: .constraintConflict(
                             taskTitle: task.title,
@@ -261,5 +265,33 @@ public enum ViolationEngine {
             }
         }
         return violations
+    }
+
+    // MARK: - 日历日算术（与 ScheduleEngine 同口径）
+
+    /// 一天的秒数：仅用于小数天余量与日历换算失败时的兜底，不参与整日算术。
+    private static let secondsPerDay: Double = 86_400
+
+    /// 按日历日加减（夏令时安全）：整日部分走 `Calendar`，跨 DST 后仍落在本地零点。
+    private static func addDays(_ date: Date, _ days: Double, in calendar: Calendar) -> Date {
+        let wholeDays = days.rounded(.towardZero)
+        let base: Date
+        if let whole = Int(exactly: wholeDays), whole != 0,
+           let shifted = calendar.date(byAdding: .day, value: whole, to: date) {
+            base = shifted
+        } else {
+            base = date.addingTimeInterval(wholeDays * secondsPerDay)
+        }
+        let remainder = days - wholeDays
+        return remainder == 0 ? base : base.addingTimeInterval(remainder * secondsPerDay)
+    }
+
+    /// 日历日差：整日部分取 `Calendar` 的日差（跨 DST 仍是 N 天），余量按 86 400 秒折算。
+    private static func daysBetween(_ from: Date, _ to: Date, in calendar: Calendar) -> Double {
+        let wholeDays = calendar.dateComponents([.day], from: from, to: to).day ?? 0
+        guard let shifted = calendar.date(byAdding: .day, value: wholeDays, to: from) else {
+            return to.timeIntervalSince(from) / secondsPerDay
+        }
+        return Double(wholeDays) + to.timeIntervalSince(shifted) / secondsPerDay
     }
 }
