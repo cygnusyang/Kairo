@@ -6,6 +6,8 @@
 #
 # 每个用例自建临时仓库（mktemp -d 下），只依赖 tools/i18n-lint.sh 与
 # tools/i18n-compile.sh 两个被测脚本，不读仓库源码树、不跑 swift、不动 .build。
+# 被测脚本一律 **复制** 进临时树的 tools/，不要改成符号链接：脚本按自身路径推
+# 仓库根，符号链接会把临时树的 --write-whitelist 写到真实 tools/i18n-whitelist.txt。
 # 用法: tools/i18n-lint-selftest.sh
 # 退出码: 0 全部通过；1 有用例失败
 set -u
