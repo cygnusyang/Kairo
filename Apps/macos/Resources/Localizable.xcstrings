@@ -4183,6 +4183,23 @@
         }
       }
     },
+    "menu.view.mode.label": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "视图"
+          }
+        }
+      }
+    },
     "menu.view.outline": {
       "extractionState": "manual",
       "localizations": {

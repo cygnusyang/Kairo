@@ -63,7 +63,7 @@ enum KairoCommandGroup: String, CaseIterable, Hashable, Sendable {
         case .edit: return I18n.t("menu.group.edit", "Edit")
         case .outline: return I18n.t("menu.group.outline", "Outline")
         case .task: return I18n.t("menu.group.task", "Task")
-        case .view: return I18n.t("menu.group.view", "View")
+        case .view: return I18n.t("menu.group.view", "Workspace")
         case .find: return I18n.t("menu.group.find", "Find")
         }
     }

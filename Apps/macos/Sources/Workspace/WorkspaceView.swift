@@ -134,7 +134,7 @@ struct WorkspaceView: View {
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
         ToolbarItemGroup(placement: .navigation) {
-            Picker(I18n.t("menu.group.view", "View"), selection: Binding(
+            Picker(I18n.t("menu.view.mode.label", "View"), selection: Binding(
                 get: { store.viewState.mode },
                 set: { store.dispatch(.setMode($0)) }
             )) {
