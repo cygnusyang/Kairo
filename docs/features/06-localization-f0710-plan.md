@@ -19,7 +19,7 @@
 | KairoPresentationTests | 17 | 2 | 19 | G2 | F-0704 / F-0712 |
 | KairoCoreTests | 8 | 28 | 36 | G2 | F-0703 / F-0702 |
 | InterfaceTests | 9 | 9 | 18 | G3 | F-0707 / F-0708 |
-| KairoUpdaterTests | 2 | 0 | 2 | G2 | F-0703（已交付 UpdaterErrorCode） / F-0703 |
+| KairoUpdaterTests | 2 | 0 | 2 | G2 | F-0703（已交付 UpdaterErrorCode） |
 | **合计** | **86** | **79** | **165** | — | — |
 
 ## 2. 逐文件改造计划
@@ -216,9 +216,9 @@
 |---|---|---|---|
 | :139 | `decoded.project.metadata.title == "当前格式"` | 抽为文件顶部常量，断言不变 | — |
 | :174 | `decoded.project.metadata.title == "端到端 v2 v3"` | 抽为文件顶部常量，断言不变 | — |
-| :297 | `reason.contains("合成迁移拒绝继续")` | migrationError == .migrationFailed（按实际枚举，见 §7） | F-0703 |
-| :321 | `reason.contains("合成迁移拒绝继续")` | migrationError == .migrationFailed（按实际枚举，见 §7） | F-0703 |
-| :343 | `reason.contains("解码")` | migrationError == .migrationFailed（解码失败归此码，待确认） | F-0703 |
+| :297 | `reason.contains("合成迁移拒绝继续")` | migrationError == .migrationFailed（已知限制：合成拒绝与解码失败共用此码，见 §7-2） | F-0703 |
+| :321 | `reason.contains("合成迁移拒绝继续")` | migrationError == .migrationFailed（已知限制：合成拒绝与解码失败共用此码，见 §7-2） | F-0703 |
+| :343 | `reason.contains("解码")` | migrationError == .migrationFailed（已知限制：合成拒绝与解码失败共用此码，见 §7-2） | F-0703 |
 
 **KairoCoreTests/ProjectStateTests.swift**
 
@@ -337,7 +337,7 @@
 
 | 位置 | 现行断言 | 目标断言 | 依赖 |
 |---|---|---|---|
-| :70 | `decoded.message.contains("自动启动失败")` | errorCode == .autoLaunchFailed | F-0703 |
+| :70 | `decoded.message.contains("自动启动失败")` | errorCode == .scriptLaunchFailed | F-0703（已交付 UpdaterErrorCode） |
 
 ## 3. 日期 / 单位 16 条专节（最后改）
 
@@ -394,12 +394,12 @@
 | 否定式断言改名后恒真 | 掩盖回归 | B1 每条否定式配一条肯定式对照 |
 | 与 coder 抢同一测试文件 | 冲突/覆盖 | 按 2.x 的归属列，等对应 coder 提交后再进该文件 |
 
-## 7. 与源码对不上的 3 处（待裁定）
+## 7. 三处名称落差的裁定结果
 
-| # | 计划假设 | 源码实际 | 处置建议 |
+| # | 事项 | 裁定（2026-10-24） | 落地动作 |
 |---|---|---|---|
-| 1 | `alertCode` / `noticeCode` 两个枚举 | **不存在**。`WorkspaceStore` 仍是 `@Published var alertMessage: String?` 与 `private(set) var notice: String?`，取词在调用点内联 `I18n.t("alert.finish_after_start", "The finish date…")` | 26 条断言已改为 `alertKey == "alert.finish_after_start"` 形态，**前提是 G4 暴露 `alertKey` / `noticeKey`**（或 `lastAlert: (key, args)`）。不暴露则只剩两种差解：断 `I18n.t(key)` 与实现同源（恒真）、断非空（等于没断）。请裁定是否要 G4 加这两个可观测字段 |
-| 2 | `migrationError == .syntheticMigrationRejected` / `.decodeFailed` | `KairoErrorCode` 只有 `storage_migration_failed` 一个码 | 3 条按 `.migrationFailed` 断；若要区分「合成迁移拒绝」与「解码失败」，需扩码（建议 `storage_migration_decode_failed`），否则只能断文本（不推荐） |
-| 3 | `errorCode == .autoLaunchFailed` | `UpdaterErrorCode` 无此 case，最接近的是 `.scriptLaunchFailed`（`updater_script_launch_failed`） | 请 core 确认 `InstallerTests:70`「自动启动失败」实际走哪个码；确认前该条标 `updater_*`，不猜 |
+| 1 | `alertCode` / `noticeCode` 不存在，`WorkspaceStore` 仍是 `alertMessage: String?` / `notice: String?`，取词在调用点内联 `I18n.t` | **采本计划方案**：由 G4 在 `WorkspaceStore` 暴露语义键 `alertKey` / `noticeKey`（与 message 同源求值，不重复计算文案）。**不接受**断 `I18n.t(key)`（恒真）与断非空（等于没断） | 26 条断言按 `alertKey == "alert.finish_after_start"` 等形态落地；B1 中这 26 条等 G4 交付 `alertKey` 后转绿 |
+| 2 | 迁移错误只有一个 `storage_migration_failed` | **接受单码**，本版不扩错误码表 | 3 条统一断 `migrationError == .migrationFailed`，并在 CHANGELOG 已知限制中写明「合成迁移拒绝与解码失败共用此码」 |
+| 3 | `UpdaterErrorCode` 无 `autoLaunchFailed` | **用 `.scriptLaunchFailed`**（`updater_script_launch_failed`），core 复核后如不符再改一条 | `InstallerTests:70` 断 `errorCode == .scriptLaunchFailed` |
 
-> 三项都不阻塞 B0（84 条常量抽取）与 B2（接口层 9 条）；只影响 B1 中 26 条 alert/notice 断言的最终形态。
+> 三项均不阻塞 B0（84 条常量抽取）与 B2（接口层 9 条）；只影响 B1 里 26 条 alert/notice 与 5 条错误码断言。
