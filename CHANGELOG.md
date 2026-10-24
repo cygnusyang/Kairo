@@ -3,30 +3,46 @@
 所有显著改动记录于此。格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)；
 版本号遵循语义化版本。发布版本另见 [GitHub Releases](https://github.com/cygnusyang/Kairo/releases)。
 
-## [Unreleased] — v0.9.0 多语言（阶段一，开发中）
+## v0.9.0 — 2026-10-24
 
-<!-- 发版时把本节标题改为「## v0.9.0 — YYYY-MM-DD」：tools/release.sh 与 tools/release_notes.sh 按「## vX.Y.Z」抽取发布说明。 -->
-> 本节随 `feature/i18n-v0.9.0` 归集；发版前逐条核对是否已合入，未合入的条目移出或改写。
+### 破坏性变更
+
+`KairoCore` / `KairoCommands` / `KairoPresentation` / `KairoUpdater` 仅有本仓库内部消费者，iPadOS 壳尚未发布；pre-1.0 不为下列删除保留兼容层。
+
+- 删除 `Violation.message`：违例只带 `reason`（语义枚举 + 参数）与派生的 `code`
+- 删除 `RuleCategory.name`：规则名改由视图按 `violation.rule.<code>` 查 Catalog
+- 删除 `StatusBarSnapshot.zoomLabel` / `zoomDetail`：改为 `zoom: ZoomIndicator`（`preset` + `pointsPerDay`）
+- 删除 `ViolationItem.name` / `message`：改为 `code` + `reason`
+- 删除 `WorkspacePresenter.zoomLabel(_:)` / `zoomDetail(dayWidth:)`
+- `OutlineDateEditing.disabledReason(for:)`（返回中文整句）改为属性 `disabledReason: DateFieldDisabledReason?`
+- `SessionError` 旧签名：增加 `reason: KairoErrorCode`；`code` 与 `message` 保留
+- 删除 Updater 各类型的 `errorDescription`：改为 `UpdaterErrorCode`（码 + 参数）
+- `UpdaterState.failed(String)` → `failed(UpdaterFailure)`
+- `KairoSession.loadWarnings: [String]` → `[LoadWarning]`
 
 ### 新增
 
-- **界面双语（英文 / 简体中文）**：英文为源语言，简体中文为译文。语言按系统语言协商，包内 `CFBundleLocalizations` 声明 `en` 与 `zh-Hans`；启动时确定，切换系统语言后重启应用生效。（F-0705）
-- **打包期编译 String Catalog（F-0700 主路径 B）**：`.xcstrings` 只作源文件——SwiftPM 的 `.process` 资源只原样拷贝、不编译，生成的 resource bundle 也没有 `Info.plist`，因此运行期只认 `.app` 内的 `.lproj`。`tools/i18n-compile.sh` 用 `xcrun xcstringstool compile` 编出 `en` / `zh-Hans`（Catalog 文件名必须是 `Localizable.xcstrings`——表名由文件名决定，运行期只读 `Localizable` 表），`tools/build.sh` 在 `codesign` **之前**把它们拷进 `Contents/Resources/`；缺 Catalog 或任一语言目录直接失败，不再产出单语包。（F-0709）
-- **CLI 语言策略**：`--lang <bcp47>` 与 `KAIRO_LANG`，优先级 命令行 > 环境变量 > 系统语言；**系统语言不可判定时回退简体中文**，保证既有中文脚本不被破坏（英文用户显式钉死语言即可）。`--lang` 取值非法按用法错误退出 2；`--json` 输出与语言无关，两种语言下字节一致。（F-0707）
-- **多语言 CI 门禁（`tools/i18n-lint.sh`）**：三项检查——白名单外新增硬编码中文字符串字面量（注释内中文不计）、`KairoCore` / `KairoCommands` / `KairoPresentation` 出现 `Bundle.module`、两份 `.lproj` 的键集合与占位符不一致。白名单 `tools/i18n-whitelist.txt` 入库作为迁移基线，`tools/i18n-lint-selftest.sh`（28 例）守住门禁自身，发版前置校验里 `--fail-if-whitelist-nonempty` 断言白名单清零。**没有任何跳过模式**：CI 以 `--require-catalog` 运行，Catalog 缺失即直接失败并指出「F-0705 未交付」——宁可红，不假绿。（F-0711）
+- **界面双语（英文 / 简体中文）**：英文为源语言，简体中文为译文；语言按系统语言协商，`CFBundleLocalizations` 声明 `en` 与 `zh-Hans`，启动时确定。
+- **应用语言设置（三档）**：跟随系统 / English / 简体中文，持久化到 `KairoLanguage`；缺失或非法值（含被手工改坏）回退跟随系统。
+- **String Catalog（403 键）**：`Apps/macos/Resources/Localizable.xcstrings` 为唯一源文件；`.xcstrings` 不进任何 target 的 `resources`（SwiftPM 只原样拷贝、不编译，resource bundle 也没有 `Info.plist`），改由 `tools/i18n-compile.sh` 在打包期用 `xcstringstool` 编出 `en` / `zh-Hans` 两份 `.lproj`，`tools/build.sh` 在 `codesign` 之前拷进 `Contents/Resources/`；缺 Catalog 或任一语言目录直接失败，不产出单语包。
+- **`KairoErrorCode`（47 个稳定码）**：`<group>_<detail>` 文法，其中 `schedule_start_after_project_window` 归因「任务开始日落在项目窗口外」；v0.9.0 起冻结，只增不改。
+- **`UpdaterErrorCode`（31 个稳定码）**：`updater_` 前缀，覆盖清单解析、签名校验、校验和、端点策略、下载、安装与产品校验；更新面板按码翻译。
+- **MCP 错误新增 `reason`**：`code` 六个取值冻结不变（`project_not_open` / `task_not_found` / `invalid_argument` / `file_unreadable` / `unsupported_format` / `internal_error`），`reason` 给出细粒度稳定码；`message` 保持中文原样，切英文排在 v0.10.0。
+- **CLI 语言策略**：`--lang <bcp47>` 与 `KAIRO_LANG`，优先级 命令行 > 环境变量 > 系统语言；系统语言不可判定时回退简体中文，既有中文脚本不受影响；`--json` 输出与语言无关，两种语言下字节一致。
+- **多语言 CI 门禁（`tools/i18n-lint.sh` + `tools/i18n-lint-selftest.sh`，31 例）**：零硬编码中文（白名单已清零）、`KairoCore` / `KairoCommands` / `KairoPresentation` 无 `Bundle.module`、两份 `.lproj` 的键集合与占位符一致、白名单为空；无跳过开关，Catalog 缺失即失败。
 
 ### 变更
 
-- **MCP 错误带稳定 `reason`**：错误响应在既有 `code` 之外新增细粒度 `reason`（`KairoErrorCode` 的 rawValue）；`code` 的 5 个取值冻结不变，按 `invalid_argument` / `task_not_found` 匹配的消费者不受影响。`message` 阶段一保持中文逐字不变，切英文排在 v0.10.0。（F-0708）
-- **分层不再持有文案**：违例改为「错误码 + 参数」、会话与 Updater 错误码化、快照只带语义枚举；CLI 与 MCP 各自渲染，不与视图层共享文案表。（F-0703 / F-0704）
-- **违例码 `schedule_start_after_project_window`**：任务开始日落在项目窗口外时单独归因，不再报成「负宽延」；参数含任务开始日与项目窗口，中文文案点明是输入导致。（F-0715）
-- **打包清单**：`CFBundleDevelopmentRegion` 由 `zh_CN` 改为 `en`。
+- **分层不再持有文案**：违例、会话错误与更新错误一律「码 + 类型化参数」，快照只带语义值；视图层是唯一翻译点，CLI 与 MCP 各自渲染。
+- **打包清单**：`CFBundleDevelopmentRegion` 由 `zh_CN` 改为 `en`，新增 `CFBundleLocalizations`（`en` / `zh-Hans`）。
+- **发版前置校验**：`tools/release.sh` 在改版本号之前编译 Catalog 并断言白名单为空，多语言闸门不合格即中止发版。
 
 ### 修复
 
-- **时限窗口按日历日计算（D-023）**：原先用 `86400` 秒换算，跨夏令时（America/New_York 春进 / 秋退）会差一小时并误判时限冲突；改用日历加法。（F-0716）
-- **排期「无下界」哨兵统一（D-024）**：`startDateLowerBound` 与排期内部哨兵共用同一常量，行为不变。（F-0717）
-- **发版脚本错误提示崩溃（#7）**：`tools/release.sh` 两处错误提示里变量紧贴全角标点，bash 3.2 把全角字符并入变量名，走到该分支时脚本以 `unbound variable` 崩掉而不是打印原因（远端已有同名 tag、CHANGELOG 缺章节两条路径）。改用 `${TAG}`。
+- **任务晚于项目窗口时的违例归因（D-022）**：改报 `schedule_start_after_project_window`，参数含任务开始日与项目窗口，中文文案点明是输入导致，不再笼统报「负宽延」。
+- **时限窗口按日历日计算（D-023）**：原先用 `86400` 秒换算，跨夏令时（America/New_York 春进 / 秋退）会差一小时并误判时限冲突；改用日历加法。
+- **排期「无下界」哨兵统一（D-024）**：`startDateLowerBound` 与排期内部哨兵共用 `ScheduleBounds.noLowerBound`，行为不变。
+- **脚本错误提示被吞（#7）**：六处变量紧贴全角标点（`tools/release.sh` 两处、`tools/install.sh` / `tools/package.sh` / `tools/sign_update_manifest.sh` / `tools/release_notes.sh` 各一处），bash 3.2 把全角字符并入变量名，出错时以 `unbound variable` 崩溃而非打印原因；改用 `${VAR}`，并新增 `tools/check-shell-fullwidth.sh` 接入 CI 防止复发。
 
 ## v0.8.5 — 2026-10-24
 
