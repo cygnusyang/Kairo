@@ -13,7 +13,7 @@
 - **界面双语（英文 / 简体中文）**：英文为源语言，简体中文为译文。语言按系统语言协商，包内 `CFBundleLocalizations` 声明 `en` 与 `zh-Hans`；启动时确定，切换系统语言后重启应用生效。（F-0705）
 - **打包期编译 String Catalog（F-0700 主路径 B）**：`.xcstrings` 只作源文件——SwiftPM 的 `.process` 资源只原样拷贝、不编译，生成的 resource bundle 也没有 `Info.plist`，因此运行期只认 `.app` 内的 `.lproj`。`tools/i18n-compile.sh` 用 `xcrun xcstringstool compile` 编出 `en` / `zh-Hans`（Catalog 文件名必须是 `Localizable.xcstrings`——表名由文件名决定，运行期只读 `Localizable` 表），`tools/build.sh` 在 `codesign` **之前**把它们拷进 `Contents/Resources/`；缺 Catalog 或任一语言目录直接失败，不再产出单语包。（F-0709）
 - **CLI 语言策略**：`--lang <bcp47>` 与 `KAIRO_LANG`，优先级 命令行 > 环境变量 > 系统语言；**系统语言不可判定时回退简体中文**，保证既有中文脚本不被破坏（英文用户显式钉死语言即可）。`--lang` 取值非法按用法错误退出 2；`--json` 输出与语言无关，两种语言下字节一致。（F-0707）
-- **多语言 CI 门禁（`tools/i18n-lint.sh`）**：三项检查——白名单外新增硬编码中文字符串字面量（注释内中文不计）、`KairoCore` / `KairoCommands` / `KairoPresentation` 出现 `Bundle.module`、两份 `.lproj` 的键集合与占位符不一致。白名单 `tools/i18n-whitelist.txt` 入库作为迁移基线，`tools/i18n-lint-selftest.sh`（24 例）守住门禁自身。**没有任何跳过模式**：CI 以 `--require-catalog` 运行，Catalog 缺失即直接失败并指出「F-0705 未交付」——宁可红，不假绿。（F-0711）
+- **多语言 CI 门禁（`tools/i18n-lint.sh`）**：三项检查——白名单外新增硬编码中文字符串字面量（注释内中文不计）、`KairoCore` / `KairoCommands` / `KairoPresentation` 出现 `Bundle.module`、两份 `.lproj` 的键集合与占位符不一致。白名单 `tools/i18n-whitelist.txt` 入库作为迁移基线，`tools/i18n-lint-selftest.sh`（28 例）守住门禁自身，发版前置校验里 `--fail-if-whitelist-nonempty` 断言白名单清零。**没有任何跳过模式**：CI 以 `--require-catalog` 运行，Catalog 缺失即直接失败并指出「F-0705 未交付」——宁可红，不假绿。（F-0711）
 
 ### 变更
 

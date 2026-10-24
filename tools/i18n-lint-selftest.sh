@@ -1,6 +1,8 @@
 #!/bin/bash
 # i18n-lint 门禁自测（F-0711）。用例只增不减——新增检查项时在此追加用例，不得改小。
-# 现 25 例；其中「--require-catalog 齐全时三验全过」是 CI 判定「三项都验了」的基准。
+# 现 28 例；其中「--require-catalog 齐全时三验全过」是 CI 判定「三项都验了」的基准。
+# 末尾三例覆盖 --fail-if-whitelist-nonempty：那是发布闸门，由 tools/release.sh 调用，
+# 不在 CI 常规路径（开发期白名单必然非空，接 CI 会天天红）。
 #
 # 每个用例自建临时仓库（mktemp -d 下），只依赖 tools/i18n-lint.sh 与
 # tools/i18n-compile.sh 两个被测脚本，不读仓库源码树、不跑 swift、不动 .build。
@@ -232,6 +234,25 @@ cat > "$T/Apps/macos/Resources/Localizable.xcstrings" <<'JSON'
 JSON
 run bash tools/i18n-lint.sh --require-catalog --lproj-dir lproj
 expect "--require-catalog 齐全时三验全过 → 0" 0 "(c) 键与占位符一致"
+
+# —— 发布闸门：白名单必须为空（release.sh 专用，不接 CI 常跑）——
+
+new_tree release-gate-nonempty
+run bash tools/i18n-lint.sh --write-whitelist
+run bash tools/i18n-lint.sh --lproj-dir lproj --fail-if-whitelist-nonempty
+expect "发布闸门 · 白名单非空 → 1" 1 "发布闸门：tools/i18n-whitelist.txt 仍有"
+
+new_tree release-gate-empty
+printf 'let status = "Status"\n' > "$T/Apps/macos/Sources/Workspace/Base.swift"
+cat > "$T/tools/i18n-whitelist.txt" <<'WL'
+# 白名单已清零
+WL
+run bash tools/i18n-lint.sh --lproj-dir lproj --fail-if-whitelist-nonempty
+expect "发布闸门 · 白名单为空 → 0" 0 "通过"
+
+new_tree release-gate-no-whitelist
+run bash tools/i18n-lint.sh --lproj-dir lproj --fail-if-whitelist-nonempty
+expect "发布闸门 · 缺白名单 → 2" 2 "未找到白名单"
 
 # —— i18n-compile.sh 的输入校验（不依赖 Xcode）——
 

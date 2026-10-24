@@ -14,6 +14,9 @@
 #   --require-catalog    同时要求 Catalog 源文件存在（CI 用），缺失即失败
 #   --catalog <路径>     Catalog 源文件路径，缺省 Apps/macos/Resources/Localizable.xcstrings
 #   --write-whitelist    按当前代码重写 tools/i18n-whitelist.txt 后退出
+#   --fail-if-whitelist-nonempty
+#                        白名单仍有条目即判失败（发布闸门，由 tools/release.sh 调用；
+#                        不接 CI 常跑——开发期白名单必然非空）
 # 退出码: 0 通过；1 违规；2 用法错误或输入缺失
 set -u
 
@@ -24,6 +27,7 @@ LPROJ_DIR="$ROOT_DIR/dist/Kairo.app/Contents/Resources"
 CATALOG="$ROOT_DIR/Apps/macos/Resources/Localizable.xcstrings"
 REQUIRE_CATALOG=0
 WRITE_WHITELIST=0
+FAIL_ON_NONEMPTY=0
 LAYER_DIRS=(
     "$ROOT_DIR/Sources/KairoCore"
     "$ROOT_DIR/Sources/KairoCommands"
@@ -39,6 +43,8 @@ usage() {
   --require-catalog    要求 Catalog 源文件存在（缺省 Apps/macos/Resources/Localizable.xcstrings）
   --catalog <路径>     Catalog 源文件路径
   --write-whitelist    按当前代码重写 tools/i18n-whitelist.txt 后退出
+  --fail-if-whitelist-nonempty
+                       白名单仍有条目即失败（发布闸门，release.sh 专用）
   -h, --help           显示帮助
 
 本脚本没有「跳过检查 (c)」的开关：缺 .lproj 就是失败，退出码 2。
@@ -70,6 +76,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --write-whitelist)
             WRITE_WHITELIST=1
+            shift
+            ;;
+        --fail-if-whitelist-nonempty)
+            FAIL_ON_NONEMPTY=1
             shift
             ;;
         -h|--help)
@@ -123,7 +133,7 @@ if ! command -v plutil >/dev/null 2>&1; then
     exit 2
 fi
 
-python3 - "$ROOT_DIR" "$SOURCE_DIR" "$WHITELIST" "$LPROJ_DIR" "$WRITE_WHITELIST" "${LAYER_DIRS[@]}" <<'PY'
+python3 - "$ROOT_DIR" "$SOURCE_DIR" "$WHITELIST" "$LPROJ_DIR" "$WRITE_WHITELIST" "$FAIL_ON_NONEMPTY" "${LAYER_DIRS[@]}" <<'PY'
 import json
 import os
 import re
@@ -132,7 +142,8 @@ import sys
 
 root, source_dir, whitelist_path, lproj_dir = sys.argv[1:5]
 write_whitelist = sys.argv[5] == '1'
-layer_dirs = sys.argv[6:]
+fail_on_nonempty = sys.argv[6] == '1'
+layer_dirs = sys.argv[7:]
 
 CJK = re.compile('[\u2e80-\u2fff\u3000-\u303f\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff\uff00-\uffef]')
 PLURAL_CATEGORIES = {'zero', 'one', 'two', 'few', 'many', 'other'}
@@ -409,6 +420,11 @@ if write_whitelist:
     sys.exit(0)
 
 whitelist = load_whitelist(whitelist_path)
+whitelist_total = sum(len(literals) for literals in whitelist.values())
+if fail_on_nonempty and whitelist_total:
+    violations.append('发布闸门：tools/i18n-whitelist.txt 仍有 %d 条未清理的中文'
+                      '（视图层零中文是 v0.9.0 发布判据，见 06-localization §11 判据 1；'
+                      'F-0705 收口时清零并重跑 --write-whitelist）' % whitelist_total)
 allowed = 0
 unregistered = 0
 for rel in sorted(found):

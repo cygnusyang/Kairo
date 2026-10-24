@@ -105,13 +105,14 @@ palette.result.count = "%1$ld task"
     zh-Hans: other → "%1$ld 个任务"
 ```
 
-**三道机器门禁**（`tools/i18n-lint.sh`，CI 与本地同跑，详见 §7）：
+**机器门禁**（`tools/i18n-lint.sh`，CI 与本地同跑，详见 §7；(d) 只在发版前置校验里启用）：
 
 | 检查 | 拦截对象 | 退出码 |
 |---|---|---|
 | (a) 硬编码中文 | `Apps/macos/Sources` 出现白名单（`tools/i18n-whitelist.txt`）外的中文字符串字面量（注释内中文不计） | 1 |
 | (b) 分层资源 | `KairoCore` / `KairoCommands` / `KairoPresentation` 出现 `Bundle.module` | 1 |
 | (c) 键完整性 | `en` 与 `zh-Hans` 两份 `.lproj` 的键集合不同，或同一键的占位符位置/类型不同 | 1 |
+| (d) 发布闸门 | 白名单仍有条目（仅 `--fail-if-whitelist-nonempty`，由 `tools/release.sh` 调用，不接 CI 常跑） | 1 |
 
 0 = 通过，2 = 用法错误或输入缺失（缺 Catalog、缺 `.lproj`、缺白名单）。**脚本没有「跳过某一项」的开关**：CI 用 `--require-catalog`，Catalog 源文件缺失即失败（`::error` + 红），不以跳过代替。
 
@@ -260,7 +261,7 @@ F-0700 资源实验 → F-0701 键规范 → F-0713 断言分类（与后续并�
 
 | # | 判据 | 检测方式 |
 |---|---|---|
-| 1 | 英文系统下遍历主窗口、检查器、命令面板、菜单、状态栏、更新面板、退出确认弹窗、保存失败弹窗，无中文残留 | F-0711 扫描脚本输出为空（系统提供部分除外，清单见 §8）+ 八个界面各存一张截图归档 |
+| 1 | 英文系统下遍历主窗口、检查器、命令面板、菜单、状态栏、更新面板、退出确认弹窗、保存失败弹窗，无中文残留 | `tools/i18n-lint.sh` 白名单清零（`tools/release.sh` 以 `--fail-if-whitelist-nonempty` 断言，系统提供部分除外，清单见 §8）+ 八个界面各存一张截图归档 |
 | 2 | 简体中文下文案语义与 v0.8.5 一致 | 以 F-0701 产出的键-文案对照表为基线逐条 diff，差异逐条记录在变更说明中 |
 | 3 | CLI 双语言输出正确、`--json` 字节一致、退出码不变 | 接口测试：同命令以 `--lang en` / `--lang zh-Hans` 各跑一次，比较 stdout 字节与退出码 |
 | 4a | 阶段一：MCP 错误含 `code` 且 `message` 仍是原中文 | 起进程、注入不同 `LANG` 发同一 JSON-RPC 请求，断言 `code` 存在且 `message` 与 v0.8.5 逐字一致 |
@@ -290,6 +291,7 @@ F-0700 资源实验 → F-0701 键规范 → F-0713 断言分类（与后续并�
 | 术语表 | 新增「更新面板（UpdateSheet）」等条目与英文列 | `04-glossary.md` 扩列 |
 | QUICKSTART | CLI 新增 `--lang` | 补参数说明与示例 |
 | `tools/build.sh` + `tools/i18n-compile.sh` | 清单语言键 + 构建期编译 Catalog + 资源拷贝 | 资源缺失时构建失败，不静默回退（§7.2） |
+| `tools/release.sh` | 发版前置校验新增多语言闸门：编译 Catalog → 全量 lint → 断言白名单为空 | 白名单非空即发版失败（§11 判据 1）；开发期不受影响 |
 | CI | 新增硬编码中文门禁、缺键检查、`Bundle.module` 守卫，落在 `tools/i18n-lint.sh`（含白名单 `tools/i18n-whitelist.txt`），并跑 `tools/i18n-lint-selftest.sh` 自测 | 白名单入库；Linux 任务不变；**没有跳过模式**：CI 用 `--require-catalog`，Catalog 缺失即 `::error` + 失败（F-0705 合入前该步骤保持红色），不以跳过代替 |
 | 测试套件 | 327 处含中文断言 | F-0713 分类后由 F-0710 改造 |
 | 架构文档 | 分层职责新增「文案归属」 | `ARCHITECTURE.md` 补一条约束并指向本文 |

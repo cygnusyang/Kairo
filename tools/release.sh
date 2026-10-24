@@ -88,6 +88,18 @@ if ! bash tools/release_notes.sh "$TAG" > "$NOTES_FILE" 2>/dev/null; then
 fi
 echo "    changelog 章节: $(wc -l < "$NOTES_FILE" | tr -d ' ') 行"
 
+# 多语言发布闸门（06-localization §11 判据 1 / §13）：视图层零中文 + 两侧键完整。
+# 白名单必须为空——开发期它是迁移基线，发版时它必须消失。
+echo "==> 校验多语言资源"
+LPROJ_TMP="$(mktemp -d)/lproj"
+if ! bash tools/i18n-compile.sh "$LPROJ_TMP" >/dev/null; then
+  fail "多语言: Catalog 编译失败（缺 Apps/macos/Resources/Localizable.xcstrings 或 xcstringstool？）"
+fi
+if ! bash tools/i18n-lint.sh --require-catalog --fail-if-whitelist-nonempty --lproj-dir "$LPROJ_TMP"; then
+  fail "多语言: 门禁未通过（白名单未清零或键/占位符不一致，见上方输出）"
+fi
+echo "    视图层无未登记中文，两侧键与占位符一致"
+
 # ---------- 2. 同步三处版本号 ----------
 echo "==> 版本号 → $VERSION"
 sed -i '' -E "s|<string>[0-9]+\.[0-9]+\.[0-9]+</string>|<string>$VERSION</string>|" tools/build.sh
