@@ -221,7 +221,6 @@ public enum GanttLayoutEngine {
 
         let firstDay = calendar.component(.day, from: windowStart)
         let firstMonth = calendar.component(.month, from: windowStart)
-        let firstYear = calendar.component(.year, from: windowStart)
         switch zoom {
         case .day, .week:
             // 窗口起点不在月初时补当月上层标签，避免上层表头空白。
@@ -254,7 +253,6 @@ public enum GanttLayoutEngine {
             }
             while monthCursor < windowEnd {
                 let month = calendar.component(.month, from: monthCursor)
-                let year = calendar.component(.year, from: monthCursor)
                 let offset = monthCursor.timeIntervalSince(windowStart) / 86_400
                 let x = offset * dayWidth
                 lowerTicks.append(GanttLayout.Tick(
@@ -276,7 +274,6 @@ public enum GanttLayoutEngine {
                 let weekday = calendar.component(.weekday, from: cursor)
                 let day = calendar.component(.day, from: cursor)
                 let month = calendar.component(.month, from: cursor)
-                let year = calendar.component(.year, from: cursor)
                 let offset = cursor.timeIntervalSince(windowStart) / 86_400
                 let x = offset * dayWidth
 
