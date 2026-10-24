@@ -47,7 +47,7 @@ public enum ViolationEngine {
         var violations: [Violation] = []
         violations += cycleViolations(result: result, byID: byID)
         violations += projectBoundaryViolations(result: result, byID: byID)
-        violations += negativeSlackViolations(result: result, byID: byID)
+        violations += negativeSlackViolations(result: result, byID: byID, calendar: calendar)
         violations += constraintViolations(result: result, byID: byID, calendar: calendar)
         violations += constraintWindowViolations(result: result, byID: byID, calendar: calendar)
         return violations
@@ -140,15 +140,48 @@ public enum ViolationEngine {
 
     private static func negativeSlackViolations(
         result: ScheduleResult,
-        byID: [UUID: TaskItem]
+        byID: [UUID: TaskItem],
+        calendar: Calendar
     ) -> [Violation] {
         result.tasks.compactMap { s in
             guard s.totalSlackDays < 0 else { return nil }
+            // F-0715 / D-022：任务开始日落在项目窗口外时，负宽延是用户输入的后果，
+            // 不是相关性链的后果——归因改抛 `startAfterProjectWindow`，参数带具体日期。
+            if let attribution = windowEscape(
+                scheduled: s, task: byID[s.taskID], result: result, calendar: calendar
+            ) {
+                return Violation(reason: attribution, taskID: s.taskID)
+            }
             return Violation(
                 reason: .negativeSlack(taskTitle: title(s.taskID, byID)),
                 taskID: s.taskID
             )
         }
+    }
+
+    /// 任务开始日是否落在项目窗口外；落在窗口外时返回归因（含具体日期）。
+    ///
+    /// 判定基准优先取用户输入（`TaskItem.startDate`），没有输入时退回排期的最早开始：
+    /// 前者是「用户写了窗口外的日期」，后者是「时限 / 相关性把任务挤出窗口」，
+    /// 两者都属于输入致因，但都不能归给「无法安排」。
+    private static func windowEscape(
+        scheduled: ScheduledTask,
+        task: TaskItem?,
+        result: ScheduleResult,
+        calendar: Calendar
+    ) -> ViolationReason? {
+        guard let projectStart = result.projectStart, let projectEnd = result.projectEnd else {
+            return nil
+        }
+        let taskStart = task?.startDate.map { calendar.startOfDay(for: $0) }
+            ?? scheduled.earliestStart
+        guard taskStart > projectEnd || taskStart < projectStart else { return nil }
+        return .startAfterProjectWindow(
+            taskTitle: task?.title,
+            taskStart: taskStart,
+            projectStart: projectStart,
+            projectEnd: projectEnd
+        )
     }
 
     // MARK: - F-30-03 / 04 / 05 时限

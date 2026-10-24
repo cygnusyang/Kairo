@@ -247,3 +247,49 @@ struct CriticalPathTests {
         #expect(byID[p2.id]?.freeSlackDays == 1)
     }
 }
+
+// MARK: - F-0715 / D-022 归因：开始日落在项目窗口外
+
+struct StartAfterProjectWindowAttributionTests {
+    @Test func startDateBeyondProjectEndIsAttributedToUserInput() {
+        var late = task("窗口外任务", duration: 2)
+        late.startDate = day(2026, 11, 20)
+        let window = violations(compute([late], end: day(2026, 11, 5)), [late])
+        let attributed = window.filter { $0.code == .startAfterProjectWindow }
+        #expect(attributed.count == 1)
+        guard case .startAfterProjectWindow(let title, let taskStart, let projectStart, let projectEnd)?
+            = attributed.first?.reason else {
+            Issue.record("期望 startAfterProjectWindow，实际 \(String(describing: attributed.first?.reason))")
+            return
+        }
+        #expect(title == "窗口外任务")
+        #expect(taskStart == day(2026, 11, 20))
+        #expect(projectStart == d0)
+        #expect(projectEnd == day(2026, 11, 5))
+        // 归因不再落到「负宽延」：用户输入造成的越界不能被描述成依赖冲突（D-022）。
+        #expect(!codes(window).contains(.negativeSlack))
+    }
+
+    @Test func startDateBeforeProjectStartIsAttributedToTheSameReason() {
+        // 对称情形：意图开始早于项目开始，同样归因到用户输入（参数携带方向）。
+        var early = task("过早任务", duration: 5)
+        early.startDate = day(2026, 10, 20)
+        let window = violations(compute([early], end: day(2026, 11, 4)), [early])
+        let attributed = window.filter { $0.code == .startAfterProjectWindow }
+        #expect(attributed.count == 1)
+        guard case .startAfterProjectWindow(_, let taskStart, _, _)? = attributed.first?.reason else {
+            return
+        }
+        #expect(taskStart == day(2026, 10, 20))
+        #expect(!codes(window).contains(.negativeSlack))
+    }
+
+    @Test func negativeSlackInsideWindowKeepsItsOwnAttribution() {
+        // 反例护栏：没有用户输入越界时，负宽延仍归因「无法安排」，不被新归因吞掉。
+        let pred = task("前驱", duration: 2)
+        let t = task("后继", duration: 2, deps: [TaskDependency(predecessorID: pred.id)])
+        let vs = violations(compute([pred, t], end: day(2026, 11, 4)), [pred, t])
+        #expect(codes(vs).contains(.negativeSlack))
+        #expect(!codes(vs).contains(.startAfterProjectWindow))
+    }
+}

@@ -36,6 +36,14 @@ public enum ViolationReason: Codable, Hashable, Sendable {
     case constraintConflict(taskTitle: String?, kind: ConstraintKind, conflict: ConstraintConflict)
     /// F-30-04：先决条件把开始 / 结束推过时限。
     case constraintUnmetByPrerequisite(taskTitle: String?, kind: ConstraintKind)
+    /// F-0715 / D-022：任务开始日落在项目窗口外——文案须点明是用户输入致因，
+    /// 而不是「依赖导致无法安排」。参数带任务开始日与项目窗口，便于文案给出具体日期。
+    case startAfterProjectWindow(
+        taskTitle: String?,
+        taskStart: Date,
+        projectStart: Date,
+        projectEnd: Date
+    )
 
     /// 与 `KairoErrorCode` 的稳定映射（1:1，接口层按此输出 `code`）。
     public var code: KairoErrorCode {
@@ -47,6 +55,7 @@ public enum ViolationReason: Codable, Hashable, Sendable {
         case .negativeSlack: return .negativeSlack
         case .constraintConflict: return .constraintVsDependency
         case .constraintUnmetByPrerequisite: return .constraintVsPrerequisite
+        case .startAfterProjectWindow: return .startAfterProjectWindow
         }
     }
 
@@ -59,7 +68,8 @@ public enum ViolationReason: Codable, Hashable, Sendable {
              .constraintWindowTooNarrow(let title, _, _),
              .negativeSlack(let title),
              .constraintConflict(let title, _, _),
-             .constraintUnmetByPrerequisite(let title, _):
+             .constraintUnmetByPrerequisite(let title, _),
+             .startAfterProjectWindow(let title, _, _, _):
             return title
         }
     }
