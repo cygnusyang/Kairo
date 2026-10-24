@@ -5,7 +5,7 @@
 
 ## 0. 通用口径（三条，全组共用）
 
-**S1 无中文扫描口径**（A-01/A-06/F-01 共用，唯一实现 `tools/i18n-lint.sh`，已入库）：只统计 `Apps/macos/Sources` 的**字符串字面量**，注释内中文不算；匹配 `"[^"]*[一-龥][^"]*"`。退出码 0 通过 / 1 违规 / 2 用法或输入缺失。基线清单 `tools/i18n-whitelist.txt` 的语义是**待清理基线**而非永久豁免：新增即失败，已清理条目只提示不阻塞；无 Catalog 时用 `--skip-catalog`（(c) 显式不计入通过）。
+**S1 无中文扫描口径**（A-01/A-06/F-01 共用，唯一实现 `tools/i18n-lint.sh`，已入库）：只统计 `Apps/macos/Sources` 的**字符串字面量**，注释内中文不算；匹配 `"[^"]*[一-龥][^"]*"`。退出码 0 通过 / 1 违规 / 2 用法或输入缺失。基线清单 `tools/i18n-whitelist.txt` 的语义是**待清理基线**而非永久豁免：新增即失败，已清理条目只提示不阻塞。脚本**没有跳过开关**（传 `--skip-catalog` 属未知参数 → exit 2）；`--require-catalog` 额外要求 Catalog 源文件，缺则 exit 2。故「该步骤绿」等价于「(a)(b)(c) 全验过」，不存在只验两项也算通过的路径。
 
 **S2 豁免口径**：只有系统提供的文本（系统菜单栏项、服务菜单、系统标准按钮 `NSButton` 系统标题）可以留在白名单。**不得**包含 `AppDelegate.swift`（退出确认、保存失败两处 `NSAlert`）与 `Updater/UpdateSheet.swift`（错误行与按钮）。当前基线 404 条中这两文件占 8 + 25 条 —— 是**待清理债**，发布闸门要求归零（A-02）。
 
@@ -17,7 +17,7 @@
 
 | ID | 用例 | 前置 | 步骤 / 判据 | 类型 | 工作项 |
 |---|---|---|---|---|---|
-| A-01 | 英文系统无中文残留（扫描） | 英文系统、构建产物 | `bash tools/i18n-lint.sh --lproj-dir dist/Kairo.app/Contents/Resources`；**期望** exit 0 且输出「(a) … 无新增」，**且** `grep -vc '^#' tools/i18n-whitelist.txt` == 0（基线清零是发布闸门；当前 404 条 → 本版早期必红，属预期） | 自动 | F-0711 |
+| A-01 | 英文系统无中文残留（扫描） | 英文系统、构建产物 | `bash tools/i18n-compile.sh /tmp/kairo-lproj && bash tools/i18n-lint.sh --require-catalog --lproj-dir /tmp/kairo-lproj`（对 .app 产物则用 `--lproj-dir dist/Kairo.app/Contents/Resources`）；**期望** exit 0 且输出「(a) … 无新增」「(c) … 键与占位符一致」，**且** `grep -vc '^#' tools/i18n-whitelist.txt` == 0（当前 404 条 → 本版早期必红，属预期；F-0705 收口后 `--write-whitelist` 重写，头部变为「发布前本文件应为空」） | 自动 | F-0711 |
 | A-02 | 豁免清单不含应用自写文案 | 同上 | `grep -c 'AppDelegate.swift' tools/i18n-whitelist.txt` == 0，`grep -c 'UpdateSheet.swift'` == 0；**期望** 两数均为 0（当前 8 / 25 → 必红，用于驱动 F-0705 收口） | 自动 | F-0711、F-0705 |
 | A-03 | 八个界面英文目视归档 | 英文系统、.app | 逐界面截图存 `docs/archive/v0.9.0-i18n/`：主窗口/检查器/命令面板/菜单/状态栏/更新面板/退出确认/保存失败；**期望**：8 个文件存在，检查表 8 行全勾，任一格未勾即不通过 | 人工 | F-0705 |
 | A-04 | 中文语义与 v0.8.5 一致 | F-0701 键-文案对照表 | 以表为基线逐条 diff；**期望**：差异条目数 == `CHANGELOG` 变更说明条目数，且每条含键名 + 理由；无理由的差异视为回归 | 半自动 | F-0701、F-0710 |
@@ -86,8 +86,8 @@
 |---|---|---|---|---|---|
 | G-01 | 非法 `--lang` | 临时项目 | `--lang fr` / `--lang zh_CN`（非 BCP-47）/ `--lang ""`：**期望** 退出码 2、stderr 非空且列出允许值、进程不崩溃、不落任何文件 | 自动 | F-0707 |
 | G-02 | 非法 `KAIRO_LANG` | 同上 | `KAIRO_LANG=xx`：**期望** 静默回退系统语言（退出码 0，输出与不设 env 逐字节一致），不因 CI 环境变量炸掉 | 自动 | F-0707 |
-| G-03 | 本地化资源缺失 | 临时删除 `en.lproj` | 启动并读 `Bundle.preferredLocalizations`：**期望** 非空且回退链有效；界面不出现键名形态文本（正则 `^[a-z]+(\.[a-z_]+){2,}$`） | 半自动 | F-0709 |
-| G-04 | 缺键回退 | 从 Catalog 删 1 条 zh 译文 | zh 环境渲染该键：**期望** 显示 en 源串，不显示键名、不显示空白 | 自动 | F-0710 |
+| G-03 | 本地化资源缺失 | 先 `bash tools/build.sh` 出包（**包内只有 .lproj，源 .xcstrings 不进包**） | `rm -r dist/Kairo.app/Contents/Resources/zh-Hans.lproj` 后启动：**期望** `Bundle.preferredLocalizations` 回落到 `CFBundleDevelopmentRegion = en`；未命中的键显示调用点英文兜底，不出现键名形态文本（正则 `^[a-z]+(\.[a-z_]+){2,}$`） | 半自动 | F-0709 |
+| G-04 | 缺键回退 | 拷贝 Catalog 到临时目录（**文件名必须保持 `Localizable.xcstrings`**，表名由文件名生成） | 删掉某键的 zh 译文、**保持 en 侧 `"state": "translated"`**，再 `i18n-compile.sh /tmp/g04-out /tmp/g04/Localizable.xcstrings` + `i18n-lint.sh --require-catalog --lproj-dir /tmp/g04-out`：**期望** lint exit 1 且报「键缺少 zh-Hans 译文：<键名>」；把 state 误写成 `new` 会让 en 侧也丢键、缺键检不出来（fixture 无效）。**另一情形**：一条 zh 译文都没有时不会生成 zh-Hans.lproj → exit 2（缺 lproj），同样是红 | 自动 | F-0710 |
 | G-05 | 两侧缺键为零 | Catalog 入库 | 见 A-07 同一实现，作为发布闸门单独报数 | 自动 | F-0710 |
 | G-06 | 占位符数量与类型匹配 | 同上 | 对含 `%n$` 的键：两侧占位符多重集合相等；**期望** 不匹配键数 == 0 | 自动 | F-0710 |
 | G-07 | OTA 升级后资源仍命中 | 已装 v0.8.5 的机器 | 走更新流程整包替换到 v0.9.0 → 英文系统启动：**期望** A-01 扫描命中 0、`preferredLocalizations.first == "en"`、8 界面检查表与 A-03 一致 | 半自动 | F-0709 |
