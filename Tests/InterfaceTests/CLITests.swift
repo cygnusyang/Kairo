@@ -537,19 +537,30 @@ struct Sprint2CommandTests {
         let file = scratch.kairo
         let line = "格式版本：v\(KairoFile.currentFormatVersion)"
 
+        // 语言必须钉死：默认跟随系统/环境，CI 的英文 runner 上中文断言必红。
+        let pinned = ["KAIRO_LANG": "zh-Hans"]
         let createOutput = try captureStdout {
-            try CLIRouter.execute(arguments: ["project", "create", "版本输出", "--file", file.path])
+            try CLIRouter.execute(
+                arguments: ["project", "create", "版本输出", "--file", file.path],
+                environment: pinned, preferredLanguages: []
+            )
         }
         #expect(createOutput.contains(line))
 
         let saveOutput = try captureStdout {
-            try CLIRouter.execute(arguments: ["project", "save", "--file", file.path])
+            try CLIRouter.execute(
+                arguments: ["project", "save", "--file", file.path],
+                environment: pinned, preferredLanguages: []
+            )
         }
         #expect(saveOutput.contains(line))
         #expect(!saveOutput.contains("已从 v"))
 
         let openOutput = try captureStdout {
-            try CLIRouter.execute(arguments: ["project", "open", file.path])
+            try CLIRouter.execute(
+                arguments: ["project", "open", file.path],
+                environment: pinned, preferredLanguages: []
+            )
         }
         // project open：报告磁盘文件版本与当前目标版本，不报告升级来源。
         #expect(openOutput.contains("源格式版本：v\(KairoFile.currentFormatVersion)（当前 v\(KairoFile.currentFormatVersion)）"))
@@ -558,26 +569,40 @@ struct Sprint2CommandTests {
 
     @Test func fr_kairo_fmt_6_cliSourceVersionLineRendersUpgradeHint() throws {
         let current = KairoFile.currentFormatVersion
+        // 显式传 language：默认 .current 跟随系统，CI 英文 runner 上中文断言必红。
         #expect(
-            CLIRouter.sourceVersionLine(source: current, current: current)
+            CLIRouter.sourceVersionLine(source: current, current: current, language: .zhHans)
                 == "源格式版本：v\(current)（当前 v\(current)）"
         )
         #expect(
-            CLIRouter.sourceVersionLine(source: current - 1, current: current)
+            CLIRouter.sourceVersionLine(source: current - 1, current: current, language: .zhHans)
                 == "源格式版本：v\(current - 1)（当前 v\(current)），保存后升级"
+        )
+        // 同一条断言的英文对照：证明本地化真的生效，而不是恒等于中文。
+        #expect(
+            CLIRouter.sourceVersionLine(source: current - 1, current: current, language: .en)
+                == "source format version: v\(current - 1) (current v\(current)), will upgrade on save"
         )
     }
 
     @Test func fr_kairo_fmt_6_cliFormatVersionLineRendersUpgradeSource() throws {
         let current = KairoFile.currentFormatVersion
-        #expect(CLIRouter.formatVersionLine(written: current, upgradedFrom: nil) == "格式版本：v\(current)")
         #expect(
-            CLIRouter.formatVersionLine(written: current, upgradedFrom: current)
+            CLIRouter.formatVersionLine(written: current, upgradedFrom: nil, language: .zhHans)
                 == "格式版本：v\(current)"
         )
         #expect(
-            CLIRouter.formatVersionLine(written: current, upgradedFrom: current - 1)
+            CLIRouter.formatVersionLine(written: current, upgradedFrom: current, language: .zhHans)
+                == "格式版本：v\(current)"
+        )
+        #expect(
+            CLIRouter.formatVersionLine(written: current, upgradedFrom: current - 1, language: .zhHans)
                 == "格式版本：v\(current)（已从 v\(current - 1) 升级）"
+        )
+        // 英文对照：升级来源分支必须本地化。
+        #expect(
+            CLIRouter.formatVersionLine(written: current, upgradedFrom: current - 1, language: .en)
+                == "format version: v\(current) (upgraded from v\(current - 1))"
         )
     }
 }
