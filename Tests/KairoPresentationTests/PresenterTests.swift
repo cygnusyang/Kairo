@@ -131,7 +131,10 @@ private let fixtureProjectTitle = "演示项目"
     #expect(snapshot.outline.rows.map(\.outlineNumber) == ["1", "1.1"])
     #expect(snapshot.outline.hiddenByFilterCount == 1)
     #expect(snapshot.outline.hiddenByCollapseCount == 0)
-    #expect(snapshot.outline.filterSummary?.contains("筛选") == true)
+    #expect(snapshot.outline.filterExplanation
+            == AIFilterTranslator.summary(for: AIFilterTranslator.translate("设计")))
+    #expect(snapshot.outline.filterExplanation?.predicates
+            == [.field(key: .title, match: .contains, value: "设计")])
     #expect(snapshot.gantt.bars.count == 2)
     #expect(Set(snapshot.gantt.bars.map(\.taskID)) == Set([group.id, design.id]))
 }
@@ -149,7 +152,7 @@ private let fixtureProjectTitle = "演示项目"
 
     #expect(snapshot.outline.rows.count == 1)
     #expect(snapshot.outline.hiddenByFilterCount == 0)
-    #expect(snapshot.outline.filterSummary == nil)
+    #expect(snapshot.outline.filterExplanation == nil)
 }
 
 // MARK: - 今天线与空态

@@ -53,6 +53,7 @@ func makeSnapshot(
     violations: [Violation] = [],
     viewState: WorkspaceViewState = WorkspaceViewState(),
     viewport: WorkspaceViewport = WorkspaceViewport(canvasWidth: 800, canvasHeight: 600),
+    locale: Locale = testLocale,
     now: Date,
     saveState: SaveState = .saved
 ) -> WorkspaceSnapshot {
@@ -63,7 +64,7 @@ func makeSnapshot(
         viewState: viewState,
         viewport: viewport,
         calendar: testCalendar,
-        locale: testLocale,
+        locale: locale,
         now: now,
         saveState: saveState
     )

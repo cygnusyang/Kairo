@@ -270,7 +270,7 @@ public enum WorkspacePresenter {
                 hidden: Set(viewState.hiddenOutlineColumns.compactMap(OutlineColumn.init(rawValue:))),
                 focused: viewState.chartFocused
             ),
-            filterSummary: filterActive ? AIFilterTranslator.explanation(for: clauses) : nil,
+            filterExplanation: filterActive ? AIFilterTranslator.summary(for: clauses) : nil,
             emptyReason: outlineEmptyReason,
             hiddenByCollapseCount: tree.hiddenByCollapseCount,
             hiddenByFilterCount: tree.hiddenByFilterCount

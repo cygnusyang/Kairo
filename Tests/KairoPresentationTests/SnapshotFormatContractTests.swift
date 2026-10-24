@@ -42,4 +42,33 @@ struct SnapshotFormatContractTests {
         #expect(WorkspacePresenter.renderableDayWidth(-.infinity) == nil)
         #expect(WorkspacePresenter.renderableDayWidth(1e16) == nil)
     }
+
+    /// 同一输入、不同 Locale 两次成快照：语言无关部分必须逐位相等（C-01 的口径）。
+    ///
+    /// 已知且**有意**的例外是甘特刻度标签：F-0702 起按注入 Locale 本地化，
+    /// 标签文本随语言变（布局契约的历史形态，视图需要它），故只比较结构化部分。
+    @Test func snapshotIsLanguageNeutralOutsideGanttTickLabels() {
+        let projectStart = makeDate(2025, 1, 1)
+        let tasks = [TaskItem(title: "任务 A", startDate: projectStart, durationDays: 2)]
+        let state = makeState(tasks, projectStart: projectStart)
+        let now = makeDate(2025, 1, 3)
+        let schedule = makeSchedule(tasks, projectStart: projectStart, now: now)
+        var viewState = WorkspaceViewState()
+        viewState.filterText = "任务"
+
+        let en = makeSnapshot(
+            state: state, schedule: schedule, viewState: viewState,
+            locale: Locale(identifier: "en_US"), now: now
+        )
+        let zh = makeSnapshot(
+            state: state, schedule: schedule, viewState: viewState,
+            locale: Locale(identifier: "zh_CN"), now: now
+        )
+
+        #expect(en.outline == zh.outline)
+        #expect(en.inspector == zh.inspector)
+        #expect(en.statusBar == zh.statusBar)
+        #expect(en.gantt.bars == zh.gantt.bars)
+        #expect(en.gantt.windowStart == zh.gantt.windowStart)
+    }
 }

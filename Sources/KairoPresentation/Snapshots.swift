@@ -155,7 +155,9 @@ public enum EmptyReason: String, Codable, Hashable, Sendable {
 public struct OutlineSnapshot: Hashable, Sendable {
     public var rows: [PlanRow]
     public var columns: [OutlineColumn]
-    public var filterSummary: String?
+    /// 生效筛选的语义摘要（F-0718）；nil = 未启用筛选（纯文本或空输入）。
+    /// 旧字段 `filterSummary: String?` 携带中文整句，已删除（快照零自然语言）。
+    public var filterExplanation: FilterExplanation?
     public var emptyReason: EmptyReason?
     public var hiddenByCollapseCount: Int
     public var hiddenByFilterCount: Int
@@ -163,14 +165,14 @@ public struct OutlineSnapshot: Hashable, Sendable {
     public init(
         rows: [PlanRow],
         columns: [OutlineColumn],
-        filterSummary: String? = nil,
+        filterExplanation: FilterExplanation? = nil,
         emptyReason: EmptyReason? = nil,
         hiddenByCollapseCount: Int = 0,
         hiddenByFilterCount: Int = 0
     ) {
         self.rows = rows
         self.columns = columns
-        self.filterSummary = filterSummary
+        self.filterExplanation = filterExplanation
         self.emptyReason = emptyReason
         self.hiddenByCollapseCount = hiddenByCollapseCount
         self.hiddenByFilterCount = hiddenByFilterCount

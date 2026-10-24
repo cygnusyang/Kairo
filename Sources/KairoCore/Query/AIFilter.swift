@@ -58,11 +58,12 @@ public struct AIFilterTranslator {
         return clauses
     }
 
-    /// Human-readable summary of the active clauses, e.g. "筛选：逾期 + 状态=done".
-    public static func explanation(for clauses: [FilterClause]) -> String {
-        guard !clauses.isEmpty else { return "全部任务" }
-        let parts = clauses.map(describe)
-        return "筛选：" + parts.joined(separator: " + ")
+    /// 生效子句的语义摘要（F-0718）：码 + 参数，不含自然语言。
+    ///
+    /// 旧实现返回「筛选：逾期 + status=done」这类中文整句，经 Presenter 进入快照，
+    /// 导致同一项目在 en / zh 下快照不相等（C-01 红）。文案由视图 / CLI / MCP 各自渲染。
+    public static func summary(for clauses: [FilterClause]) -> FilterExplanation {
+        FilterExplanation(clauses: clauses)
     }
 
     /// Keep tasks satisfying every clause; an empty clause list returns all tasks.
@@ -90,11 +91,53 @@ public struct AIFilterTranslator {
         .term(SearchTerm(key: .priority, matcher: .isValue(rawValue)))
     }
 
-    private static func describe(_ clause: FilterClause) -> String {
-        switch clause {
-        case .term(let term): return term.displayText
-        case .overdue: return "逾期"
-        case .dueToday: return "今天到期"
+}
+
+/// 筛选摘要的语义值（F-0718）：谓词列表，AND 组合；空数组表示「全部任务」。
+///
+/// 进快照的是它，不是字符串——视图按 Catalog 渲染（如 `filter.predicate.overdue`），
+/// CLI / MCP 各持渲染器。这样同一项目在任意语言下快照逐位相等（C-01）。
+public struct FilterExplanation: Codable, Hashable, Sendable {
+    /// 匹配方式（与 SearchTerm.Matcher 一一对应）。
+    public enum Match: String, Codable, Hashable, Sendable {
+        case contains
+        case equals
+        case isValue
+        case hasTag
+    }
+
+    public enum Predicate: Codable, Hashable, Sendable {
+        case overdue
+        case dueToday
+        /// 字段匹配：`key` 是字段，`match` 是方式，`value` 是用户输入或枚举原始值。
+        case field(key: SearchKey, match: Match, value: String)
+    }
+
+    public var predicates: [Predicate]
+
+    public init(predicates: [Predicate]) {
+        self.predicates = predicates
+    }
+
+    public init(clauses: [FilterClause]) {
+        self.predicates = clauses.map { clause in
+            switch clause {
+            case .overdue:
+                return .overdue
+            case .dueToday:
+                return .dueToday
+            case .term(let term):
+                switch term.matcher {
+                case .contains(let value):
+                    return .field(key: term.key, match: .contains, value: value)
+                case .equals(let value):
+                    return .field(key: term.key, match: .equals, value: value)
+                case .isValue(let value):
+                    return .field(key: term.key, match: .isValue, value: value)
+                case .hasTag(let value):
+                    return .field(key: term.key, match: .hasTag, value: value)
+                }
+            }
         }
     }
 }
