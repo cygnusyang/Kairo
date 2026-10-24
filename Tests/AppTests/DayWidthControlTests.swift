@@ -41,7 +41,8 @@ struct DayWidthControlTests {
         #expect(store.viewState.customDayWidth == 20)
         #expect(!store.viewState.usesFitZoom)
         #expect(store.snapshot.gantt.dayWidth == 20)
-        #expect(store.snapshot.statusBar.zoomLabel == "自定义")
+        #expect(store.snapshot.statusBar.zoom.preset == .custom)
+        #expect(store.snapshot.statusBar.zoom.pointsPerDay == 20)
     }
 
     @Test func setCustomDayWidthClampsOutOfRangeValues() {

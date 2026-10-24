@@ -1,9 +1,13 @@
 import Foundation
+import KairoCommands
 import KairoCore
 import KairoPresentation
 
 /// 视图层文案与格式化：术语与核心层一致，同一事物全篇同一名称。
 enum Display {
+    /// 空值占位符：日期 / 时长 / 读数缺失时统一用它。
+    static let placeholder = "—"
+
     static let dateFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "zh_CN")
@@ -174,6 +178,86 @@ enum Display {
         case .saved: return "已保存"
         case .unsaved: return "未保存"
         case .failed: return "保存失败"
+        }
+    }
+
+    // MARK: - 缩放指示（F-0705：快照只给档位枚举与日宽读数）
+
+    /// 缩放档位名。
+    static func zoomPresetTitle(_ preset: ZoomPreset) -> String {
+        switch preset {
+        case .custom: return I18n.t("statusbar.zoom.preset.custom", "Custom")
+        case .fit: return I18n.t("statusbar.zoom.preset.fit", "Fit to project")
+        case .day: return I18n.t("statusbar.zoom.preset.day", "Day")
+        case .week: return I18n.t("statusbar.zoom.preset.week", "Week")
+        case .month: return I18n.t("statusbar.zoom.preset.month", "Month")
+        }
+    }
+
+    /// 日宽读数：整数不带小数位（`12 点/天`），非整数保留 1 位（`12.5 点/天`）。
+    ///
+    /// `nil` 与非有限值出占位符：`Int(_:)` 对 NaN / ±∞ 会 trap，不能直接转换。
+    static func pointsPerDay(_ value: Double?) -> String {
+        guard let value, value.isFinite else { return placeholder }
+        let rounded = (value * 10).rounded() / 10
+        let number: String
+        if rounded == rounded.rounded(), rounded.magnitude <= 1e15 {
+            number = String(Int(rounded))
+        } else {
+            number = String(format: "%.1f", rounded)
+        }
+        return I18n.t("statusbar.zoom.points_per_day", "%1$@ pts/day", number)
+    }
+
+    /// 状态栏缩放指示：档位 + 实际日宽（如「自定义 · 20 点/天」）；读数缺失时只出档位。
+    static func zoomIndicator(_ zoom: ZoomIndicator) -> String {
+        let preset = zoomPresetTitle(zoom.preset)
+        guard zoom.pointsPerDay != nil else { return preset }
+        return I18n.t("statusbar.zoom.indicator", "%1$@ · %2$@", preset, pointsPerDay(zoom.pointsPerDay))
+    }
+
+    // MARK: - 日期字段禁用原因（F-0705：可用性由呈现层给语义）
+
+    /// 日期字段不可编辑的解释；可编辑时返回 nil（不显示解释）。
+    static func dateFieldDisabledReason(_ availability: DateFieldAvailability) -> String? {
+        switch availability {
+        case .editable:
+            return nil
+        case .disabled(let reason):
+            switch reason {
+            case .aggregate:
+                return I18n.t(
+                    "date.field.disabled.aggregate",
+                    "Group fields are aggregated from subtasks and read-only"
+                )
+            case .milestone:
+                return I18n.t("date.field.disabled.milestone", "Milestones have no duration")
+            case .unscheduled(let why):
+                guard let why else {
+                    return I18n.t("date.field.disabled.unscheduled", "Not scheduled")
+                }
+                return I18n.t(
+                    "date.field.disabled.unscheduled_with_reason",
+                    "Not scheduled (%1$@); the end date cannot be set",
+                    unscheduledReason(why)
+                )
+            }
+        }
+    }
+
+    // MARK: - 载入警告（F-0705：会话只给码与参数）
+
+    /// 载入警告的提示文案；码没有对应文案时回落码本身（不静默吞掉警告）。
+    static func loadWarning(_ warning: LoadWarning) -> String {
+        switch warning.code {
+        case .groupPromoted:
+            return I18n.t(
+                "alert.load.group_promoted",
+                "Task “%1$@” has subtasks and was treated as a group",
+                warning.taskTitle ?? I18n.t("inspector.violation.unknown_task", "Unknown task")
+            )
+        default:
+            return warning.code.rawValue
         }
     }
 }

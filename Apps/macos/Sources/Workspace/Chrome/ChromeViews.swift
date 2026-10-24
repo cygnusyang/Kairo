@@ -194,7 +194,7 @@ struct StatusBarView: View {
                 }
                 if width >= 900 {
                     // 档位 + 实际日宽（如「自定义 · 20 点/天」）。
-                    Text(status.zoomDetail.map { "\(status.zoomLabel) · \($0)" } ?? status.zoomLabel)
+                    Text(Display.zoomIndicator(status.zoom))
                         .foregroundStyle(DesignTokens.textSecondary)
                 }
                 if !status.todayVisible {

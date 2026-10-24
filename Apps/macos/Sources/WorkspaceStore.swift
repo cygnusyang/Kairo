@@ -14,7 +14,8 @@ final class WorkspaceStore: ObservableObject {
     @Published private(set) var viewState: WorkspaceViewState
     @Published private(set) var viewport: WorkspaceViewport
     @Published private(set) var saveState: SaveState = .saved
-    @Published private(set) var loadWarnings: [String] = []
+    /// 上次载入产生的警告（语义）：文案由视图按码渲染，Store 不拼自然语言（F-0705）。
+    @Published private(set) var loadWarnings: [LoadWarning] = []
     /// 错误提示（会话拒绝、文件读写失败）。
     @Published var alertMessage: String?
     /// 非模态提示（揭示结果、保存失败等）。
@@ -1383,10 +1384,11 @@ final class WorkspaceStore: ObservableObject {
         // 升级提示与载入警告同时存在时合并展示，避免丢弃唯一的警告消费点。
         let upgradeNotice = pendingUpgradeNoticeAfterOpen
         pendingUpgradeNoticeAfterOpen = nil
-        if let upgradeNotice, let warning = loadWarnings.first {
-            notice = "\(upgradeNotice)；\(warning)"
+        let warningText = loadWarnings.first.map(Display.loadWarning)
+        if let upgradeNotice, let warningText {
+            notice = I18n.t("alert.notice.combined", "%1$@; %2$@", upgradeNotice, warningText)
         } else {
-            notice = upgradeNotice ?? loadWarnings.first
+            notice = upgradeNotice ?? warningText
         }
         refresh()
     }

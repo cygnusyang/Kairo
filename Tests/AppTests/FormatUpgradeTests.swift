@@ -383,7 +383,11 @@ struct FormatUpgradeTests {
 
         let notice = try #require(store.notice)
         #expect(notice.contains("已升级到 v\(KairoFile.currentFormatVersion)"))
-        #expect(notice.contains("已按群组处理"))
+        // 警告断言语义而非措辞（F-0705）：文案归 Catalog，裸跑 `swift test` 时按英文兜底渲染。
+        let warning = try #require(store.loadWarnings.first)
+        #expect(warning.code == .groupPromoted)
+        #expect(warning.taskTitle == "父任务")
+        #expect(notice.contains("父任务"), "合并后的提示必须带上警告指向的任务")
         #expect(!store.needsFormatUpgrade)
     }
 }

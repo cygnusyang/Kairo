@@ -1,0 +1,1179 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "alert.load.group_promoted": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task “%1$@” has subtasks and was treated as a group"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务「%1$@」有子项，已按群组处理"
+          }
+        }
+      }
+    },
+    "alert.notice.combined": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@; %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@；%2$@"
+          }
+        }
+      }
+    },
+    "date.field.disabled.aggregate": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Group fields are aggregated from subtasks and read-only"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "群组字段由子任务聚合，只读"
+          }
+        }
+      }
+    },
+    "date.field.disabled.milestone": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Milestones have no duration"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "里程碑无持续时间"
+          }
+        }
+      }
+    },
+    "date.field.disabled.unscheduled": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not scheduled"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无排期"
+          }
+        }
+      }
+    },
+    "date.field.disabled.unscheduled_with_reason": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Not scheduled (%1$@); the end date cannot be set"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无排期（%1$@），无法设置结束"
+          }
+        }
+      }
+    },
+    "inspector.violation.unknown_task": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unknown task"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知任务"
+          }
+        }
+      }
+    },
+    "statusbar.zoom.indicator": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ · %2$@"
+          }
+        }
+      }
+    },
+    "statusbar.zoom.points_per_day": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ pts/day"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%1$@ 点/天"
+          }
+        }
+      }
+    },
+    "statusbar.zoom.preset.custom": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Custom"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "自定义"
+          }
+        }
+      }
+    },
+    "statusbar.zoom.preset.day": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Day"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "日"
+          }
+        }
+      }
+    },
+    "statusbar.zoom.preset.fit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fit to project"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "适合项目"
+          }
+        }
+      }
+    },
+    "statusbar.zoom.preset.month": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Month"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "月"
+          }
+        }
+      }
+    },
+    "statusbar.zoom.preset.week": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Week"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "周"
+          }
+        }
+      }
+    },
+    "update.error.app_not_found": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No .app found in the update package; installation refused."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新包内未找到 .app，已拒绝安装。"
+          }
+        }
+      }
+    },
+    "update.error.build_time_invalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The update manifest build time is invalid: %1$@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新清单构建时间无效：%1$@。"
+          }
+        }
+      }
+    },
+    "update.error.cdhash_mismatch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app CDHash does not match the update manifest; installation refused (possibly an unofficial build)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用 CDHash 与更新清单不符，已拒绝安装（可能非官方构建）。"
+          }
+        }
+      }
+    },
+    "update.error.cdhash_missing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The app signing information has no CDHash; installation refused."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用签名信息缺少 CDHash，已拒绝安装。"
+          }
+        }
+      }
+    },
+    "update.error.check_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update check failed (%1$@); try again later."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检查更新失败（%1$@），请稍后重试。"
+          }
+        }
+      }
+    },
+    "update.error.checksum_mismatch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download integrity check failed (SHA256 mismatch); installation refused."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载包完整性校验失败（SHA256 不匹配），已拒绝安装。"
+          }
+        }
+      }
+    },
+    "update.error.checksum_read_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Download integrity check failed: cannot read the downloaded file (%1$@)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载包完整性校验失败：无法读取下载文件（%1$@）。"
+          }
+        }
+      }
+    },
+    "update.error.code_create_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cannot read the signing information of the app to install (OSStatus %1$@)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取待安装应用的签名信息（OSStatus %1$@）。"
+          }
+        }
+      }
+    },
+    "update.error.download_save_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed to save the downloaded package: %1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "下载产物保存失败：%1$@"
+          }
+        }
+      }
+    },
+    "update.error.download_url_invalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The update manifest download URL is invalid: %1$@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新清单下载地址无效：%1$@。"
+          }
+        }
+      }
+    },
+    "update.error.endpoint_host": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update endpoint %1$@ is not allowlisted; connection refused."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新端点 %1$@ 不在白名单内，已拒绝连接。"
+          }
+        }
+      }
+    },
+    "update.error.endpoint_scheme": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update requests must use HTTPS (current scheme is %1$@)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新请求必须使用 HTTPS（当前 scheme 为 %1$@）。"
+          }
+        }
+      }
+    },
+    "update.error.http_status": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The update server returned HTTP %1$@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新服务器返回 HTTP %1$@。"
+          }
+        }
+      }
+    },
+    "update.error.identifier_mismatch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "App identifier “%1$@” does not match the expected value; installation refused."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "应用标识符「%1$@」与预期不符，已拒绝安装。"
+          }
+        }
+      }
+    },
+    "update.error.install_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The previous update failed (exit code %1$@): %2$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次更新失败（退出码 %1$@）：%2$@"
+          }
+        }
+      }
+    },
+    "update.error.install_result_unreadable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The previous update result could not be read and was ignored."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "上次更新结果无法读取，已忽略。"
+          }
+        }
+      }
+    },
+    "update.error.launch_path_mismatch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The running app is not the copy installed in Applications; run the update from Applications."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前运行的应用不是已安装版本（应用程序文件夹），请从「应用程序」中执行更新。"
+          }
+        }
+      }
+    },
+    "update.error.manifest_app_id_mismatch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update manifest appId “%1$@” does not match this app; installation refused."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新清单 appId「%1$@」与本应用不匹配，已拒绝安装。"
+          }
+        }
+      }
+    },
+    "update.error.manifest_invalid_json": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update manifest is malformed: %1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新清单格式无效：%1$@"
+          }
+        }
+      }
+    },
+    "update.error.manifest_missing_field": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update manifest is missing a required field: %1$@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新清单缺少必需字段：%1$@。"
+          }
+        }
+      }
+    },
+    "update.error.manifest_schema_unsupported": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update manifest schema version %1$@ is not supported; installation refused."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新清单 schema 版本 %1$@ 不受支持，已拒绝安装。"
+          }
+        }
+      }
+    },
+    "update.error.minimum_version_unmet": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Current version %1$@ is below the minimum supported version %2$@; download the new version manually."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "当前版本 %1$@ 低于最低支持版本 %2$@，请手动下载新版本。"
+          }
+        }
+      }
+    },
+    "update.error.public_key_invalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The update signing public key is invalid."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新验签公钥无效。"
+          }
+        }
+      }
+    },
+    "update.error.script_launch_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed to launch the install script: %1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "启动安装脚本失败：%1$@"
+          }
+        }
+      }
+    },
+    "update.error.script_write_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed to write the install script: %1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "安装脚本写入失败：%1$@"
+          }
+        }
+      }
+    },
+    "update.error.signature_data_invalid": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The update manifest signature data is invalid."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新清单签名数据无效。"
+          }
+        }
+      }
+    },
+    "update.error.signature_mismatch": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update manifest signature verification failed; installation refused."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新清单签名校验失败，已拒绝安装。"
+          }
+        }
+      }
+    },
+    "update.error.signature_missing": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Update manifest has no signature; refused."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新清单缺少签名，已拒绝。"
+          }
+        }
+      }
+    },
+    "update.error.signing_info_unreadable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cannot read the app signing information (OSStatus %1$@)."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法读取应用签名信息（OSStatus %1$@）。"
+          }
+        }
+      }
+    },
+    "update.error.unknown_detail": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "unknown cause"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未知原因"
+          }
+        }
+      }
+    },
+    "update.error.unzip_failed": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Failed to unzip the update package: %1$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "更新包解压失败：%1$@"
+          }
+        }
+      }
+    },
+    "update.error.version_unparsable": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cannot compare versions: manifest %1$@, current %2$@."
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法比较版本号：清单 %1$@，当前 %2$@。"
+          }
+        }
+      }
+    },
+    "violation.constraint_conflict.latest_end_before_constraint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "latest end is before the constraint"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最晚结束早于时限"
+          }
+        }
+      }
+    },
+    "violation.constraint_conflict.latest_start_before_constraint": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "latest start is before the constraint"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "最晚开始早于时限"
+          }
+        }
+      }
+    },
+    "violation.constraint_conflict.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task “%1$@”: its “%2$@” constraint conflicts with the dependency chain: %3$@"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务「%1$@」的「%2$@」时限与相关性链冲突：%3$@"
+          }
+        }
+      }
+    },
+    "violation.constraint_conflict.window_does_not_fit": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "the window cannot hold the task duration"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "窗口无法容纳任务持续时间"
+          }
+        }
+      }
+    },
+    "violation.constraint_unmet_by_prerequisite.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task “%1$@” cannot meet its “%2$@” constraint because of prerequisites"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务「%1$@」因先决条件无法满足「%2$@」时限"
+          }
+        }
+      }
+    },
+    "violation.constraint_window_too_narrow.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task “%1$@”: its start and end constraints are only %2$ld days apart and cannot hold the %3$ld-day duration"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务「%1$@」的开始时限与结束时限相距过近（%2$ld 天），无法容纳持续时间（%3$ld 天）"
+          }
+        }
+      }
+    },
+    "violation.cycle.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task “%1$@” is part of a dependency cycle, so its order cannot be determined"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务「%1$@」处于相关性环中，无法确定先后顺序"
+          }
+        }
+      }
+    },
+    "violation.kind.end_no_earlier_than": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End no earlier than"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束不早于"
+          }
+        }
+      }
+    },
+    "violation.kind.end_no_later_than": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "End no later than"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "结束不晚于"
+          }
+        }
+      }
+    },
+    "violation.kind.start_no_earlier_than": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start no earlier than"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始不早于"
+          }
+        }
+      }
+    },
+    "violation.kind.start_no_later_than": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start no later than"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始不晚于"
+          }
+        }
+      }
+    },
+    "violation.negative_slack.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task “%1$@” cannot be scheduled: latest start is before earliest start (negative slack)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务「%1$@」无法安排：最晚开始早于最早开始（负宽延）"
+          }
+        }
+      }
+    },
+    "violation.rule.cannot_schedule_asap_alap": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cannot schedule (negative slack)"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "无法安排（负宽延）"
+          }
+        }
+      }
+    },
+    "violation.rule.constraint_is_dependency": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Constraint conflicts with dependency chain"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "时限与相关性链冲突"
+          }
+        }
+      }
+    },
+    "violation.rule.constraint_is_prerequisite": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Prerequisite blocks constraint"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "先决条件无法满足时限"
+          }
+        }
+      }
+    },
+    "violation.rule.constraint_window_too_narrow": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Constraint window too narrow"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "时限窗口过窄"
+          }
+        }
+      }
+    },
+    "violation.rule.cycle": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Dependency cycle"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "相关性环"
+          }
+        }
+      }
+    },
+    "violation.rule.start_after_project_window": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Start outside project window"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "开始日期在项目窗口外"
+          }
+        }
+      }
+    },
+    "violation.rule.task_ends_after_project_end": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task ends after project end"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务结束晚于项目结束"
+          }
+        }
+      }
+    },
+    "violation.rule.task_starts_before_project_start": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task starts before project start"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务开始早于项目开始"
+          }
+        }
+      }
+    },
+    "violation.start_after_project_window.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task “%1$@” starts on %2$@, outside the project window (%3$@ – %4$@); adjust the task start date"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务「%1$@」的开始日期 %2$@ 晚于项目可排窗口（%3$@ – %4$@），请调整任务开始日期"
+          }
+        }
+      }
+    },
+    "violation.task_after_project_end.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task “%1$@” ends after the project end date"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务「%1$@」的结束日期晚于项目结束日期"
+          }
+        }
+      }
+    },
+    "violation.task_before_project_start.message": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Task “%1$@” starts before the project start date"
+          }
+        },
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "任务「%1$@」的开始日期早于项目开始日期"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

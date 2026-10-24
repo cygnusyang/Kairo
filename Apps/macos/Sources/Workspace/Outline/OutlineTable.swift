@@ -714,8 +714,9 @@ private struct OutlineDateCell: View {
         OutlineDateEditing.isEnabled(column: column, row: row)
     }
 
+    /// 不可编辑时的解释文案；可编辑为 nil（文案由视图按语义原因查 Catalog，F-0705）。
     private var disabledReason: String? {
-        OutlineDateEditing.disabledReason(column: column, row: row)
+        Display.dateFieldDisabledReason(OutlineDateEditing.availability(column: column, row: row))
     }
 
     private var minimumDate: Date? {

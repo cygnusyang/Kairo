@@ -188,7 +188,7 @@ struct WorkspaceView: View {
                     store.dispatch(.toggleBarLabels)
                 }
             } label: {
-                Label(store.snapshot.statusBar.zoomLabel, systemImage: "arrow.left.and.right")
+                Label(Display.zoomPresetTitle(store.snapshot.statusBar.zoom.preset), systemImage: "arrow.left.and.right")
             }
             .help("时间缩放")
 
@@ -293,7 +293,7 @@ struct WorkspaceView: View {
 
     /// 缩放菜单的当前日宽读数（点/天）。
     private var currentDayWidthText: String {
-        WorkspacePresenter.zoomDetail(dayWidth: store.snapshot.gantt.dayWidth)
+        Display.pointsPerDay(store.snapshot.gantt.dayWidth)
     }
 
     // MARK: - 工作区

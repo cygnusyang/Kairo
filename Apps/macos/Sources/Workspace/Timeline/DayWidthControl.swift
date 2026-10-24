@@ -182,7 +182,7 @@ struct DayWidthControl: View {
     }
 
     private var readout: String {
-        WorkspacePresenter.zoomDetail(dayWidth: currentWidth)
+        Display.pointsPerDay(currentWidth)
     }
 
     private var rangeHint: String {

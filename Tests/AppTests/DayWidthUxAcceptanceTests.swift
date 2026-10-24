@@ -134,13 +134,19 @@ struct DayWidthUxAcceptanceTests {
 
     // MARK: - 非有限值读数（D-011 回归锁定）
 
-    /// D-019 补测：`zoomDetail(dayWidth:)` 对非有限值返回占位符，不触发 `Int(_:)` 陷阱。
-    @Test func zoomDetailHandlesNonFiniteValuesWithoutCrashing() {
-        #expect(WorkspacePresenter.zoomDetail(dayWidth: .infinity) == "—")
-        #expect(WorkspacePresenter.zoomDetail(dayWidth: -.infinity) == "—")
-        #expect(WorkspacePresenter.zoomDetail(dayWidth: .nan) == "—")
+    /// D-019 补测：日宽读数对非有限值返回占位符，不触发 `Int(_:)` 陷阱。
+    ///
+    /// F-0704 起格式化从 `WorkspacePresenter.zoomDetail` 移到视图层（`Display.pointsPerDay`），
+    /// 判据不变：非有限值出占位符，超范围有限值走非整数分支且仍可读。
+    @Test func pointsPerDayHandlesNonFiniteValuesWithoutCrashing() {
+        #expect(Display.pointsPerDay(.infinity) == "—")
+        #expect(Display.pointsPerDay(-.infinity) == "—")
+        #expect(Display.pointsPerDay(.nan) == "—")
+        #expect(Display.pointsPerDay(nil) == "—")
         // 超 Int 范围的有限值走非整数格式化分支，不崩溃且产出可读读数。
-        #expect(WorkspacePresenter.zoomDetail(dayWidth: 1e16).hasSuffix("点/天"))
+        #expect(Display.pointsPerDay(1e16).hasSuffix("pts/day"))
+        #expect(Display.pointsPerDay(12) == "12 pts/day")
+        #expect(Display.pointsPerDay(12.5) == "12.5 pts/day")
     }
 
     // MARK: - 菜单系统项结构守卫（D-018 回归锁定）

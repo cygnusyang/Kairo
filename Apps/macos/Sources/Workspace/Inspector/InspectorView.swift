@@ -425,7 +425,7 @@ private struct TaskInspectorContent: View {
         if !task.violations.isEmpty {
             section("违例") {
                 ForEach(task.violations, id: \.self) { violation in
-                    Label(violation.message, systemImage: "exclamationmark.triangle")
+                    Label(ViolationText.message(violation.reason), systemImage: "exclamationmark.triangle")
                         .font(.system(size: DesignTokens.captionFontSize))
                         .foregroundStyle(violation.severity == .error
                             ? DesignTokens.violationError
@@ -700,7 +700,7 @@ private struct ViolationInspectorContent: View {
                             .foregroundStyle(rule.severity == .error
                                 ? DesignTokens.violationError
                                 : DesignTokens.violationWarning)
-                        Text(rule.name)
+                        Text(ViolationText.ruleName(rule.code))
                             .font(.system(size: DesignTokens.captionFontSize))
                             .foregroundStyle(DesignTokens.textSecondary)
                     }
@@ -725,7 +725,7 @@ private struct ViolationInspectorContent: View {
                             if let taskID = item.taskID { store.reveal(taskID) }
                         } label: {
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(item.message)
+                                Text(ViolationText.message(item.reason))
                                     .lineLimit(2)
                                 if let title = item.taskTitle {
                                     Text(title)

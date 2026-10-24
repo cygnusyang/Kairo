@@ -92,8 +92,8 @@ struct UpdateSheet: View {
             progressBar(progress)
         case .updateAvailable(let info):
             updateAvailableDetail(info)
-        case .failed(let message):
-            Text(message)
+        case .failed(let failure):
+            Text(UpdaterFailureText.text(failure))
                 .font(.system(size: DesignTokens.captionFontSize))
                 .foregroundStyle(DesignTokens.violationError)
                 .fixedSize(horizontal: false, vertical: true)
