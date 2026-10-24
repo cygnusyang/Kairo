@@ -228,3 +228,81 @@ struct UpdaterManagerTests {
         #expect(updater.state == .idle)
     }
 }
+// MARK: - F-0719 上次安装结果 -> 结构化失败（面板不出现中文）
+
+extension UpdaterManagerTests {
+    /// 造一份「上次安装结果」：`message` 为脚本写的稳定码。
+    private func consumeState(
+        message: String,
+        success: Bool = false,
+        code: Int = 2
+    ) throws -> UpdaterState {
+        let suite = "kairo.updatertests.consume.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite) ?? .standard
+        defaults.removePersistentDomain(forName: suite)
+        defer { defaults.removePersistentDomain(forName: suite) }
+
+        let dir = FileManager.default.temporaryDirectory
+            .appendingPathComponent("kairo-ota-consume-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        defer { try? FileManager.default.removeItem(at: dir) }
+
+        let resultURL = dir.appendingPathComponent("kairo-ota-result-test.json")
+        let result = InstallResult(success: success, code: code, message: message)
+        try JSONEncoder().encode(result).write(to: resultURL)
+        defaults.set(resultURL.path, forKey: ZipAppInstaller.pendingResultPathDefaultsKey)
+        defaults.set(dir.path, forKey: ZipAppInstaller.pendingBackupDirDefaultsKey)
+
+        let keys = TestKeys.makeKeyPair()
+        let manager = makeManager(
+            keys: keys,
+            fetcher: StubFetcher(result: .failure(URLError(.timedOut))),
+            downloader: StubDownloader(archiveURL: URL(fileURLWithPath: "/dev/null")),
+            installer: StubInstaller(appURL: URL(fileURLWithPath: "/tmp/Test.app")),
+            userDefaults: defaults
+        )
+        manager.consumePendingInstallResult()
+        return manager.state
+    }
+
+    @Test func backupFailureMapsToItsOwnCode() throws {
+        let state = try consumeState(message: "backup_failed", code: 3)
+
+        guard case .failed(let failure) = state else {
+            Issue.record("期望 failed，实际 \(state)")
+            return
+        }
+        #expect(failure.code == .installBackupFailed)
+        #expect(failure.parameters["exitCode"] == "3")
+        // 脚本原文（含 v0.8.5 可能残留的中文）绝不进 UI。
+        #expect(failure.parameters["detail"] == nil)
+    }
+
+    @Test func replaceAndQuitFailuresMapToTheirCodes() throws {
+        let replaced = try consumeState(message: "replace_failed", code: 2)
+        guard case .failed(let replaceFailure) = replaced else {
+            Issue.record("期望 failed，实际 \(replaced)")
+            return
+        }
+        #expect(replaceFailure.code == .installReplaceFailed)
+
+        let running = try consumeState(message: "app_not_quitting", code: 4)
+        guard case .failed(let runningFailure) = running else {
+            Issue.record("期望 failed，实际 \(running)")
+            return
+        }
+        #expect(runningFailure.code == .installAppStillRunning)
+    }
+
+    /// 旧版本脚本写的中文文案：只认退出码，文案一律不进参数（避免英文界面漏中文）。
+    @Test func legacyChineseMessageFallsBackWithoutLeakingText() throws {
+        let state = try consumeState(message: "备份当前应用失败，未执行替换", code: 3)
+
+        guard case .failed(let failure) = state else {
+            Issue.record("期望 failed，实际 \(state)")
+            return
+        }
+        #expect(failure.code == .installFailed)
+        #expect(failure.parameters["detail"] == nil)
+    }
+}

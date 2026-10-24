@@ -256,9 +256,19 @@ public final class UpdaterManager: ObservableObject {
             return
         }
         guard result.success else {
-            var parameters = ["exitCode": String(result.code)]
-            if !result.message.isEmpty { parameters["detail"] = result.message }
-            state = .failed(UpdaterFailure(code: .installFailed, parameters: parameters))
+            // F-0719：脚本写的是稳定码，映射成独立错误码；**只带退出码**——
+            // 旧版本脚本写下的中文文案绝不进 UI（英文界面不得漏中文）。
+            let code: UpdaterErrorCode
+            switch result.reason {
+            case .appNotQuitting: code = .installAppStillRunning
+            case .backupFailed: code = .installBackupFailed
+            case .replaceFailed: code = .installReplaceFailed
+            case .relaunchFailed, nil: code = .installFailed
+            }
+            state = .failed(UpdaterFailure(
+                code: code,
+                parameters: ["exitCode": String(result.code)]
+            ))
             return
         }
         if let backupPath = userDefaults.string(forKey: ZipAppInstaller.pendingBackupPathDefaultsKey),

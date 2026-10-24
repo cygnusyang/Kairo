@@ -63,6 +63,12 @@ public enum UpdaterErrorCode: String, Codable, Hashable, Sendable, CaseIterable 
     case installResultUnreadable = "updater_install_result_unreadable"
     /// 安装脚本回报失败或未知错误兜底。
     case installFailed = "updater_install_failed"
+    /// 上一个进程未在 60s 内退出，替换未执行。
+    case installAppStillRunning = "updater_install_app_still_running"
+    /// 备份当前应用失败，替换未执行。
+    case installBackupFailed = "updater_install_backup_failed"
+    /// 替换失败并已回滚。
+    case installReplaceFailed = "updater_install_replace_failed"
 }
 
 /// 可自述错误码的错误类型（Updater 内部各错误枚举统一实现）。

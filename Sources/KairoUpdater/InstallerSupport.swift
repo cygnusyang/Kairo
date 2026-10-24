@@ -42,10 +42,25 @@ public enum InstallError: Error, UpdaterCodedError, Equatable {
     }
 }
 
-/// 脚本写回的结果文件（成功/失败 + 退出码 + 文案；重启后的 App 首启消费）。
+/// 脚本写回的结果文件（成功/失败 + 退出码 + 稳定码；重启后的 App 首启消费）。
+///
+/// `message` 自 F-0719 起只装**稳定码**（如 `backup_failed`），不再写自然语言：
+/// 该 JSON 会被更新面板直接渲染，中文会漏到英文界面（06 §8 明确不可豁免）。
+/// 字段名保留 `message` 是为了兼容旧版本脚本已写下的结果文件（旧值是中文字符串，
+/// `reason` 解析为 nil，调用方只认退出码，文案一律不展示）。
 public struct InstallResult: Codable, Equatable {
+    /// 脚本失败/提示的稳定码（与 `message` 字段同值，语义化视图）。
+    public enum FailureReason: String, Codable, CaseIterable, Sendable {
+        case appNotQuitting = "app_not_quitting"
+        case backupFailed = "backup_failed"
+        case replaceFailed = "replace_failed"
+        /// 已替换成功但 relaunch 失败（success = true）。
+        case relaunchFailed = "relaunch_failed"
+    }
+
     public let success: Bool
     public let code: Int
+    /// 稳定码（旧版本脚本可能写中文，此时 `reason` 为 nil）。
     public let message: String
 
     public init(success: Bool, code: Int, message: String) {
@@ -53,6 +68,9 @@ public struct InstallResult: Codable, Equatable {
         self.code = code
         self.message = message
     }
+
+    /// `message` 的语义化视图；未知取值（含 v0.8.5 的中文文案）为 nil。
+    public var reason: FailureReason? { FailureReason(rawValue: message) }
 }
 
 /// 替换脚本构造与文件形状守卫（纯函数，可独立测试）。
@@ -67,7 +85,9 @@ public enum InstallerScript {
         let q: (String) -> String = { "'\($0)'" }
         return """
         #!/bin/bash
-        # Kairo OTA 替换脚本（由 App 落盘并脱离启动；父进程退出后由 launchd 托管）
+        # Kairo OTA replacement script: written by the app and launched detached;
+        # after the parent process exits it is supervised by launchd.
+        # Result JSON carries stable codes only (no natural language) - F-0719.
         RESULT_FILE=\(q(resultFilePath))
         write_result() {
           printf '{"success":%s,"code":%d,"message":"%s"}\\n' "$2" "$1" "$3" > "$RESULT_FILE"
@@ -77,21 +97,21 @@ public enum InstallerScript {
           sleep 0.2
         done
         if kill -0 \(pid) 2>/dev/null; then
-          write_result 4 false "等待当前应用退出超时，未执行替换"
+          write_result 4 false "app_not_quitting"
           exit 1
         fi
         rm -rf \(q(backupPath))
         if ! mv \(q(currentAppPath)) \(q(backupPath)); then
-          write_result 3 false "备份当前应用失败，未执行替换"
+          write_result 3 false "backup_failed"
           exit 1
         fi
         if ! cp -R \(q(newAppPath)) \(q(currentAppPath)); then
           mv \(q(backupPath)) \(q(currentAppPath)) 2>/dev/null
-          write_result 2 false "安装新版本失败，已回滚"
+          write_result 2 false "replace_failed"
           exit 1
         fi
         if ! open \(q(currentAppPath)); then
-          write_result 1 true "已安装新版本，但自动启动失败，请手动打开"
+          write_result 1 true "relaunch_failed"
           exit 0
         fi
         write_result 0 true ""

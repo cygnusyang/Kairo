@@ -60,6 +60,16 @@ struct UpdaterErrorCodeTests {
         #expect(AppProductVerifier.VerificationError.cannotCreateCode(-1).parameters["status"] == "-1")
     }
 
+    /// F-0719：安装脚本的三个失败码（外观上「安装失败」但原因不同，面板文案分别渲染）。
+    @Test func installScriptFailureCodesExist() {
+        #expect(UpdaterErrorCode.installAppStillRunning.rawValue == "updater_install_app_still_running")
+        #expect(UpdaterErrorCode.installBackupFailed.rawValue == "updater_install_backup_failed")
+        #expect(UpdaterErrorCode.installReplaceFailed.rawValue == "updater_install_replace_failed")
+        // 脚本稳定码（InstallResult.FailureReason）到错误码的映射由 UpdaterManager 测试覆盖。
+        #expect(InstallResult.FailureReason.backupFailed.rawValue == "backup_failed")
+        #expect(InstallResult.FailureReason.appNotQuitting.rawValue == "app_not_quitting")
+    }
+
     @Test func managerFailureConversionKeepsCodeAndParameters() {
         let coded = UpdaterManager.failure(from: UpdateChecksumError.mismatch)
         #expect(coded.code == .checksumMismatch)

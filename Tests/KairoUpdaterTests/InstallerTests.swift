@@ -67,7 +67,27 @@ struct InstallerTests {
         // 握手）已由上面三个断言锁定。
         #expect(decoded.success)
         #expect(decoded.code == 1)
-        #expect(decoded.message.contains("自动启动失败"))
+        // F-0719：结果 JSON 的 message 现在是稳定码（脚本不再写中文，更新面板按码渲染）。
+        #expect(decoded.message == "relaunch_failed")
+        #expect(decoded.reason == .relaunchFailed)
+    }
+
+    /// F-0719：脚本正文（会落盘到用户磁盘、并写进 result JSON）不得出现任何中文——
+    /// 面板直接渲染 result 里的 message，中文会漏到英文界面。
+    @Test func replacementScriptContainsNoNaturalLanguage() {
+        let script = InstallerScript.replacement(
+            newAppPath: "/tmp/New.app",
+            currentAppPath: "/Applications/Kairo.app",
+            backupPath: "/tmp/Kairo-123.app",
+            resultFilePath: "/tmp/kairo-ota-result-1.json",
+            pid: 42
+        )
+        let cjk = script.unicodeScalars.filter { (0x4E00...0x9FFF).contains($0.value) }
+        #expect(cjk.isEmpty, "替换脚本含中文：\(String(cjk))；脚本只允许写稳定码")
+
+        for token in ["app_not_quitting", "backup_failed", "replace_failed", "relaunch_failed"] {
+            #expect(script.contains(token), "脚本缺少失败码 \(token)")
+        }
     }
 
     @Test func shapeGuardsFailClosed() {
