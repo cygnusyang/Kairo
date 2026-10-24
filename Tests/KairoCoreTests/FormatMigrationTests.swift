@@ -6,6 +6,8 @@ import Testing
 // MARK: - 夹具数据（用户数据，不翻译；断言与构造共用同一常量）
 private let b0Fixture1 = "当前格式"
 private let b0Fixture2 = "端到端 v2 v3"
+/// 测试自造的迁移步骤拒绝语（测试数据，不是产品文案）：构造与断言共用同一常量。
+private let b0SyntheticRejectionReason = "合成迁移拒绝继续"
 
 // MARK: - 合成迁移（仅测试使用）
 
@@ -299,7 +301,7 @@ private func capturedError<T>(_ body: () throws -> T) -> Error? {
     }
     #expect(from == 0)
     #expect(to == 1)
-    #expect(reason.contains("合成迁移拒绝继续"))
+    #expect(reason.contains(b0SyntheticRejectionReason))
 }
 
 @Test func fr_kairo_fmt_4_failed_migration_writes_nothing() throws {
@@ -323,7 +325,7 @@ private func capturedError<T>(_ body: () throws -> T) -> Error? {
     }
     #expect(from == 1)
     #expect(to == 2)
-    #expect(reason.contains("合成迁移拒绝继续"))
+    #expect(reason.contains(b0SyntheticRejectionReason))
     #expect(try Data(contentsOf: sourceURL) == sourceBytes)
     #expect(try modificationDate(of: sourceURL) == mtimeBefore)
     #expect(try FileManager.default.contentsOfDirectory(atPath: directory.path) == ["source.kairo"])
